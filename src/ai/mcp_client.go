@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"mogenius-operator/src/ai/aisdk"
 	"mogenius-operator/src/crds/v1alpha1"
 
 	"github.com/anthropics/anthropic-sdk-go"
@@ -528,6 +529,50 @@ func (m *mcpClientManager) GetOllamaToolsForSessions(sessions []string) []api.To
 					},
 				},
 			})
+		}
+	}
+	return tools
+}
+
+// mcpToolToAiSDK converts an MCP tool to the provider-neutral aisdk.Tool format.
+func mcpToolToAiSDK(tool *mcp.Tool) aisdk.Tool {
+	properties, required := mcpSchemaToPropertiesAndRequired(tool.InputSchema)
+	return aisdk.Tool{
+		Name:        sanitizeToolName(tool.Name),
+		Description: tool.Description,
+		InputSchema: properties,
+		Required:    required,
+	}
+}
+
+// GetAiSDKTools returns all MCP tools in the provider-neutral aisdk format.
+func (m *mcpClientManager) GetAiSDKTools() []aisdk.Tool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var tools []aisdk.Tool
+	for _, s := range m.sessions {
+		for _, tool := range s.tools {
+			tools = append(tools, mcpToolToAiSDK(tool))
+		}
+	}
+	return tools
+}
+
+// GetAiSDKToolsForSessions returns MCP tools in aisdk format, scoped to the
+// named sessions. An empty sessions list returns no tools.
+func (m *mcpClientManager) GetAiSDKToolsForSessions(sessions []string) []aisdk.Tool {
+	filter := sessionFilter(sessions)
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+
+	var tools []aisdk.Tool
+	for _, s := range m.sessions {
+		if !filter[s.name] {
+			continue
+		}
+		for _, tool := range s.tools {
+			tools = append(tools, mcpToolToAiSDK(tool))
 		}
 	}
 	return tools

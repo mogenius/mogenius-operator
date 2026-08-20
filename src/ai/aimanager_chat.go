@@ -101,15 +101,11 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 		}
 	}
 
-	switch rc.Sdk {
-	case AiSdkTypeOpenAI:
-		return ai.openaiChat(ctx, ioChannel, systemPrompt, rc)
-	case AiSdkTypeAnthropic:
-		return ai.anthropicChat(ctx, ioChannel, systemPrompt, rc)
-	case AiSdkTypeOllama:
-		return ai.ollamaChat(ctx, ioChannel, systemPrompt, rc)
-	default:
-		emitChatError(ctx, ioChannel, fmt.Sprintf("unsupported AI SDK type: %s", rc.Sdk))
-		return fmt.Errorf("unsupported AI SDK type: %s", rc.Sdk)
+	provider, providerErr := newAiSDKProvider(rc)
+	if providerErr != nil {
+		emitChatError(ctx, ioChannel, providerErr.Error())
+		return fmt.Errorf("failed to create AI provider: %w", providerErr)
 	}
+
+	return ai.runChatSession(ctx, provider, rc, systemPrompt, ioChannel)
 }

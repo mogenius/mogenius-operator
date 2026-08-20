@@ -1215,9 +1215,8 @@ func (ai *aiManager) runOneTask(ctx context.Context, task AiTask, key string, rc
 			task.Retries++
 			// Non-retryable API errors (billing, invalid request, auth) must not be retried.
 			// Mark as ignored so the queue skips them on the next pass.
-			var budgetErr *BudgetExhaustedError
 			var apiErr *anthropic.Error
-			if errors.As(err, &budgetErr) {
+			if errors.As(err, new(*BudgetExhaustedError)) {
 				// Per-run budget (token or tool-call limit): retrying won't help
 				// until the user raises the limit in the model or agent settings.
 				task.State = AI_TASK_STATE_CANCELED
@@ -1348,20 +1347,25 @@ func latestTaskNamespaces(task *AiTask, key string) []string {
 // MCP tools with needsApprove policy are intercepted and turned into PROPOSED
 // tasks instead of being executed directly. The primary run always completes
 // without findings — proposals arrive as independent tasks via CreateApprovalRequest.
-func (ai *aiManager) processPrompt(ctx context.Context, rc *ResolvedModelConfig, prompt string, toolCtx *ToolContext, agentSpec *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string), recordStep StepRecorder) (tokensUsed int64, timeUsedInMs int, modelUsed string, err error) {
+func (ai *aiManager) processPrompt(ctx context.Context, rc *ResolvedModelConfig, prompt string, toolCtx *ToolContext, _ *v1alpha1.AgentSpec, onProgress func(tokensUsed int64, activity string), recordStep StepRecorder) (tokensUsed int64, timeUsedInMs int, modelUsed string, err error) {
 	startTime := time.Now()
 	systemPrompt := ai.getSystemPrompt()
+	model := rc.Model
 
-	switch rc.Sdk {
-	case AiSdkTypeOpenAI:
-		return ai.processPromptOpenAi(ctx, rc, systemPrompt, prompt, toolCtx, onProgress, recordStep)
-	case AiSdkTypeAnthropic:
-		return ai.processPromptAnthropic(ctx, rc, systemPrompt, prompt, toolCtx, onProgress, recordStep)
-	case AiSdkTypeOllama:
-		return ai.processPromptOllama(ctx, rc, systemPrompt, prompt, toolCtx, onProgress, recordStep)
-	default:
-		return 0, int(time.Since(startTime).Milliseconds()), rc.Model, fmt.Errorf("unsupported AI SDK type: %s", rc.Sdk)
+	provider, providerErr := newAiSDKProvider(rc)
+	if providerErr != nil {
+		return 0, int(time.Since(startTime).Milliseconds()), model, providerErr
 	}
+
+	var mcpSessions []string
+	if toolCtx != nil {
+		mcpSessions = toolCtx.McpSessions
+	}
+	tools := buildAgentTools(ai.mcpManager, mcpSessions, toolCtx)
+	messages := buildAgentMessages(systemPrompt, prompt)
+
+	tokens, runErr := ai.runAgentLoop(ctx, provider, model, messages, tools, toolCtx, mcpSessions, rc.MaxToolCalls, rc.MaxTokensPerRun, onProgress, recordStep)
+	return tokens, int(time.Since(startTime).Milliseconds()), model, runErr
 }
 
 // getTaskByKey loads and unmarshals a task from Valkey; returns nil when the

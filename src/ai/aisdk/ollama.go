@@ -27,6 +27,40 @@ func NewOllamaProvider(baseURL string) (*OllamaProvider, error) {
 	return &OllamaProvider{client: api.NewClient(u, http.DefaultClient)}, nil
 }
 
+func toolsToOllama(tools []Tool) []api.Tool {
+	result := make([]api.Tool, len(tools))
+	for i, t := range tools {
+		props := api.NewToolPropertiesMap()
+		for name, raw := range t.InputSchema {
+			propMap, _ := raw.(map[string]any)
+			propType, _ := propMap["type"].(string)
+			propDesc, _ := propMap["description"].(string)
+			propEnum, _ := propMap["enum"].([]any)
+			prop := api.ToolProperty{
+				Type:        []string{propType},
+				Description: propDesc,
+			}
+			if len(propEnum) > 0 {
+				prop.Enum = propEnum
+			}
+			props.Set(name, prop)
+		}
+		result[i] = api.Tool{
+			Type: "function",
+			Function: api.ToolFunction{
+				Name:        t.Name,
+				Description: t.Description,
+				Parameters: api.ToolFunctionParameters{
+					Type:       "object",
+					Properties: props,
+					Required:   t.Required,
+				},
+			},
+		}
+	}
+	return result
+}
+
 func toOllamaMessages(messages []Message) []api.Message {
 	result := make([]api.Message, 0, len(messages))
 	for _, m := range messages {
@@ -65,18 +99,27 @@ func ollamaToolCalls(calls []api.ToolCall) []ToolCall {
 	return result
 }
 
-func (p *OllamaProvider) Chat(ctx context.Context, model string, messages []Message) (Response, error) {
+func (p *OllamaProvider) Chat(ctx context.Context, model string, messages []Message, tools []Tool) (Response, error) {
 	falsePtr := false
+	truePtr := true
 
 	var content string
 	var toolCalls []api.ToolCall
 	var inputTokens, outputTokens int64
 
-	err := p.client.Chat(ctx, &api.ChatRequest{
+	req := &api.ChatRequest{
 		Model:    model,
 		Messages: toOllamaMessages(messages),
 		Stream:   &falsePtr,
-	}, func(resp api.ChatResponse) error {
+		Truncate: &truePtr,
+		Shift:    &truePtr,
+		Options:  map[string]any{"temperature": 0.1},
+	}
+	if len(tools) > 0 {
+		req.Tools = toolsToOllama(tools)
+	}
+
+	err := p.client.Chat(ctx, req, func(resp api.ChatResponse) error {
 		content += resp.Message.Content
 		if resp.Done {
 			toolCalls = resp.Message.ToolCalls
@@ -98,7 +141,7 @@ func (p *OllamaProvider) Chat(ctx context.Context, model string, messages []Mess
 	}, nil
 }
 
-func (p *OllamaProvider) ChatStream(ctx context.Context, model string, messages []Message) (<-chan StreamChunk, error) {
+func (p *OllamaProvider) ChatStream(ctx context.Context, model string, messages []Message, tools []Tool) (<-chan StreamChunk, error) {
 	truePtr := true
 
 	ch := make(chan StreamChunk, 16)
@@ -108,11 +151,19 @@ func (p *OllamaProvider) ChatStream(ctx context.Context, model string, messages 
 		var inputTokens, outputTokens int64
 		var lastToolCalls []api.ToolCall
 
-		err := p.client.Chat(ctx, &api.ChatRequest{
+		req := &api.ChatRequest{
 			Model:    model,
 			Messages: toOllamaMessages(messages),
 			Stream:   &truePtr,
-		}, func(resp api.ChatResponse) error {
+			Truncate: &truePtr,
+			Shift:    &truePtr,
+			Options:  map[string]any{"temperature": 0.7},
+		}
+		if len(tools) > 0 {
+			req.Tools = toolsToOllama(tools)
+		}
+
+		err := p.client.Chat(ctx, req, func(resp api.ChatResponse) error {
 			if resp.Message.Content != "" {
 				select {
 				case ch <- StreamChunk{Content: resp.Message.Content}:
@@ -121,7 +172,6 @@ func (p *OllamaProvider) ChatStream(ctx context.Context, model string, messages 
 				}
 			}
 
-			// Ollama delivers tool calls in intermediate chunks before Done.
 			for _, tc := range resp.Message.ToolCalls {
 				select {
 				case ch <- StreamChunk{ToolCallName: tc.Function.Name}:

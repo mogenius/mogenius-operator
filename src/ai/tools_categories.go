@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/ollama/ollama/api"
-	"github.com/openai/openai-go/v3"
+	"mogenius-operator/src/ai/aisdk"
 )
 
 // ---------------------------------------------------------------------------
@@ -69,22 +67,16 @@ func (atc *ActiveToolCategories) ActivateFromToolCall(args map[string]any) strin
 	return fmt.Sprintf("Activated: %s. These tools are now available.", strings.Join(activated, ", "))
 }
 
-// --- Meta-tool definitions per provider ---
-
-var activateToolCategoriesSchema = toolSchema{
+// activateToolCategoriesAiSDK is the meta-tool definition for activating tool
+// categories within a chat session, in the provider-neutral aisdk.Tool format.
+var activateToolCategoriesAiSDK = aisdk.Tool{
 	Name:        activateToolCategoriesName,
 	Description: activateToolCategoriesDesc,
-	Props: map[string]toolProp{
-		"categories": {Type: "string", Description: "Comma-separated list of categories to activate: KubernetesWrite, HelmRead, HelmWrite"},
+	InputSchema: map[string]any{
+		"categories": prop("string", "Comma-separated list of categories to activate: KubernetesWrite, HelmRead, HelmWrite"),
 	},
 	Required: []string{"categories"},
 }
-
-var (
-	activateToolCategoriesOpenAi    = activateToolCategoriesSchema.toOpenAI()
-	activateToolCategoriesAnthropic = activateToolCategoriesSchema.toAnthropic()
-	activateToolCategoriesOllama    = activateToolCategoriesSchema.toOllama()
-)
 
 // ---------------------------------------------------------------------------
 // Category mapping & filtering
@@ -156,34 +148,10 @@ func shouldIncludeTool(name string, cat *ActiveToolCategories) bool {
 	return true
 }
 
-func filterOpenAiToolsByCategory(tools []openai.ChatCompletionToolUnionParam, cat *ActiveToolCategories) []openai.ChatCompletionToolUnionParam {
-	filtered := make([]openai.ChatCompletionToolUnionParam, 0, len(tools))
-	for _, t := range tools {
-		name := ""
-		if t.OfFunction != nil {
-			name = t.OfFunction.Function.Name
-		}
-		if shouldIncludeTool(name, cat) {
-			filtered = append(filtered, t)
-		}
-	}
-	return filtered
-}
-
-func filterAnthropicToolsByCategory(tools []anthropic.ToolParam, cat *ActiveToolCategories) []anthropic.ToolParam {
-	filtered := make([]anthropic.ToolParam, 0, len(tools))
+func filterAiSDKToolsByCategory(tools []aisdk.Tool, cat *ActiveToolCategories) []aisdk.Tool {
+	filtered := make([]aisdk.Tool, 0, len(tools))
 	for _, t := range tools {
 		if shouldIncludeTool(t.Name, cat) {
-			filtered = append(filtered, t)
-		}
-	}
-	return filtered
-}
-
-func filterOllamaToolsByCategory(tools []api.Tool, cat *ActiveToolCategories) []api.Tool {
-	filtered := make([]api.Tool, 0, len(tools))
-	for _, t := range tools {
-		if shouldIncludeTool(t.Function.Name, cat) {
 			filtered = append(filtered, t)
 		}
 	}
