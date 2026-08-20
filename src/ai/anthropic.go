@@ -528,6 +528,12 @@ func (ai *aiManager) processPromptAnthropic(ctx context.Context, rc *ResolvedMod
 			onProgress(tokensUsed, "")
 		}
 
+		if message.StopReason == anthropic.StopReasonMaxTokens || message.StopReason == anthropic.StopReasonModelContextWindowExceeded {
+			return tokensUsed, int(time.Since(startTime).Milliseconds()), model, &BudgetExhaustedError{
+				Msg: fmt.Sprintf("run stopped: model hit its limit (stop reason: %s)", message.StopReason),
+			}
+		}
+
 		if len(message.Content) == 0 {
 			return tokensUsed, int(time.Since(startTime).Milliseconds()), model, fmt.Errorf("no content returned from AI model")
 		}

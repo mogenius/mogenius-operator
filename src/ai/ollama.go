@@ -114,11 +114,13 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 
 		var responseText string
 		var toolCalls []api.ToolCall
+		var doneReason string
 		err = client.Chat(ctx, req, func(resp api.ChatResponse) error {
 			responseText += resp.Message.Content
 			if resp.Done {
 				tokensUsed += int64(resp.PromptEvalCount + resp.EvalCount)
 				toolCalls = resp.Message.ToolCalls
+				doneReason = resp.DoneReason
 			}
 			return nil
 		})
@@ -127,6 +129,12 @@ func (ai *aiManager) processPromptOllama(ctx context.Context, rc *ResolvedModelC
 		}
 		if onProgress != nil {
 			onProgress(tokensUsed, "")
+		}
+
+		if doneReason == "length" {
+			return tokensUsed, elapsed(), model, &BudgetExhaustedError{
+				Msg: "run stopped: model hit its output token limit",
+			}
 		}
 
 		// Compact before adding the assistant response when history is too large.

@@ -118,6 +118,12 @@ func (ai *aiManager) processPromptOpenAi(ctx context.Context, rc *ResolvedModelC
 			return tokensUsed, elapsed(), model, fmt.Errorf("no choices returned from AI model")
 		}
 
+		if chatCompletion.Choices[0].FinishReason == "length" {
+			return tokensUsed, elapsed(), model, &BudgetExhaustedError{
+				Msg: "run stopped: model hit its output token limit",
+			}
+		}
+
 		message := chatCompletion.Choices[0].Message
 		params.Messages = append(params.Messages, message.ToParam())
 
