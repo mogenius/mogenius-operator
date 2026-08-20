@@ -30,9 +30,13 @@ func NewOpenAIProvider(apiKey, baseURL string) *OpenAIProvider {
 func toolsToOpenAI(tools []Tool) []openai.ChatCompletionToolUnionParam {
 	params := make([]openai.ChatCompletionToolUnionParam, len(tools))
 	for i, t := range tools {
+		props := t.InputSchema
+		if props == nil {
+			props = map[string]any{}
+		}
 		fnParams := openai.FunctionParameters{
 			"type":       "object",
-			"properties": t.InputSchema,
+			"properties": props,
 		}
 		if len(t.Required) > 0 {
 			fnParams["required"] = t.Required

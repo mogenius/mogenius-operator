@@ -54,12 +54,16 @@ func (p *AnthropicProvider) MoveCacheBreakpoint(messages []Message, idx *int) {
 func toolsToAnthropic(tools []Tool) []anthropic.ToolUnionParam {
 	params := make([]anthropic.ToolUnionParam, len(tools))
 	for i, t := range tools {
+		props := t.InputSchema
+		if props == nil {
+			props = map[string]any{}
+		}
 		tp := anthropic.ToolParam{
 			Name:        t.Name,
 			Description: anthropic.String(t.Description),
 			InputSchema: anthropic.ToolInputSchemaParam{
 				Type:       "object",
-				Properties: t.InputSchema,
+				Properties: props,
 				Required:   t.Required,
 			},
 		}
