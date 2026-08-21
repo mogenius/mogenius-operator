@@ -218,8 +218,8 @@ func TestBuildSearchFilterGroups(t *testing.T) {
 }
 
 func TestEnsureTypeMeta(t *testing.T) {
-	obj := &unstructured.Unstructured{Object: map[string]interface{}{
-		"metadata": map[string]interface{}{"name": "web", "namespace": "myns"},
+	obj := &unstructured.Unstructured{Object: map[string]any{
+		"metadata": map[string]any{"name": "web", "namespace": "myns"},
 	}}
 	ensureTypeMeta(obj, "apps/v1", "Deployment")
 	assert.Equal(t, "apps/v1", obj.GetAPIVersion())
@@ -232,7 +232,7 @@ func TestEnsureTypeMeta(t *testing.T) {
 
 	// nil object and empty values are no-ops
 	ensureTypeMeta(nil, "v1", "Pod")
-	empty := &unstructured.Unstructured{Object: map[string]interface{}{}}
+	empty := &unstructured.Unstructured{Object: map[string]any{}}
 	ensureTypeMeta(empty, "", "")
 	assert.Equal(t, "", empty.GetAPIVersion())
 	assert.Equal(t, "", empty.GetKind())
@@ -240,8 +240,8 @@ func TestEnsureTypeMeta(t *testing.T) {
 
 func TestStampTypeMetaFromKey(t *testing.T) {
 	newObj := func(apiVersion, kind string) *unstructured.Unstructured {
-		obj := &unstructured.Unstructured{Object: map[string]interface{}{
-			"metadata": map[string]interface{}{"name": "web"},
+		obj := &unstructured.Unstructured{Object: map[string]any{
+			"metadata": map[string]any{"name": "web"},
 		}}
 		if apiVersion != "" {
 			obj.SetAPIVersion(apiVersion)
@@ -299,19 +299,13 @@ func TestSortRankedMembers_DescTieBreakMatchesShardPull(t *testing.T) {
 	// pull the shard's top offset+limit members (ZREVRANGE prefix),
 	// merge-sort them, slice [offset, offset+limit).
 	page := func(offset, limit int) []string {
-		count := offset + limit
-		if count > len(revLex) {
-			count = len(revLex)
-		}
+		count := min(offset+limit, len(revLex))
 		pulled := make([]rankedMember, 0, count)
 		for _, name := range revLex[:count] {
 			pulled = append(pulled, rankedMember{member: name, score: 1785488352})
 		}
 		sortRankedMembers(pulled, false, sortOrderDesc)
-		end := offset + limit
-		if end > len(pulled) {
-			end = len(pulled)
-		}
+		end := min(offset+limit, len(pulled))
 		if offset >= len(pulled) {
 			return nil
 		}

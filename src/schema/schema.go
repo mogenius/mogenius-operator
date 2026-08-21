@@ -236,7 +236,7 @@ func parseSchema(schema *Schema, input reflect.Type, depth int) (*TypeInfo, erro
 			if !unicode.IsLetter(firstRune) || !unicode.IsUpper(firstRune) {
 				continue
 			}
-			fieldName := strings.Split(inputStructField.Tag.Get("json"), ",")[0]
+			fieldName, _, _ := strings.Cut(inputStructField.Tag.Get("json"), ",")
 			if fieldName == "-" { // special syntax for the json serializer to hide a field so we do the same
 				continue
 			}

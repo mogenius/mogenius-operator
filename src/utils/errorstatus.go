@@ -55,8 +55,7 @@ func HttpStatusForError(err error) int {
 	// No recognised reason: forward the API server's own code, which covers the
 	// statuses not enumerated above. Only real error codes -- anything else
 	// would turn a failure into a success-looking status.
-	var statusErr *apierrors.StatusError
-	if errors.As(err, &statusErr) {
+	if statusErr, ok := errors.AsType[*apierrors.StatusError](err); ok {
 		if code := int(statusErr.ErrStatus.Code); code >= 400 && code <= 599 {
 			if code == http.StatusUnauthorized {
 				return http.StatusForbidden

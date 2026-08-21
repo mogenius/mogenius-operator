@@ -193,14 +193,12 @@ func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(request ChatRe
 	}()
 
 	// Run Chat with the channels
-	chatWg.Add(1)
-	go func() {
-		defer chatWg.Done()
+	chatWg.Go(func() {
 		err := self.aiManager.Chat(ctx, chatChannel)
 		if err != nil {
 			logger.Error("ChatTest error", "error", err)
 		}
-	}()
+	})
 
 	// Main loop: Read from WebSocket and write to input channel
 	for {
