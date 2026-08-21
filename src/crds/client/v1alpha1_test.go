@@ -29,8 +29,7 @@ func TestWorkspaceSpecFieldsCoveredByUpdateWorkspacePatch(t *testing.T) {
 	specType := reflect.TypeFor[mov1alpha1.WorkspaceSpec]()
 	specFields := map[string]bool{}
 	for field := range specType.Fields() {
-		field := field
-		jsonName := strings.Split(field.Tag.Get("json"), ",")[0]
+		jsonName, _, _ := strings.Cut(field.Tag.Get("json"), ",")
 		if jsonName == "" || jsonName == "-" {
 			continue
 		}

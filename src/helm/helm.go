@@ -1458,10 +1458,7 @@ func paginateHelmReleases(items []*HelmRelease, data HelmReleaseListPaginatedReq
 
 	total := len(items)
 	if data.Limit > 0 {
-		start := max(data.Offset, 0)
-		if start > total {
-			start = total
-		}
+		start := min(max(data.Offset, 0), total)
 		end := min(start+data.Limit, total)
 		items = items[start:end]
 	}

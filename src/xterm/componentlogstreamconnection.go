@@ -7,6 +7,7 @@ import (
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"net/url"
+	"slices"
 	"strings"
 	"time"
 
@@ -63,8 +64,8 @@ func ComponentStreamConnection(
 	}
 
 	logEntriesWritten := false
-	for i := len(data) - 1; i >= 0; i-- {
-		v := data[i]
+	for _, v := range slices.Backward(data) {
+
 		messageStr := processLogLine(component, namespace, release, v)
 		if messageStr == "" {
 			continue
