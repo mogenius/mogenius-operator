@@ -281,6 +281,15 @@ type HelmChartVersionRequest struct {
 	Chart string `json:"chart" validate:"required"`
 }
 
+type HelmChartOciVersionRequest struct {
+	// OCIChartUrl expects a full OCI chart reference, e.g., "oci://registry-1.docker.io/myrepo/mychart"
+	OCIChartUrl string `json:"ociChartUrl" validate:"required"`
+	// OCI specific fields
+	AuthHost string `json:"authHost,omitempty"` // e.g., "registry-1.docker.io"
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+}
+
 type HelmReleaseUninstallRequest struct {
 	Namespace string `json:"namespace" validate:"required"`
 	Release   string `json:"release" validate:"required"`
@@ -306,6 +315,10 @@ type HelmReleaseListPaginatedRequest struct {
 	// registered as resources of that workspace (resolved server-side from the
 	// Workspace CRD). Empty means cluster-wide (all releases).
 	WorkspaceName string `json:"workspaceName,omitempty"`
+	// ExcludeGitOpsManaged, when true, drops releases managed by a GitOps tool —
+	// Argo CD entries (Argo != nil) and Flux-managed entries (matched against
+	// fluxIndex) — before sorting/slicing, so totalCount reflects the filtered set.
+	ExcludeGitOpsManaged bool `json:"excludeGitOpsManaged,omitempty"`
 }
 
 // HelmWorkspaceScope restricts a paginated listing to a workspace's helm
@@ -1024,6 +1037,48 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	return installStatus(*re), nil
 }
 
+// HelmOciChartVersion lists the available tags for an OCI chart, newest first
+// (registry.Client.Tags returns them semver-sorted descending), so the caller
+// can offer a version picker pre-filled with the latest the same way the
+// classical repo-index path already does for HelmChartVersion.
+func HelmOciChartVersion(data HelmChartOciVersionRequest) ([]HelmChartInfo, error) {
+	settings := NewCli()
+
+	registryClient, err := newRegistryClient(settings, false)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create OCI registry client: %w", err)
+	}
+	if (data.Username != "" || data.Password != "") && data.AuthHost != "" {
+		if err := registryClient.Login(
+			data.AuthHost,
+			registry.LoginOptBasicAuth(data.Username, data.Password),
+		); err != nil {
+			return nil, fmt.Errorf("failed to login to OCI registry: %w", err)
+		}
+	}
+
+	// registry.Client.Tags parses the reference with oras-go, which has no notion
+	// of the "oci://" scheme — it must be stripped first (mirrors how the Helm SDK
+	// itself resolves an unpinned OCI chart reference internally).
+	ref := strings.TrimPrefix(data.OCIChartUrl, registry.OCIScheme+"://")
+	tags, err := registryClient.Tags(ref)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list tags for %s: %w", data.OCIChartUrl, err)
+	}
+
+	result := make([]HelmChartInfo, 0, len(tags))
+	for i, tag := range tags {
+		if i >= MAXCHART_VERSIONS {
+			break
+		}
+		result = append(result, HelmChartInfo{
+			Name:    data.OCIChartUrl,
+			Version: tag,
+		})
+	}
+	return result, nil
+}
+
 func newRegistryClient(settings *cli.EnvSettings, plainHTTP bool) (*registry.Client, error) {
 	opts := []registry.ClientOption{
 		registry.ClientOptDebug(settings.Debug),
@@ -1399,12 +1454,12 @@ func HelmReleaseList(data HelmReleaseListRequest) ([]*HelmRelease, error) {
 	return result, nil
 }
 
-// paginateHelmReleases applies the optional workspace scope, name filter,
-// stable sorting and offset/limit slicing to a unified list of entries (real
-// releases and Argo-managed charts alike). It is pure (no I/O) so it can be
-// unit-tested in isolation. It returns the page slice and the total count of
-// entries matching the scope+filter (before slicing).
-func paginateHelmReleases(items []*HelmRelease, data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope) ([]*HelmRelease, int) {
+// paginateHelmReleases applies the optional workspace scope, Flux exclusion,
+// name filter, stable sorting and offset/limit slicing to a unified list of
+// entries (real releases and Argo-managed charts alike). It is pure (no I/O)
+// so it can be unit-tested in isolation. It returns the page slice and the
+// total count of entries matching the scope+filter (before slicing).
+func paginateHelmReleases(items []*HelmRelease, data HelmReleaseListPaginatedRequest, scope *HelmWorkspaceScope, fluxIndex map[string]*FluxReleaseInfo) ([]*HelmRelease, int) {
 	// Work on a copy of the slice header so the in-place sort below never
 	// mutates a shared/cached slice or races with concurrent requests. The
 	// HelmRelease pointers themselves are only read.
@@ -1420,6 +1475,26 @@ func paginateHelmReleases(items []*HelmRelease, data HelmReleaseListPaginatedReq
 			}
 		}
 		items = scoped
+	}
+
+	// Excluded before sorting/slicing (not just tagged-and-hidden client-side) so
+	// totalCount reflects the filtered set. Covers both GitOps tools: Argo CD
+	// entries are merged in as their own HelmRelease-shaped items (hr.Argo != nil),
+	// while Flux-managed entries are real helm releases matched against fluxIndex.
+	if data.ExcludeGitOpsManaged {
+		filtered := items[:0:0]
+		for _, hr := range items {
+			if hr.Argo != nil {
+				continue
+			}
+			if len(fluxIndex) > 0 {
+				if _, isFlux := fluxIndex[WorkspaceHelmKey(hr.Namespace, hr.Name)]; isFlux {
+					continue
+				}
+			}
+			filtered = append(filtered, hr)
+		}
+		items = filtered
 	}
 
 	if data.Filter != "" {
@@ -1550,7 +1625,7 @@ func HelmReleaseListPaginated(data HelmReleaseListPaginatedRequest, scope *HelmW
 	items = append(items, stubs...)
 	items = append(items, argoItems...)
 
-	page, total := paginateHelmReleases(items, data, scope)
+	page, total := paginateHelmReleases(items, data, scope, fluxIndex)
 
 	// Phase 2: decode the full release only for the real releases on this page.
 	// Replace the stub pointer with a freshly materialised HelmRelease so the
@@ -1605,7 +1680,7 @@ func helmReleaseListPaginatedFull(actionConfig *action.Configuration, data HelmR
 	}
 	items = append(items, argoItems...)
 
-	page, total := paginateHelmReleases(items, data, scope)
+	page, total := paginateHelmReleases(items, data, scope, fluxIndex)
 
 	for _, hr := range page {
 		if hr.Argo != nil {
