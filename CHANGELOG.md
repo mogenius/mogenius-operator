@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.30.0](https://github.com/mogenius/mogenius-operator/compare/v2.29.0...v2.30.0) (2026-08-21)
+
+
+### Features
+
+* add oci helm cart upgrade path ([019c082](https://github.com/mogenius/mogenius-operator/commit/019c0821363b3bb1dbe8c2c9e6ca68f0655820b2))
+* show set values for oci helm releases ([c9b727e](https://github.com/mogenius/mogenius-operator/commit/c9b727e71101398fb7be3245c5cf659a1bca61d3))
+
+
+### Bug Fixes
+
+* if chat call failed mark the step as failed ([fbc12bb](https://github.com/mogenius/mogenius-operator/commit/fbc12bbd2ca5b36eb6e2d1c6e4d4ea249560ff1f))
+
 ## [2.29.0](https://github.com/mogenius/mogenius-operator/compare/v2.28.0...v2.29.0) (2026-08-21)
 
 
