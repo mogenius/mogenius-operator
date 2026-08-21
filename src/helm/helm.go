@@ -1037,6 +1037,133 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	return installStatus(*re), nil
 }
 
+func HelmOciUpgrade(data HelmChartOciInstallUpgradeRequest) (result string, err error) {
+	defer invalidateReleaseListCache() // the release set changed
+	// See HelmOciInstall for the rationale on no longer wiping logs on error.
+	cleanReleaseLogs(data.Namespace, data.Release)
+
+	settings := NewCli()
+	settings.Debug = false
+	settings.SetNamespace(data.Namespace)
+	helmLogger.Info("Setting up Helm OCI upgrade...", "releaseName", data.Release, "namespace", data.Namespace)
+
+	actionConfig := new(action.Configuration)
+	if err := actionConfig.Init(settings.RESTClientGetter(), data.Namespace, ""); err != nil {
+		helmLogger.Error("HelmOCIUpgrade Init",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+
+	if !registry.IsOCI(data.OCIChartUrl) {
+		return "", fmt.Errorf("non-OCI charts are not supported in OCI upgrade")
+	}
+
+	// Parse the values string into a map
+	valuesMap := map[string]any{}
+	if err := yaml.Unmarshal([]byte(data.Values), &valuesMap); err != nil {
+		helmLogger.Error("failed to Unmarshal HelmOCIUpgrade Values",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+
+	upgrade := action.NewUpgrade(actionConfig)
+	if data.DryRun {
+		upgrade.DryRunStrategy = action.DryRunServer
+	}
+	// See HelmReleaseUpgrade for the rationale behind these flags.
+	upgrade.WaitStrategy = kube.HookOnlyStrategy
+	upgrade.Namespace = data.Namespace
+	upgrade.Version = data.Version
+	upgrade.Devel = true
+	upgrade.ForceConflicts = true
+	upgrade.ServerSideApply = "true"
+
+	// Create registry client for OCI
+	registryClient, err := newRegistryClient(settings, false)
+	if err != nil {
+		return "", fmt.Errorf("failed to create OCI registry client: %w", err)
+	}
+	if (data.Username != "" || data.Password != "") && data.AuthHost != "" {
+		err = registryClient.Login(
+			data.AuthHost,
+			registry.LoginOptBasicAuth(data.Username, data.Password),
+		)
+		if err != nil {
+			return "", fmt.Errorf("failed to login to OCI registry: %w", err)
+		}
+	} else {
+		helmLogger.Info("No OCI registry credentials provided, attempting anonymous access", "releaseName", data.Release, "namespace", data.Namespace)
+	}
+	upgrade.SetRegistryClient(registryClient)
+
+	helmLogger.Info("Locating chart ...", "releaseName", data.Release, "namespace", data.Namespace)
+	chartPath, err := upgrade.LocateChart(data.OCIChartUrl, settings)
+	if err != nil {
+		return "", fmt.Errorf("failed to locate chart: %w", err)
+	}
+
+	helmLogger.Info("Loading pulled OCI chart ...", "releaseName", data.Release, "namespace", data.Namespace)
+	chartRequested, err := loader.Load(chartPath)
+	if err != nil {
+		helmLogger.Error("HelmOCIUpgrade Load",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+
+	// Ownership preflight: see HelmReleaseUpgrade.
+	if !data.DryRun {
+		needsTakeOwnership, perr := CheckOwnershipAndLog(
+			actionConfig, chartRequested, valuesMap,
+			data.Release, data.Namespace, data.Version,
+		)
+		if perr != nil {
+			helmLogger.Error("HelmOCIUpgrade ownership preflight failed",
+				"releaseName", data.Release,
+				"namespace", data.Namespace,
+				"error", perr.Error(),
+			)
+			return "", perr
+		}
+		upgrade.TakeOwnership = needsTakeOwnership
+	}
+
+	helmLogger.Info("Upgrading OCI chart ...", "releaseName", data.Release, "namespace", data.Namespace)
+	re, err := upgrade.Run(data.Release, chartRequested, valuesMap)
+	if err != nil {
+		helmLogger.Error("HelmOCIUpgrade Run failed",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		logReleaseFailureDiagnostics(settings, data.Namespace, data.Release)
+		return "", err
+	}
+	if re == nil {
+		return "", fmt.Errorf("HelmOCIUpgrade Error: Release not found")
+	}
+
+	err = SaveRepoNameToValkey(data.Namespace, data.Release, data.OCIChartUrl)
+	if err != nil {
+		helmLogger.Error("failed to SaveRepoNameToValkey",
+			"releaseName", data.Release,
+			"namespace", data.Namespace,
+			"error", err.Error(),
+		)
+		return "", err
+	}
+
+	return installStatus(re), nil
+}
+
 // HelmOciChartVersion lists the available tags for an OCI chart, newest first
 // (registry.Client.Tags returns them semver-sorted descending), so the caller
 // can offer a version picker pre-filled with the latest the same way the
