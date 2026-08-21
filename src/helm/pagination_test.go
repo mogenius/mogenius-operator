@@ -113,7 +113,7 @@ func TestPaginateHelmReleases(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			page, total := paginateHelmReleases(tc.input, tc.req, nil)
+			page, total := paginateHelmReleases(tc.input, tc.req, nil, nil)
 			assert.Equal(t, tc.wantTotal, total)
 			assert.Equal(t, tc.wantNames, names(page))
 		})
@@ -132,7 +132,7 @@ func TestPaginateHelmReleasesWorkspaceScope(t *testing.T) {
 			WorkspaceHelmKey("ns1", "alpha"): {},
 			WorkspaceHelmKey("ns2", "bravo"): {},
 		}}
-		page, total := paginateHelmReleases(all, HelmReleaseListPaginatedRequest{SortBy: "name"}, scope)
+		page, total := paginateHelmReleases(all, HelmReleaseListPaginatedRequest{SortBy: "name"}, scope, nil)
 		assert.Equal(t, 2, total)
 		assert.Equal(t, []string{"alpha", "bravo"}, names(page))
 	})
@@ -141,14 +141,14 @@ func TestPaginateHelmReleasesWorkspaceScope(t *testing.T) {
 		scope := &HelmWorkspaceScope{Allowed: map[string]struct{}{
 			WorkspaceHelmKey("ns2", "alpha"): {}, // alpha lives in ns1, not ns2
 		}}
-		page, total := paginateHelmReleases(all, HelmReleaseListPaginatedRequest{SortBy: "name"}, scope)
+		page, total := paginateHelmReleases(all, HelmReleaseListPaginatedRequest{SortBy: "name"}, scope, nil)
 		assert.Equal(t, 0, total)
 		assert.Equal(t, []string{}, names(page))
 	})
 
 	t.Run("empty allow-set yields nothing (workspace with no helm resources)", func(t *testing.T) {
 		scope := &HelmWorkspaceScope{Allowed: map[string]struct{}{}}
-		page, total := paginateHelmReleases(all, HelmReleaseListPaginatedRequest{}, scope)
+		page, total := paginateHelmReleases(all, HelmReleaseListPaginatedRequest{}, scope, nil)
 		assert.Equal(t, 0, total)
 		assert.Equal(t, []string{}, names(page))
 	})
@@ -164,6 +164,7 @@ func TestPaginateHelmReleasesWorkspaceScope(t *testing.T) {
 			all,
 			HelmReleaseListPaginatedRequest{Filter: "l", SortBy: "name", Offset: 1, Limit: 1},
 			scope,
+			nil,
 		)
 		assert.Equal(t, 2, total)                         // alpha, charlie match scope+filter
 		assert.Equal(t, []string{"charlie"}, names(page)) // offset 1 of [alpha, charlie]
@@ -187,7 +188,7 @@ func TestPaginateHelmReleasesWithArgoEntries(t *testing.T) {
 	})
 
 	t.Run("argo entry sorts by its creationTimestamp under lastDeployed", func(t *testing.T) {
-		page, total := paginateHelmReleases([]*HelmRelease{real, argo}, HelmReleaseListPaginatedRequest{}, nil)
+		page, total := paginateHelmReleases([]*HelmRelease{real, argo}, HelmReleaseListPaginatedRequest{}, nil, nil)
 		assert.Equal(t, 2, total)
 		assert.Equal(t, []string{"alpha", "bravo"}, names(page)) // argo newest -> first
 	})
@@ -196,9 +197,47 @@ func TestPaginateHelmReleasesWithArgoEntries(t *testing.T) {
 		scope := &HelmWorkspaceScope{Allowed: map[string]struct{}{
 			WorkspaceHelmKey("argocd", "alpha"): {}, // matches the argo entry's ParentNamespace
 		}}
-		page, total := paginateHelmReleases([]*HelmRelease{real, argo}, HelmReleaseListPaginatedRequest{SortBy: "name"}, scope)
+		page, total := paginateHelmReleases([]*HelmRelease{real, argo}, HelmReleaseListPaginatedRequest{SortBy: "name"}, scope, nil)
 		assert.Equal(t, 1, total)
 		assert.Equal(t, []string{"alpha"}, names(page))
+	})
+}
+
+// ExcludeGitOpsManaged drops both GitOps-managed shapes — Argo CD entries
+// (merged in as their own items) and Flux-managed real releases (matched via
+// fluxIndex) — before sorting/slicing, so totalCount reflects the filtered set
+// rather than merely hiding rows.
+func TestPaginateHelmReleasesExcludeGitOpsManaged(t *testing.T) {
+	base := time.Date(2026, 6, 1, 12, 0, 0, 0, time.UTC)
+	fluxManaged := &HelmRelease{Name: "podinfo", Namespace: "apps", Info: &release.Info{LastDeployed: base}}
+	plain := &HelmRelease{Name: "nginx", Namespace: "apps", Info: &release.Info{LastDeployed: base.Add(time.Hour)}}
+	argo := NewArgoHelmRelease("alpha", &ArgoReleaseInfo{
+		ParentName:      "alpha-app",
+		ParentNamespace: "argocd",
+		DestNamespace:   "apps",
+		CreatedAt:       base.Add(2 * time.Hour),
+	})
+	all := []*HelmRelease{fluxManaged, plain, argo}
+	fluxIndex := map[string]*FluxReleaseInfo{
+		WorkspaceHelmKey("apps", "podinfo"): {ParentName: "podinfo", ParentNamespace: "flux-system"},
+	}
+
+	t.Run("drops both the flux-managed and the argo entry, shrinking total", func(t *testing.T) {
+		page, total := paginateHelmReleases(all, HelmReleaseListPaginatedRequest{SortBy: "name", ExcludeGitOpsManaged: true}, nil, fluxIndex)
+		assert.Equal(t, 1, total)
+		assert.Equal(t, []string{"nginx"}, names(page))
+	})
+
+	t.Run("ExcludeGitOpsManaged false keeps every entry", func(t *testing.T) {
+		page, total := paginateHelmReleases(all, HelmReleaseListPaginatedRequest{SortBy: "name"}, nil, fluxIndex)
+		assert.Equal(t, 3, total)
+		assert.Equal(t, []string{"alpha", "nginx", "podinfo"}, names(page))
+	})
+
+	t.Run("drops the argo entry even when fluxIndex is nil", func(t *testing.T) {
+		page, total := paginateHelmReleases(all, HelmReleaseListPaginatedRequest{SortBy: "name", ExcludeGitOpsManaged: true}, nil, nil)
+		assert.Equal(t, 2, total)
+		assert.Equal(t, []string{"nginx", "podinfo"}, names(page))
 	})
 }
 

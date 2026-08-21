@@ -1055,6 +1055,14 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "cluster/helm-chart-oci-versions"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request helm.HelmChartOciVersionRequest) ([]helm.HelmChartInfo, error) {
+			return helm.HelmOciChartVersion(request)
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "cluster/helm-release-upgrade"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmChartInstallUpgradeRequest) (string, error) {

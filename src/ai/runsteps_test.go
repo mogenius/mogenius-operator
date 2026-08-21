@@ -74,8 +74,16 @@ func TestStepRecorderSequencingAndTruncation(t *testing.T) {
 	ai, _ := newStepTestManager(t)
 
 	record := ai.newStepRecorder("run-1")
-	record(AiRunStep{Kind: AI_RUN_STEP_REASON, Label: strings.Repeat("r", maxStepLabelLen+50)})
-	record(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: "list pods", Tool: "list_kubernetes_resources", Args: strings.Repeat("a", maxStepArgsLen+50), Result: strings.Repeat("x", maxStepResultLen+50)})
+	record.Reason(strings.Repeat("r", maxStepLabelLen+50))(AiRunStepStatusFinished, "", "")
+	finalize := record.ToolCall("list_kubernetes_resources", strings.Repeat("a", maxStepArgsLen+50))
+
+	// Before finalize: ACT step is running, result is empty.
+	mid := ai.getRunSteps("run-1")
+	assert.Equal(t, AiRunStepStatusFinished, mid[0].Status)
+	assert.Equal(t, AiRunStepStatusRunning, mid[1].Status)
+	assert.Empty(t, mid[1].Result)
+
+	finalize(AiRunStepStatusFinished, "", strings.Repeat("x", maxStepResultLen+50))
 
 	steps := ai.getRunSteps("run-1")
 	assert.Len(t, steps, 2)
@@ -83,10 +91,25 @@ func TestStepRecorderSequencingAndTruncation(t *testing.T) {
 	assert.Equal(t, 2, steps[1].Seq)
 	assert.Equal(t, AI_RUN_STEP_REASON, steps[0].Kind)
 	assert.Equal(t, AI_RUN_STEP_ACT, steps[1].Kind)
+	assert.Equal(t, AiRunStepStatusFinished, steps[0].Status)
+	assert.Equal(t, AiRunStepStatusFinished, steps[1].Status)
 	assert.Len(t, steps[0].Label, maxStepLabelLen+len("…"))
 	assert.Len(t, steps[1].Args, maxStepArgsLen+len("…"))
 	assert.Len(t, steps[1].Result, maxStepResultLen+len("…"))
 	assert.NotZero(t, steps[0].Timestamp)
+}
+
+func TestStepRecorderErrorWritesDirectly(t *testing.T) {
+	ai, _ := newStepTestManager(t)
+
+	record := ai.newStepRecorder("run-err")
+	record.Error("something went wrong")
+
+	steps := ai.getRunSteps("run-err")
+	assert.Len(t, steps, 1)
+	assert.Equal(t, AI_RUN_STEP_REASON, steps[0].Kind)
+	assert.Equal(t, AiRunStepStatusErrored, steps[0].Status)
+	assert.Equal(t, "something went wrong", steps[0].Label)
 }
 
 func TestStepRecorderCapsRunaways(t *testing.T) {
@@ -94,13 +117,13 @@ func TestStepRecorderCapsRunaways(t *testing.T) {
 
 	record := ai.newStepRecorder("run-cap")
 	for range maxRunSteps + 25 {
-		record(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: "step"})
+		record.ToolCall("step", "")(AiRunStepStatusFinished, "", "")
 	}
 
 	steps := ai.getRunSteps("run-cap")
 	assert.Len(t, steps, maxRunSteps)
 	last := steps[len(steps)-1]
-	assert.Equal(t, AI_RUN_STEP_ERROR, last.Kind)
+	assert.Equal(t, AI_RUN_STEP_COMPACTION, last.Kind)
 	assert.Equal(t, stepLimitExceeded, last.Label)
 }
 
@@ -135,7 +158,7 @@ func TestGetRunAssemblesPrimaryTaskAndFindings(t *testing.T) {
 	}
 
 	record := ai.newStepRecorder(primaryID)
-	record(AiRunStep{Kind: AI_RUN_STEP_ACT, Label: "list jobs", Tool: "list_kubernetes_resources"})
+	record.ToolCall("list_kubernetes_resources", "")(AiRunStepStatusFinished, "", "")
 
 	run, err := ai.GetRun(primaryID)
 	assert.NoError(t, err)

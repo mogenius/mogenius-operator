@@ -1238,7 +1238,7 @@ func (ai *aiManager) runOneTask(ctx context.Context, task AiTask, key string, rc
 		}
 		// Close the timeline with the failure so the run's step history
 		// explains itself without cross-checking the task error field.
-		recordStep(AiRunStep{Kind: AI_RUN_STEP_ERROR, Label: task.Error})
+		recordStep.Error(task.Error)
 	} else {
 		// The run completed — proposals were created as separate PROPOSED
 		// tasks via CreateApprovalRequest. The primary task is an all-clear.

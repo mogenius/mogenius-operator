@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/valkeyclient"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -627,8 +628,8 @@ func getPodEventsTool(args map[string]any, tc *ToolContext, valkeyClient valkeyc
 	var result string
 	totalEvents := len(lines)
 	includedCount := 0
-	for i := len(lines) - 1; i >= 0; i-- {
-		candidate := lines[i] + "\n" + result
+	for _, line := range slices.Backward(lines) {
+		candidate := line + "\n" + result
 		if len(candidate) > maxChars && includedCount > 0 {
 			break
 		}

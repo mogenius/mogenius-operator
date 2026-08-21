@@ -161,11 +161,14 @@ func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(request ChatRe
 		chatChannel.WorkspaceGrant = grantSpec
 	}
 
+	var chatWg sync.WaitGroup
+
 	defer func() {
 		logger.Info("AI Chat WebSocket connection closed")
-		cancel() // cancel context first so Chat goroutine exits via ctx.Done() before channels close
-		close(inputChan)
-		close(outputChan)
+		cancel()          // signal Chat goroutine to exit via ctx.Done()
+		close(inputChan)  // unblock any input-waiting select in runChatSession
+		chatWg.Wait()     // wait for Chat goroutine to stop sending on outputChan
+		close(outputChan) // safe to close now
 	}()
 
 	// Read from output channel and write to WebSocket
@@ -190,13 +193,12 @@ func (self *aiWebsocketConnection) LiveStreamAiManagerChatRequest(request ChatRe
 	}()
 
 	// Run Chat with the channels
-	go func() {
-		//defer close(outputChan)
+	chatWg.Go(func() {
 		err := self.aiManager.Chat(ctx, chatChannel)
 		if err != nil {
 			logger.Error("ChatTest error", "error", err)
 		}
-	}()
+	})
 
 	// Main loop: Read from WebSocket and write to input channel
 	for {
