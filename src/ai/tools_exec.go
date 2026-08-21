@@ -36,6 +36,7 @@ func (ai *aiManager) dispatchToolCall(ctx context.Context, name string, args map
 
 	// Built-in Kubernetes/Helm tools.
 	if tool, ok := toolDefinitions[name]; ok {
+		finalize := e.RecordStep.ToolCall(name, rawArgs)
 		execCtx := e.ToolCtx
 		var result string
 		switch {
@@ -55,7 +56,7 @@ func (ai *aiManager) dispatchToolCall(ctx context.Context, name string, args map
 		if e.Audit {
 			ai.auditInsightToolCall(execCtx, name, args, result, nil)
 		}
-		e.recordStep(name, args, rawArgs, result)
+		finalize(AiRunStepStatusFinished, name, result)
 		e.recordStat(name, args, result, "")
 		return toolOutcome{Result: result}
 	}
@@ -63,6 +64,7 @@ func (ai *aiManager) dispatchToolCall(ctx context.Context, name string, args map
 	// MCP tools.
 	if e.ScopedMCP {
 		if ai.mcpManager != nil && ai.mcpManager.IsMCPToolInSessions(name, e.McpSessions) {
+			finalize := e.RecordStep.ToolCall(name, rawArgs)
 			auditCtx := e.ToolCtx
 			var data string
 			if ai.mcpManager.MCPToolNeedsApproval(name, e.McpSessions) {
@@ -86,7 +88,7 @@ func (ai *aiManager) dispatchToolCall(ctx context.Context, name string, args map
 			if e.Audit {
 				ai.auditInsightToolCall(auditCtx, name, args, data, mcpErr)
 			}
-			e.recordStep(name, args, rawArgs, data)
+			finalize(AiRunStepStatusFinished, name, data)
 			return toolOutcome{Result: data}
 		}
 	} else if ai.mcpManager != nil && ai.mcpManager.IsMCPTool(name) {
@@ -107,20 +109,6 @@ func (ai *aiManager) dispatchToolCall(ctx context.Context, name string, args map
 	}
 	ai.logger.Error("Unknown tool called", "tool", name)
 	return toolOutcome{Result: fmt.Sprintf("Unknown tool: %s", name), IsError: true}
-}
-
-// recordStep records a ReAct ACT step when a recorder is configured (agent).
-func (e toolExec) recordStep(name string, args map[string]any, rawArgs, result string) {
-	if e.RecordStep == nil {
-		return
-	}
-	e.RecordStep(AiRunStep{
-		Kind:   AI_RUN_STEP_ACT,
-		Label:  describeToolCall(name, args),
-		Tool:   name,
-		Args:   rawArgs,
-		Result: result,
-	})
 }
 
 // recordStat appends a ToolUseRecord when a stats sink is configured (chat).

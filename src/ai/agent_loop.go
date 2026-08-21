@@ -65,6 +65,7 @@ func (ai *aiManager) runAgentLoop(
 	}
 
 	for {
+		reasoningStep := recordStep.Reason("Running AI model...")
 		if mover != nil {
 			mover.MoveCacheBreakpoint(messages, &cachedMsgIdx)
 		}
@@ -84,13 +85,13 @@ func (ai *aiManager) runAgentLoop(
 		if estimateAiSDKMessageBytes(messages) > compactAfterBytes {
 			bytesBefore := estimateAiSDKMessageBytes(messages)
 			ai.logger.Info("Compacting conversation history with AI", "bytes", bytesBefore)
+			compactionStep := recordStep.Compaction("Running Compaction...")
 			compacted, compactTokens, compactErr := ai.compactMessagesWithAI(ctx, provider, model, messages)
 			if compactErr != nil {
 				ai.logger.Warn("AI compaction failed", "error", compactErr)
-				if recordStep != nil {
-					recordStep(AiRunStep{Kind: AI_RUN_STEP_ERROR, Label: fmt.Sprintf("Conversation compaction failed: %v", compactErr)})
-				}
+				compactionStep(AiRunStepStatusErrored, "Conversation compaction failed", compactErr.Error())
 			} else {
+				compactionStep(AiRunStepStatusFinished, "Compaction finished successfully", "")
 				messages = compacted
 				tokensUsed += compactTokens
 				cachedMsgIdx = -1
@@ -99,12 +100,14 @@ func (ai *aiManager) runAgentLoop(
 		}
 
 		if resp.FinishReason == "length" {
+			reasoningStep(AiRunStepStatusErrored, fmt.Sprintf("Run stopped: model hit its limit (stop reason: %s)", resp.FinishReason), "")
 			return tokensUsed, &BudgetExhaustedError{
 				Msg: fmt.Sprintf("run stopped: model hit its limit (stop reason: %s)", resp.FinishReason),
 			}
 		}
 
 		if resp.Content == "" && len(resp.ToolCalls) == 0 {
+			reasoningStep(AiRunStepStatusFinished, "No content or tool calls returned; run complete", "")
 			return tokensUsed, fmt.Errorf("no content returned from AI model")
 		}
 
@@ -115,10 +118,7 @@ func (ai *aiManager) runAgentLoop(
 			ToolCalls: resp.ToolCalls,
 		})
 
-		// Record any free text as a reasoning step.
-		if recordStep != nil && strings.TrimSpace(resp.Content) != "" {
-			recordStep(AiRunStep{Kind: AI_RUN_STEP_REASON, Label: resp.Content})
-		}
+		reasoningStep(AiRunStepStatusFinished, "Finished Reasoning", strings.TrimSpace(resp.Content))
 
 		if len(resp.ToolCalls) == 0 {
 			ai.logger.Info("No tool calls, run complete")

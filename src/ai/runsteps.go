@@ -23,28 +23,47 @@ const (
 type AiRunStepKind string
 
 const (
-	AI_RUN_STEP_REASON AiRunStepKind = "reason" // assistant free text between tool calls
-	AI_RUN_STEP_ACT    AiRunStepKind = "act"    // one tool call, result attached
-	AI_RUN_STEP_ERROR  AiRunStepKind = "error"  // an error surfaced during the run (fatal or recoverable, e.g. failed compaction)
+	AI_RUN_STEP_REASON     AiRunStepKind = "reason"     // assistant free text between tool calls
+	AI_RUN_STEP_ACT        AiRunStepKind = "act"        // one tool call, result attached
+	AI_RUN_STEP_COMPACTION AiRunStepKind = "compaction" // a compaction step (e.g. failed compaction)
 )
+
+type AiRunStepStatus string
+
+const (
+	AiRunStepStatusRunning  AiRunStepStatus = "running"
+	AiRunStepStatusFinished AiRunStepStatus = "finished"
+	AiRunStepStatusErrored  AiRunStepStatus = "errored"
+)
+
+// StepFinalizer closes a step with its terminal status and optional result text.
+type StepFinalizer func(status AiRunStepStatus, label string, result string)
 
 // AiRunStep is one recorded step of an agent run's ReAct loop. Args and
 // Result are truncated excerpts for the timeline — the audit log keeps the
 // authoritative trail.
 type AiRunStep struct {
-	Seq       int           `json:"seq"`
-	Kind      AiRunStepKind `json:"kind"`
-	Label     string        `json:"label"`
-	Tool      string        `json:"tool,omitempty"`
-	Args      string        `json:"args,omitempty"`
-	Result    string        `json:"result,omitempty"`
-	Timestamp int64         `json:"timestamp"`
+	Seq       int             `json:"seq"`
+	Kind      AiRunStepKind   `json:"kind"`
+	Status    AiRunStepStatus `json:"status,omitempty"`
+	Label     string          `json:"label"`
+	Tool      string          `json:"tool,omitempty"`
+	Args      string          `json:"args,omitempty"`
+	Result    string          `json:"result,omitempty"`
+	Timestamp int64           `json:"timestamp"`
 }
 
-// StepRecorder records one step of an agent run; a nil recorder disables
-// recording (chat and tests). Seq, Timestamp and truncation are applied by
-// the recorder, callers only fill Kind/Label/Tool/Args/Result.
-type StepRecorder func(step AiRunStep)
+// StepRecorder records a step as "running" and returns a StepFinalizer that
+// sets the terminal status and optional result. A nil recorder is valid (chat /
+// tests) — the returned finalizer is always safe to call.
+type StepRecorder interface {
+	ToolCall(tool string, args string) StepFinalizer
+	Reason(label string) StepFinalizer
+	Compaction(label string) StepFinalizer
+	// Error writes a step directly as "errored" in a single persist — use when
+	// there is no preceding "running" phase (e.g. task-level failures).
+	Error(label string)
+}
 
 // AiRun is the assembled view of one agent run: metadata from the primary
 // task (whose ID is the run id) plus the recorded steps and the IDs of all
@@ -88,45 +107,145 @@ func truncateStepText(value string, max int) string {
 	return value[:max] + "…"
 }
 
-// newStepRecorder returns a recorder that appends steps of one run to Valkey
-// (same 7-day TTL as the tasks). The whole list is rewritten per step — runs
-// are budget-capped, so the list stays small and a crash loses at most the
-// final append.
-func (ai *aiManager) newStepRecorder(runID string) StepRecorder {
-	steps := make([]AiRunStep, 0, 16)
-	var mu sync.Mutex
-	return func(step AiRunStep) {
-		mu.Lock()
-		defer mu.Unlock()
-		if len(steps) >= maxRunSteps {
-			return
-		}
-		if len(steps) == maxRunSteps-1 {
-			step = AiRunStep{Kind: AI_RUN_STEP_ERROR, Label: stepLimitExceeded}
-		}
+// aiStepRecorder implements StepRecorder backed by Valkey. The whole step list
+// is rewritten per append — runs are budget-capped, so the list stays small
+// and a crash loses at most the final write.
+//
+// Every step is persisted twice: first as "running" when recorded, then again
+// with a terminal status ("finished" or "errored") and optional result when the
+// returned StepFinalizer is called.
+//
+// steps holds pointers so that each StepFinalizer closure captures a direct
+// reference to its step — the pointer remains valid even after r.steps is
+// reallocated by append, and correctly targets the original step regardless of
+// how many nested steps are recorded before the finalizer is called.
+type aiStepRecorder struct {
+	ai    *aiManager
+	runID string
+	steps []*AiRunStep
+	mu    sync.Mutex
+}
 
-		maxStepResultLen, err := ai.config.TryGetInt("MO_AI_RESPONSE_MAX_LENGTH")
-		if err != nil {
-			maxStepResultLen = 1000
-		}
-
-		step.Seq = len(steps) + 1
-		step.Timestamp = time.Now().UnixMilli()
-		step.Label = truncateStepText(step.Label, maxStepLabelLen)
-		step.Args = truncateStepText(step.Args, maxStepArgsLen)
-		step.Result = truncateStepText(step.Result, int(maxStepResultLen))
-		steps = append(steps, step)
-
-		payload, err := json.Marshal(steps)
-		if err != nil {
-			ai.logger.Warn("Failed to marshal AI run steps", "runID", runID, "error", err)
-			return
-		}
-		if err := ai.valkeyClient.Set(string(payload), ValkeyAiTTL, runStepsKey(runID)); err != nil {
-			ai.logger.Warn("Failed to persist AI run steps", "runID", runID, "error", err)
-		}
+func (r *aiStepRecorder) persist() {
+	payload, err := json.Marshal(r.steps)
+	if err != nil {
+		r.ai.logger.Warn("Failed to marshal AI run steps", "runID", r.runID, "error", err)
+		return
+	}
+	if err := r.ai.valkeyClient.Set(string(payload), ValkeyAiTTL, runStepsKey(r.runID)); err != nil {
+		r.ai.logger.Warn("Failed to persist AI run steps", "runID", r.runID, "error", err)
 	}
 }
+
+func (r *aiStepRecorder) record(kind AiRunStepKind, label, tool, args string) StepFinalizer {
+	noop := StepFinalizer(func(AiRunStepStatus, string, string) {})
+
+	r.mu.Lock()
+
+	if len(r.steps) >= maxRunSteps {
+		r.mu.Unlock()
+		return noop
+	}
+	if len(r.steps) == maxRunSteps-1 {
+		// Write the sentinel directly as errored — it has no running phase.
+		r.steps = append(r.steps, &AiRunStep{
+			Kind:      AI_RUN_STEP_COMPACTION,
+			Label:     stepLimitExceeded,
+			Status:    AiRunStepStatusErrored,
+			Seq:       len(r.steps) + 1,
+			Timestamp: time.Now().UnixMilli(),
+		})
+		r.persist()
+		r.mu.Unlock()
+		return noop
+	}
+
+	maxStepResultLen, err := r.ai.config.TryGetInt("MO_AI_RESPONSE_MAX_LENGTH")
+	if err != nil {
+		maxStepResultLen = 1000
+	}
+	maxLen := int(maxStepResultLen)
+
+	step := &AiRunStep{
+		Kind:      kind,
+		Label:     truncateStepText(label, maxStepLabelLen),
+		Tool:      tool,
+		Args:      truncateStepText(args, maxStepArgsLen),
+		Status:    AiRunStepStatusRunning,
+		Seq:       len(r.steps) + 1,
+		Timestamp: time.Now().UnixMilli(),
+	}
+	r.steps = append(r.steps, step)
+	r.persist()
+	r.mu.Unlock()
+
+	return func(status AiRunStepStatus, label string, result string) {
+		r.mu.Lock()
+		defer r.mu.Unlock()
+		step.Status = status
+		if label != "" {
+			step.Label = truncateStepText(label, maxStepLabelLen)
+		}
+		step.Result = truncateStepText(result, maxLen)
+		r.persist()
+	}
+}
+
+func (r *aiStepRecorder) ToolCall(tool, args string) StepFinalizer {
+	return r.record(AI_RUN_STEP_ACT, tool, tool, args)
+}
+
+func (r *aiStepRecorder) Reason(label string) StepFinalizer {
+	return r.record(AI_RUN_STEP_REASON, label, "", "")
+}
+
+func (r *aiStepRecorder) Compaction(label string) StepFinalizer {
+	return r.record(AI_RUN_STEP_COMPACTION, label, "", "")
+}
+
+func (r *aiStepRecorder) Error(label string) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if len(r.steps) >= maxRunSteps {
+		return
+	}
+	if len(r.steps) == maxRunSteps-1 {
+		label = stepLimitExceeded
+	}
+	r.steps = append(r.steps, &AiRunStep{
+		Kind:      AI_RUN_STEP_REASON,
+		Label:     truncateStepText(label, maxStepLabelLen),
+		Status:    AiRunStepStatusErrored,
+		Seq:       len(r.steps) + 1,
+		Timestamp: time.Now().UnixMilli(),
+	})
+	r.persist()
+}
+
+func (ai *aiManager) newStepRecorder(runID string) StepRecorder {
+	return &aiStepRecorder{
+		ai:    ai,
+		runID: runID,
+		steps: make([]*AiRunStep, 0, 16),
+	}
+}
+
+// noopStepRecorder is a StepRecorder that discards all steps. Use it when
+// recording is disabled (e.g. tests, chat mode).
+type noopStepRecorder struct{}
+
+func (noopStepRecorder) ToolCall(string, string) StepFinalizer {
+	return func(AiRunStepStatus, string, string) {}
+}
+func (noopStepRecorder) Reason(string) StepFinalizer { return func(AiRunStepStatus, string, string) {} }
+func (noopStepRecorder) Compaction(string) StepFinalizer {
+	return func(AiRunStepStatus, string, string) {}
+}
+func (noopStepRecorder) Error(string) {}
+
+// NoopStepRecorder returns a StepRecorder that silently discards all steps.
+func NoopStepRecorder() StepRecorder { return noopStepRecorder{} }
 
 func (ai *aiManager) getRunSteps(runID string) []AiRunStep {
 	item, err := ai.valkeyClient.Get(runStepsKey(runID))
