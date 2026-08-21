@@ -53,7 +53,7 @@ func TestLivePaginatedListing(t *testing.T) {
 	}
 
 	// Phase 1 sort + slice via the shared pagination function.
-	page1, total := paginateHelmReleases(stubs, HelmReleaseListPaginatedRequest{SortBy: "name", Offset: 0, Limit: 5}, nil)
+	page1, total := paginateHelmReleases(stubs, HelmReleaseListPaginatedRequest{SortBy: "name", Offset: 0, Limit: 5}, nil, nil)
 	if total != len(stubs) {
 		t.Errorf("total %d != stub count %d", total, len(stubs))
 	}
@@ -64,7 +64,7 @@ func TestLivePaginatedListing(t *testing.T) {
 		t.Errorf("page1 not sorted by name")
 	}
 
-	page2, _ := paginateHelmReleases(stubs, HelmReleaseListPaginatedRequest{SortBy: "name", Offset: 5, Limit: 5}, nil)
+	page2, _ := paginateHelmReleases(stubs, HelmReleaseListPaginatedRequest{SortBy: "name", Offset: 5, Limit: 5}, nil, nil)
 	if len(page1) > 0 && len(page2) > 0 && page1[0].Name == page2[0].Name {
 		t.Errorf("page1 and page2 start with same release %q - slicing broken", page1[0].Name)
 	}
