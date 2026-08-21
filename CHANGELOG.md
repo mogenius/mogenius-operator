@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.29.0](https://github.com/mogenius/mogenius-operator/compare/v2.28.0...v2.29.0) (2026-08-21)
+
+
+### Features
+
+* **ai:** adding new ai sdk ([31f83df](https://github.com/mogenius/mogenius-operator/commit/31f83df78df90d04cd9a04ed056cb8c944755c26))
+* allow retrieving of oci helm chart versions ([940ac5e](https://github.com/mogenius/mogenius-operator/commit/940ac5e11b293920d7b620f8d4f3e17870726826))
+* migrate agent and chat loop to the new ai sdk ([54bdf18](https://github.com/mogenius/mogenius-operator/commit/54bdf18059acae99bc8abd32a4e1c696d63fe5a4))
+
+
+### Bug Fixes
+
+* **agent:** try to get model context and compat at 80% of it ([3b8ea9f](https://github.com/mogenius/mogenius-operator/commit/3b8ea9f1ab36012a0609e761251757d557befc20))
+* **aisdk:** tools without parameters fail ([a0df6f8](https://github.com/mogenius/mogenius-operator/commit/a0df6f842922eecdce11c37473b92a1cf895eadc))
+* **chat:** early return if budged is exceeded ([6044e4a](https://github.com/mogenius/mogenius-operator/commit/6044e4a61102b896a28a3af739e4b8e78e73a132))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.66.0 ([926be0d](https://github.com/mogenius/mogenius-operator/commit/926be0d284f6116694d3b44a2bacf61bb9c006ae))
+* **deps:** update module github.com/bitnami/sealed-secrets to v0.39.0 ([b086a45](https://github.com/mogenius/mogenius-operator/commit/b086a45a730368ad8c6b5cb1d6c97674133522b7))
+* **deps:** update module github.com/ollama/ollama to v0.32.15 ([f6be29b](https://github.com/mogenius/mogenius-operator/commit/f6be29b6cc95b29b15b2ca8ac9ce400d45c00235))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.52.0 ([5b901d3](https://github.com/mogenius/mogenius-operator/commit/5b901d33134db643bf31b8b4ddf1d64a765f4d2e))
+* **deps:** update module github.com/stretchr/testify to v1.12.1 ([5086f8e](https://github.com/mogenius/mogenius-operator/commit/5086f8e71d28efe5a92d5bc93539be1350a27388))
+* improving step recorder with step status ([dcd7e55](https://github.com/mogenius/mogenius-operator/commit/dcd7e55d9b3444088e7467ad64d77dcde40ce0ef))
+* minor improvements ([c9d76e6](https://github.com/mogenius/mogenius-operator/commit/c9d76e6e201ecb6c421d8915fb3fcf1fe1b19322))
+* operator panic on chat stream close ([12f00ba](https://github.com/mogenius/mogenius-operator/commit/12f00ba340048a239fa71e28624d2ad6e12e42bf))
+* ran go fix for multiple best practice improvements ([74834ce](https://github.com/mogenius/mogenius-operator/commit/74834ce18c09f28e48e900d5ba2530793b3d6e50))
+* surface errors if model hit its token output limit ([7546607](https://github.com/mogenius/mogenius-operator/commit/7546607619e6d2a210f604ae79e1446063cc3b3c))
+
 ## [2.28.0](https://github.com/mogenius/mogenius-operator/compare/v2.27.1...v2.28.0) (2026-08-19)
 
 
