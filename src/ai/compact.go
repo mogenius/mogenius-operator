@@ -240,13 +240,6 @@ func truncateResult(s string, maxChars int) string {
 	return s[:maxChars] + fmt.Sprintf("\n...truncated (%d total chars, showing first %d)", len(s), maxChars)
 }
 
-// compactHistoryAfterChars is the conversation size (in JSON chars, ~4 per
-// token) above which the insights loop compacts old tool results. Compaction
-// mutates the conversation prefix and therefore voids the prompt cache, so it
-// must not run every turn — only once carrying the bulk forward as cache
-// reads costs more than one cache rebuild.
-const compactHistoryAfterChars = 60_000
-
 // compactedSummaryPrefix marks the single assistant message that carries the
 // AI-generated progress report replacing the compacted-away history.
 const compactedSummaryPrefix = "[Conversation compacted]\n\n"
@@ -262,9 +255,11 @@ Write a concise first-person progress report that covers:
 
 Be factual and complete. You will continue the task with only this summary as prior context.`
 
-// estimateAiSDKMessagesChars sizes the provider-neutral conversation payload to
-// decide when compaction is needed.
-func estimateAiSDKMessagesChars(messages []aisdk.Message) int {
+// estimateAiSDKMessageBytes returns the total byte length of all message
+// content and tool-call argument strings. Go's len() counts bytes, not Unicode
+// code points; for ASCII-heavy JSON payloads this is a reliable proxy for
+// token count (~4 bytes per token).
+func estimateAiSDKMessageBytes(messages []aisdk.Message) int {
 	total := 0
 	for i := range messages {
 		total += len(messages[i].Content)
