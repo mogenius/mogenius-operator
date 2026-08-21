@@ -51,6 +51,7 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 	// every message (the budget may free up mid-session via a reset).
 	if ai.isModelBudgetExceeded(rc) {
 		emitChatError(ctx, ioChannel, ai.modelBudgetError(rc))
+		return nil
 	}
 
 	// Connect to configured MCP servers
