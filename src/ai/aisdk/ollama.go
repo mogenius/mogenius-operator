@@ -206,3 +206,7 @@ func (p *OllamaProvider) ChatStream(ctx context.Context, model string, messages 
 
 	return ch, nil
 }
+
+func (p *OllamaProvider) ContextWindowTokens(_ context.Context, _ string) (int64, error) {
+	return 32_768, nil
+}

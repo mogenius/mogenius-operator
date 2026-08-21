@@ -223,3 +223,7 @@ func (p *OpenAIProvider) ChatStream(ctx context.Context, model string, messages 
 
 	return ch, nil
 }
+
+func (p *OpenAIProvider) ContextWindowTokens(_ context.Context, _ string) (int64, error) {
+	return 128_000, nil
+}
