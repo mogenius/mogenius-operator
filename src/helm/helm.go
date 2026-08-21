@@ -275,6 +275,10 @@ type HelmChartShowRequest struct {
 	Chart      string                  `json:"chart" validate:"required"`
 	ShowFormat action.ShowOutputFormat `json:"format" validate:"required"` // "all" "chart" "values" "readme" "crds"
 	Version    string                  `json:"version,omitempty"`          // optional, if not set, the latest version will be used
+	// OCI specific fields — only used when Chart is an "oci://" reference.
+	AuthHost string `json:"authHost,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 type HelmChartVersionRequest struct {
@@ -843,17 +847,33 @@ func HelmChartShow(data HelmChartShowRequest) (string, error) {
 		return "", err
 	}
 
+	// action.Show embeds ChartPathOptions, so LocateChart/SetRegistryClient are
+	// both called on the same show object — matching how HelmOciInstall/HelmOciUpgrade
+	// wire OCI support into action.Install/action.Upgrade, which embed it the same way.
+	show := action.NewShow(data.ShowFormat, actionConfig)
+	show.Version = data.Version
+
+	if registry.IsOCI(data.Chart) {
+		registryClient, err := newRegistryClient(settings, false)
+		if err != nil {
+			return "", fmt.Errorf("failed to create OCI registry client: %w", err)
+		}
+		if (data.Username != "" || data.Password != "") && data.AuthHost != "" {
+			if err := registryClient.Login(data.AuthHost, registry.LoginOptBasicAuth(data.Username, data.Password)); err != nil {
+				return "", fmt.Errorf("failed to login to OCI registry: %w", err)
+			}
+		}
+		show.SetRegistryClient(registryClient)
+	}
+
 	// Fetch the chart
-	chartPathOptions := action.ChartPathOptions{}
-	chartPathOptions.Version = data.Version
-	chartPath, err := chartPathOptions.LocateChart(data.Chart, settings)
+	chartPath, err := show.LocateChart(data.Chart, settings)
 	if err != nil {
 		helmLogger.Error("HelmShow LocateChart", "error", err.Error())
 		return "", err
 	}
 
 	// Show the chart
-	show := action.NewShow(data.ShowFormat, actionConfig)
 	result, err := show.Run(chartPath)
 	if err != nil {
 		helmLogger.Error("HelmShow Run", "error", err.Error())
