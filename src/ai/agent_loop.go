@@ -72,6 +72,7 @@ func (ai *aiManager) runAgentLoop(
 
 		resp, callErr := provider.Chat(ctx, model, messages, tools)
 		if callErr != nil {
+			reasoningStep(AiRunStepStatusErrored, "AI model call failed", callErr.Error())
 			return tokensUsed, callErr
 		}
 
