@@ -42,6 +42,10 @@ func (m *mockProvider) ChatStream(ctx context.Context, model string, msgs []aisd
 	return ch, nil
 }
 
+func (m *mockProvider) ContextWindowTokens(_ context.Context, _ string) (int64, error) {
+	return 200_000, nil // matches Claude Sonnet / Opus context window
+}
+
 // staticStream returns a channel that delivers the given chunks in order.
 func staticStream(chunks ...aisdk.StreamChunk) (<-chan aisdk.StreamChunk, error) {
 	ch := make(chan aisdk.StreamChunk, len(chunks))

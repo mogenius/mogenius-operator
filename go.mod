@@ -6,7 +6,7 @@ require (
 	github.com/KimMachineGun/automemlimit v0.7.5
 	github.com/alecthomas/kong v1.16.1
 	github.com/alicebob/miniredis/v2 v2.38.0
-	github.com/anthropics/anthropic-sdk-go v1.63.1
+	github.com/anthropics/anthropic-sdk-go v1.66.0
 	github.com/bitnami/sealed-secrets v0.39.0
 	github.com/creack/pty v1.1.24
 	github.com/go-playground/validator/v10 v10.30.3
@@ -18,7 +18,7 @@ require (
 	github.com/mattn/go-isatty v0.0.24
 	github.com/modelcontextprotocol/go-sdk v1.7.0
 	github.com/nwidger/jsoncolor v0.3.2
-	github.com/ollama/ollama v0.32.14
+	github.com/ollama/ollama v0.32.15
 	github.com/openai/openai-go/v3 v3.52.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2

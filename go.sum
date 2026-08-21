@@ -32,8 +32,8 @@ github.com/alecthomas/repr v0.5.2 h1:SU73FTI9D1P5UNtvseffFSGmdNci/O6RsqzeXJtP0Qs
 github.com/alecthomas/repr v0.5.2/go.mod h1:Fr0507jx4eOXV7AlPV6AVZLYrLIuIeSOWtW57eE/O/4=
 github.com/alicebob/miniredis/v2 v2.38.0 h1:nZAzCR+Lj+Vxk4ZXzm2NuKq2O33RXj1XxJ2e2uP9jiw=
 github.com/alicebob/miniredis/v2 v2.38.0/go.mod h1:TcL7YfarKPGDAthEtl5NBeHZfeUQj6OXMm/+iu5cLMM=
-github.com/anthropics/anthropic-sdk-go v1.63.1 h1:M9dIoZzUWB453ulVpBkQp3FX0769udzrTscDrsJk1w4=
-github.com/anthropics/anthropic-sdk-go v1.63.1/go.mod h1:3EfIfmFqxH6rbiLcIP4tPFyXL/IHakx2wDG4OU+TIEI=
+github.com/anthropics/anthropic-sdk-go v1.66.0 h1:/CKwgscn0Pe1q4U8aFInSOt/v06JeMc9Aq4vIlctCFw=
+github.com/anthropics/anthropic-sdk-go v1.66.0/go.mod h1:3EfIfmFqxH6rbiLcIP4tPFyXL/IHakx2wDG4OU+TIEI=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5 h1:0CwZNZbxp69SHPdPJAN/hZIm0C4OItdklCFmMRWYpio=
 github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5/go.mod h1:wHh0iHkYZB8zMSxRWpUBQtwG5a7fFgvEO+odwuTv2gs=
 github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 h1:DklsrG3dyBCFEj5IhUbnKptjxatkF07cF2ak3yi77so=
@@ -291,8 +291,8 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/nwidger/jsoncolor v0.3.2 h1:rVJJlwAWDJShnbTYOQ5RM7yTA20INyKXlJ/fg4JMhHQ=
 github.com/nwidger/jsoncolor v0.3.2/go.mod h1:Cs34umxLbJvgBMnVNVqhji9BhoT/N/KinHqZptQ7cf4=
-github.com/ollama/ollama v0.32.14 h1:UAIdqMEnS0jd8Ux5eydtEqEo2ShIad2LNr/qwIkuqIc=
-github.com/ollama/ollama v0.32.14/go.mod h1:Kekx/+OtFZHmqbkVH/QUUDVcMQS+1pg1dcz4Qy7TGn4=
+github.com/ollama/ollama v0.32.15 h1:lnCycypBjS9SoMNeM6FivlYeDRn7mP/zfLG0uJXwmZ4=
+github.com/ollama/ollama v0.32.15/go.mod h1:Kekx/+OtFZHmqbkVH/QUUDVcMQS+1pg1dcz4Qy7TGn4=
 github.com/onsi/ginkgo/v2 v2.32.0 h1:Hw7s2pVrQo/8Yz5N77qdnpHaoc+c6cC9WIV1Jce+J6E=
 github.com/onsi/ginkgo/v2 v2.32.0/go.mod h1:+aXOY+vzZ5mu2iI2HpTZUPmM//oQfsNFX6gU9kNcA44=
 github.com/onsi/gomega v1.42.1 h1:iN1rCUX+44NZ1Dc97MPoeFYbFR0vh8zxoxMFwKdyZ6I=

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 
 	"mogenius-operator/src/ai/aisdk"
@@ -50,6 +51,19 @@ func (ai *aiManager) runAgentLoop(
 	// mover is non-nil for AnthropicProvider only.
 	mover, _ := provider.(aisdk.CacheBreakpointMover)
 
+	// Resolve compaction threshold: 80 % of the model's context window expressed
+	// as byte length of the JSON-serialised conversation (~4 bytes/token for
+	// ASCII-heavy content). When the provider cannot report the context window
+	// (e.g. a custom base URL that does not expose /v1/models), compaction is
+	// disabled for the run — the model's own context-limit rejection (caught as
+	// FinishReason == "length") acts as the backstop.
+	compactAfterBytes := math.MaxInt
+	if windowTokens, err := provider.ContextWindowTokens(ctx, model); err == nil && windowTokens > 0 {
+		compactAfterBytes = int(windowTokens * 4 * 80 / 100) // tokens → bytes → 80 %
+	} else if err != nil {
+		ai.logger.Warn("could not determine model context window; compaction disabled for this run", "error", err)
+	}
+
 	for {
 		if mover != nil {
 			mover.MoveCacheBreakpoint(messages, &cachedMsgIdx)
@@ -67,9 +81,9 @@ func (ai *aiManager) runAgentLoop(
 		}
 
 		// Compact conversation history when it grows too large.
-		if estimateAiSDKMessagesChars(messages) > compactHistoryAfterChars {
-			charsBefore := estimateAiSDKMessagesChars(messages)
-			ai.logger.Info("Compacting conversation history with AI", "chars", charsBefore)
+		if estimateAiSDKMessageBytes(messages) > compactAfterBytes {
+			bytesBefore := estimateAiSDKMessageBytes(messages)
+			ai.logger.Info("Compacting conversation history with AI", "bytes", bytesBefore)
 			compacted, compactTokens, compactErr := ai.compactMessagesWithAI(ctx, provider, model, messages)
 			if compactErr != nil {
 				ai.logger.Warn("AI compaction failed", "error", compactErr)
@@ -80,7 +94,7 @@ func (ai *aiManager) runAgentLoop(
 				messages = compacted
 				tokensUsed += compactTokens
 				cachedMsgIdx = -1
-				ai.logger.Info("AI compaction complete", "charsBefore", charsBefore, "charsAfter", estimateAiSDKMessagesChars(messages))
+				ai.logger.Info("AI compaction complete", "bytesBefore", bytesBefore, "bytesAfter", estimateAiSDKMessageBytes(messages))
 			}
 		}
 

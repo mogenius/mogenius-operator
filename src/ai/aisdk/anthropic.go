@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/anthropics/anthropic-sdk-go"
 	anthropic_option "github.com/anthropics/anthropic-sdk-go/option"
@@ -14,7 +15,8 @@ const anthropicDefaultMaxTokens = 8192
 
 // AnthropicProvider wraps the Anthropic SDK behind the Provider interface.
 type AnthropicProvider struct {
-	client *anthropic.Client
+	client             *anthropic.Client
+	contextWindowCache sync.Map // model string → int64
 }
 
 var _ Provider = (*AnthropicProvider)(nil)
@@ -29,6 +31,18 @@ func NewAnthropicProvider(apiKey, baseURL string) *AnthropicProvider {
 	}
 	client := anthropic.NewClient(opts...)
 	return &AnthropicProvider{client: &client}
+}
+
+func (p *AnthropicProvider) ContextWindowTokens(ctx context.Context, model string) (int64, error) {
+	if v, ok := p.contextWindowCache.Load(model); ok {
+		return v.(int64), nil
+	}
+	info, err := p.client.Models.Get(ctx, model, anthropic.ModelGetParams{})
+	if err != nil {
+		return 0, err
+	}
+	p.contextWindowCache.Store(model, info.MaxInputTokens)
+	return info.MaxInputTokens, nil
 }
 
 // MoveCacheBreakpoint shifts the prompt-cache marker to the last message.

@@ -81,4 +81,8 @@ type Provider interface {
 	// ChatStream sends messages (and optional tools) and returns a channel of chunks.
 	// The channel is closed after the Done chunk. The caller must drain it even when cancelling via ctx.
 	ChatStream(ctx context.Context, model string, messages []Message, tools []Tool) (<-chan StreamChunk, error)
+	// ContextWindowTokens returns the maximum input-token count for the given
+	// model. Providers that can query this dynamically do so; others return a
+	// static per-provider fallback. Used to compute the compaction threshold.
+	ContextWindowTokens(ctx context.Context, model string) (int64, error)
 }
