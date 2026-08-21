@@ -14,8 +14,12 @@ const DB_AI_BUCKET_RUN_STEPS = "ai_run_steps"
 // Step budget per run: an agent run is capped at maxToolCalls (default 50)
 // tool calls, so 200 steps only trips on pathological reason/act interleaving.
 const (
-	maxRunSteps       = 200
-	maxStepLabelLen   = 600
+	maxRunSteps = 200
+	// The label carries the model's reasoning — the readable core of the
+	// timeline, not a "truncated excerpt" like args/result. Keep a generous cap
+	// so normal reasoning is shown in full while still guarding against
+	// pathological output.
+	maxStepLabelLen   = 8000
 	maxStepArgsLen    = 600
 	stepLimitExceeded = "step limit reached — further steps of this run are not recorded"
 )
@@ -96,15 +100,23 @@ func runStepsKey(runID string) string {
 	return DB_AI_BUCKET_RUN_STEPS + ":" + runID
 }
 
+// truncateStepText caps value at max runes and appends an ellipsis. max counts
+// runes (not bytes) so multibyte UTF-8 is never cut mid-character.
 func truncateStepText(value string, max int) string {
 	if max <= 0 {
 		return value
 	}
 
+	// Fast path: byte length is an upper bound on rune count, so if it fits in
+	// bytes it fits in runes.
 	if len(value) <= max {
 		return value
 	}
-	return value[:max] + "…"
+	runes := []rune(value)
+	if len(runes) <= max {
+		return value
+	}
+	return string(runes[:max]) + "…"
 }
 
 // aiStepRecorder implements StepRecorder backed by Valkey. The whole step list
