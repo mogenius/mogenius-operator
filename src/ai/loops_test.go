@@ -171,7 +171,7 @@ func TestRunAgentLoop_TerminatesOnTextResponse(t *testing.T) {
 		},
 	}
 	msgs := buildAgentMessages("system", "task")
-	tokens, err := ai.runAgentLoop(context.Background(), provider, "m", msgs, nil, nil, nil, 10, 10_000, nil, nil)
+	tokens, err := ai.runAgentLoop(context.Background(), provider, "m", msgs, nil, nil, nil, 10, 10_000, nil, NoopStepRecorder())
 	assert.NoError(t, err)
 	assert.Equal(t, int64(15), tokens)
 }
@@ -184,7 +184,7 @@ func TestRunAgentLoop_LengthFinishReasonIsBudgetError(t *testing.T) {
 		},
 	}
 	msgs := buildAgentMessages("system", "task")
-	_, err := ai.runAgentLoop(context.Background(), provider, "m", msgs, nil, nil, nil, 10, 10_000, nil, nil)
+	_, err := ai.runAgentLoop(context.Background(), provider, "m", msgs, nil, nil, nil, 10, 10_000, nil, NoopStepRecorder())
 	assert.True(t, errors.As(err, new(*BudgetExhaustedError)), "expected BudgetExhaustedError, got %T: %v", err, err)
 }
 
@@ -200,7 +200,7 @@ func TestRunAgentLoop_MessagesAccumulate(t *testing.T) {
 		},
 	}
 	msgs := buildAgentMessages("system", "task")
-	_, err := ai.runAgentLoop(context.Background(), provider, "m", msgs, nil, nil, nil, 10, 10_000, nil, nil)
+	_, err := ai.runAgentLoop(context.Background(), provider, "m", msgs, nil, nil, nil, 10, 10_000, nil, NoopStepRecorder())
 	assert.NoError(t, err)
 	// The provider was called exactly once for a text-only response.
 	assert.Len(t, seen, 1)
@@ -217,7 +217,7 @@ func TestRunAgentLoop_EmptyResponseIsError(t *testing.T) {
 		},
 	}
 	msgs := buildAgentMessages("system", "task")
-	_, err := ai.runAgentLoop(context.Background(), provider, "m", msgs, nil, nil, nil, 10, 10_000, nil, nil)
+	_, err := ai.runAgentLoop(context.Background(), provider, "m", msgs, nil, nil, nil, 10, 10_000, nil, NoopStepRecorder())
 	assert.Error(t, err)
 }
 
@@ -230,7 +230,7 @@ func TestRunAgentLoop_ProviderErrorPropagates(t *testing.T) {
 		},
 	}
 	msgs := buildAgentMessages("system", "task")
-	_, err := ai.runAgentLoop(context.Background(), provider, "m", msgs, nil, nil, nil, 10, 10_000, nil, nil)
+	_, err := ai.runAgentLoop(context.Background(), provider, "m", msgs, nil, nil, nil, 10, 10_000, nil, NoopStepRecorder())
 	assert.ErrorIs(t, err, want)
 }
 
@@ -244,7 +244,7 @@ func TestRunAgentLoop_ContextCancellation(t *testing.T) {
 		},
 	}
 	msgs := buildAgentMessages("system", "task")
-	_, err := ai.runAgentLoop(ctx, provider, "m", msgs, nil, nil, nil, 10, 10_000, nil, nil)
+	_, err := ai.runAgentLoop(ctx, provider, "m", msgs, nil, nil, nil, 10, 10_000, nil, NoopStepRecorder())
 	assert.ErrorIs(t, err, context.Canceled)
 }
 
@@ -258,7 +258,7 @@ func TestRunAgentLoop_OnProgressCalledWithTokens(t *testing.T) {
 	msgs := buildAgentMessages("system", "task")
 	var gotTokens int64
 	_, err := ai.runAgentLoop(context.Background(), provider, "m", msgs, nil, nil, nil, 10, 10_000,
-		func(tokens int64, _ string) { gotTokens = tokens }, nil)
+		func(tokens int64, _ string) { gotTokens = tokens }, NoopStepRecorder())
 	assert.NoError(t, err)
 	assert.Equal(t, int64(30), gotTokens)
 }
