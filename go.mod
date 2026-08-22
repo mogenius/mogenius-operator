@@ -7,7 +7,7 @@ require (
 	github.com/alecthomas/kong v1.16.1
 	github.com/alicebob/miniredis/v2 v2.38.0
 	github.com/anthropics/anthropic-sdk-go v1.66.0
-	github.com/bitnami/sealed-secrets v0.39.0
+	github.com/bitnami/sealed-secrets v0.39.1
 	github.com/creack/pty v1.1.24
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/google/uuid v1.6.0
@@ -155,7 +155,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.4 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	go.yaml.in/yaml/v4 v4.0.0-rc.2 // indirect
-	golang.org/x/crypto v0.54.0 // indirect
+	golang.org/x/crypto v0.55.0 // indirect
 	golang.org/x/net v0.57.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
