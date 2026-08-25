@@ -91,7 +91,7 @@ func isPodAvailable(pod *v1.Pod, container string) bool {
 			if cs.Name != container {
 				continue
 			}
-			if *cs.Started {
+			if cs.Started != nil && *cs.Started {
 				return true
 			}
 		}
@@ -102,7 +102,7 @@ func isPodAvailable(pod *v1.Pod, container string) bool {
 			if cs.Name != container {
 				continue
 			}
-			if *cs.Started {
+			if cs.Started != nil && *cs.Started {
 				return true
 			}
 		}
