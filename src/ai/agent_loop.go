@@ -83,8 +83,8 @@ func (ai *aiManager) runAgentLoop(
 		}
 
 		// Compact conversation history when it grows too large.
-		if estimateAiSDKMessageBytes(messages) > compactAfterBytes {
-			bytesBefore := estimateAiSDKMessageBytes(messages)
+		bytesBefore := estimateAiSDKMessageBytes(messages)
+		if bytesBefore > compactAfterBytes {
 			ai.logger.Info("Compacting conversation history with AI", "bytes", bytesBefore)
 			compactionStep := recordStep.Compaction("Running Compaction...")
 			compacted, compactTokens, compactErr := ai.compactMessagesWithAI(ctx, provider, model, messages)
@@ -136,7 +136,6 @@ func (ai *aiManager) runAgentLoop(
 		}
 
 		// Execute each tool call and collect results.
-		iterToolCalls := 0
 		for _, tc := range resp.ToolCalls {
 			if ctx.Err() != nil {
 				return tokensUsed, ctx.Err()
@@ -145,7 +144,16 @@ func (ai *aiManager) runAgentLoop(
 
 			var args map[string]any
 			if jsonErr := json.Unmarshal([]byte(tc.Arguments), &args); jsonErr != nil {
-				return tokensUsed, fmt.Errorf("error unmarshaling tool arguments: %v", jsonErr)
+				// Feed the parse error back to the model so it can self-correct,
+				// consistent with how chat_loop.go handles this case.
+				ai.logger.Warn("Failed to parse tool arguments", "tool", tc.Name, "error", jsonErr)
+				messages = append(messages, aisdk.Message{
+					Role:       aisdk.RoleTool,
+					Content:    fmt.Sprintf("Error parsing arguments: %v", jsonErr),
+					ToolCallID: tc.ID,
+					ToolName:   tc.Name,
+				})
+				continue
 			}
 
 			if onProgress != nil {
@@ -163,11 +171,11 @@ func (ai *aiManager) runAgentLoop(
 				ToolCallID: tc.ID,
 				ToolName:   tc.Name,
 			})
-			iterToolCalls++
 		}
 
-		toolCallCount += iterToolCalls
+		toolCallCount += len(resp.ToolCalls)
 		if msg := runBudgetExhausted(ai.logger, maxToolCalls, toolCallCount, maxTokensPerRun, tokensUsed); msg != "" {
+			recordStep.Error(msg)
 			return tokensUsed, &BudgetExhaustedError{Msg: msg}
 		}
 	}
