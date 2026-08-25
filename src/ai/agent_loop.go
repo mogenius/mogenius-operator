@@ -119,7 +119,16 @@ func (ai *aiManager) runAgentLoop(
 			ToolCalls: resp.ToolCalls,
 		})
 
-		reasoningStep(AiRunStepStatusFinished, "Finished Reasoning", strings.TrimSpace(resp.Content))
+		var reasoningLabel string
+		switch {
+		case resp.Content != "" && len(resp.ToolCalls) > 0:
+			reasoningLabel = "Finished Reasoning, Calling Tools"
+		case len(resp.ToolCalls) > 0:
+			reasoningLabel = "Calling Tools"
+		default:
+			reasoningLabel = "Finished Reasoning"
+		}
+		reasoningStep(AiRunStepStatusFinished, reasoningLabel, strings.TrimSpace(resp.Content))
 
 		if len(resp.ToolCalls) == 0 {
 			ai.logger.Info("No tool calls, run complete")
