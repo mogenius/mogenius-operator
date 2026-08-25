@@ -162,6 +162,7 @@ func (r *aiStepRecorder) record(kind AiRunStepKind, label, tool, args string) St
 
 	maxStepResultLen, err := r.ai.config.TryGetInt("MO_AI_RESPONSE_MAX_LENGTH")
 	if err != nil {
+		r.ai.logger.Warn("MO_AI_RESPONSE_MAX_LENGTH not readable, using default", "error", err)
 		maxStepResultLen = 1000
 	}
 	maxLen := int(maxStepResultLen)
