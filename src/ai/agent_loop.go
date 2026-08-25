@@ -101,9 +101,9 @@ func (ai *aiManager) runAgentLoop(
 		}
 
 		if resp.FinishReason == "length" {
-			reasoningStep(AiRunStepStatusErrored, fmt.Sprintf("Run stopped: model hit its limit (stop reason: %s)", resp.FinishReason), "")
+			reasoningStep(AiRunStepStatusErrored, "Context limit reached", "The model stopped because it reached its maximum context length.")
 			return tokensUsed, &BudgetExhaustedError{
-				Msg: fmt.Sprintf("run stopped: model hit its limit (stop reason: %s)", resp.FinishReason),
+				Msg: "run stopped: model reached its maximum context length",
 			}
 		}
 
