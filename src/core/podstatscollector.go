@@ -139,6 +139,10 @@ func (self *podStatsCollector) nodeStats(nodemetrics []podstatscollector.NodeMet
 func (self *podStatsCollector) getRealNodeMetrics() []podstatscollector.NodeMetrics {
 	result := []podstatscollector.NodeMetrics{}
 	for _, node := range store.GetNodes() {
+		if len(node.Status.Addresses) == 0 {
+			self.logger.Debug("skipping node with no addresses", "node", node.Name)
+			continue
+		}
 		nodeStats, err := self.requestMetricsDataFromNode(node.Name)
 		if err != nil {
 			if k8serrors.IsNotFound(err) {
