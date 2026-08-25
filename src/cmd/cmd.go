@@ -445,7 +445,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_AI_RESPONSE_MAX_LENGTH",
-		DefaultValue: new("1000"),
+		DefaultValue: new("8000"),
 		Description:  new(`maximum length of the AI response to be stored in characters`),
 		Type:         new(config.ConfigVariableTypeInt),
 	})
