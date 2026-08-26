@@ -1199,6 +1199,15 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "cluster/helm-release-unlink"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request helm.HelmReleaseUnlinkRequest) (string, error) {
+			err := helm.DeleteRepoNameFromValkey(request.Namespace, request.ReleaseName)
+			return store.AddToAuditLog(datagram, self.logger, "", err, nil, nil)
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "cluster/helm-release-get-workloads"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmReleaseGetWorkloadsRequest) ([]unstructured.Unstructured, error) {
