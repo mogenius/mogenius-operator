@@ -371,6 +371,11 @@ type HelmReleaseLinkRequest struct {
 	RepoName    string `json:"repoName" validate:"required"` // e.g. bitnami/nginx
 }
 
+type HelmReleaseUnlinkRequest struct {
+	Namespace   string `json:"namespace" validate:"required"`
+	ReleaseName string `json:"releaseName" validate:"required"`
+}
+
 type HelmReleaseGetRequest struct {
 	Namespace string              `json:"namespace" validate:"required"`
 	Release   string              `json:"release" validate:"required"`
