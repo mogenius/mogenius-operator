@@ -125,15 +125,6 @@ func (e toolExec) recordStat(name string, args map[string]any, result, errStr st
 	e.Stats.ToolRecords = append(e.Stats.ToolRecords, rec)
 }
 
-// BudgetExhaustedError is returned by processPrompt* when a run hits its
-// per-run tool-call or token budget. It is not a failure — callers treat it
-// as a soft completion with a user-visible note explaining why the run stopped.
-type BudgetExhaustedError struct {
-	Msg string
-}
-
-func (e *BudgetExhaustedError) Error() string { return e.Msg }
-
 // runBudgetExhausted returns a non-empty reason string when the run has hit
 // its tool-call or per-run token budget. Empty string means the run may
 // continue. Callers pass the already-incremented tool-call count.

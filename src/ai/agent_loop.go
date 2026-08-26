@@ -85,18 +85,16 @@ func (ai *aiManager) runAgentLoop(
 		// Compact conversation history when it grows too large.
 		bytesBefore := estimateAiSDKMessageBytes(messages)
 		if bytesBefore > compactAfterBytes {
-			ai.logger.Info("Compacting conversation history with AI", "bytes", bytesBefore)
 			compactionStep := recordStep.Compaction("Running Compaction...")
 			compacted, compactTokens, compactErr := ai.compactMessagesWithAI(ctx, provider, model, messages)
 			if compactErr != nil {
-				ai.logger.Warn("AI compaction failed", "error", compactErr)
 				compactionStep(AiRunStepStatusErrored, "Conversation compaction failed", compactErr.Error())
+				return tokensUsed, &CompactionError{Cause: compactErr}
 			} else {
 				compactionStep(AiRunStepStatusFinished, "Compaction finished successfully", "")
 				messages = compacted
 				tokensUsed += compactTokens
 				cachedMsgIdx = -1
-				ai.logger.Info("AI compaction complete", "bytesBefore", bytesBefore, "bytesAfter", estimateAiSDKMessageBytes(messages))
 			}
 		}
 
@@ -136,6 +134,7 @@ func (ai *aiManager) runAgentLoop(
 		}
 
 		// Execute each tool call and collect results.
+		dispatchedToolCalls := 0
 		for _, tc := range resp.ToolCalls {
 			if ctx.Err() != nil {
 				return tokensUsed, ctx.Err()
@@ -171,9 +170,10 @@ func (ai *aiManager) runAgentLoop(
 				ToolCallID: tc.ID,
 				ToolName:   tc.Name,
 			})
+			dispatchedToolCalls++
 		}
 
-		toolCallCount += len(resp.ToolCalls)
+		toolCallCount += dispatchedToolCalls
 		if msg := runBudgetExhausted(ai.logger, maxToolCalls, toolCallCount, maxTokensPerRun, tokensUsed); msg != "" {
 			recordStep.Error(msg)
 			return tokensUsed, &BudgetExhaustedError{Msg: msg}
