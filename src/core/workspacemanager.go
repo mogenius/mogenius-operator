@@ -29,6 +29,12 @@ type WorkspaceManager interface {
 	UpdateGrant(name string, spec v1alpha1.GrantSpec) (*v1alpha1.Grant, error)
 	DeleteGrant(name string) error
 
+	GetAllGroupGrants() ([]v1alpha1.GroupGrant, error)
+	CreateGroupGrant(name string, spec v1alpha1.GroupGrantSpec) (*v1alpha1.GroupGrant, error)
+	GetGroupGrant(name string) (*v1alpha1.GroupGrant, error)
+	UpdateGroupGrant(name string, spec v1alpha1.GroupGrantSpec) (*v1alpha1.GroupGrant, error)
+	DeleteGroupGrant(name string) error
+
 	GetAllAgents() ([]v1alpha1.Agent, error)
 	CreateAgent(name string, spec v1alpha1.AgentSpec) (*v1alpha1.Agent, error)
 	GetAgent(name string) (*v1alpha1.Agent, error)
@@ -189,6 +195,36 @@ func (self *workspaceManager) DeleteGrant(name string) error {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
 	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteGrant(self.namespace, name)
+}
+
+func (self *workspaceManager) GetAllGroupGrants() ([]v1alpha1.GroupGrant, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.ListGroupGrants(self.namespace)
+}
+
+func (self *workspaceManager) GetGroupGrant(name string) (*v1alpha1.GroupGrant, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.GetGroupGrant(self.namespace, name)
+}
+
+func (self *workspaceManager) CreateGroupGrant(name string, spec v1alpha1.GroupGrantSpec) (*v1alpha1.GroupGrant, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.CreateGroupGrant(self.namespace, name, spec)
+}
+
+func (self *workspaceManager) UpdateGroupGrant(name string, spec v1alpha1.GroupGrantSpec) (*v1alpha1.GroupGrant, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.UpdateGroupGrant(self.namespace, name, spec)
+}
+
+func (self *workspaceManager) DeleteGroupGrant(name string) error {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteGroupGrant(self.namespace, name)
 }
 
 func (self *workspaceManager) GetAllAgents() ([]v1alpha1.Agent, error) {

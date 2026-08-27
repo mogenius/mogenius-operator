@@ -74,6 +74,12 @@ type Api interface {
 	UpdateGrant(name string, spec v1alpha1.GrantSpec) (string, error)
 	DeleteGrant(name string) (string, error)
 
+	GetAllGroupGrants() ([]v1alpha1.GroupGrant, error)
+	GetGroupGrant(name string) (*v1alpha1.GroupGrant, error)
+	CreateGroupGrant(name string, spec v1alpha1.GroupGrantSpec) (string, error)
+	UpdateGroupGrant(name string, spec v1alpha1.GroupGrantSpec) (string, error)
+	DeleteGroupGrant(name string) (string, error)
+
 	GetAllAgents() ([]GetAgentResult, error)
 	GetAgent(name string) (*GetAgentResult, error)
 	CreateAgent(name string, spec v1alpha1.AgentSpec) (string, error)
@@ -328,6 +334,51 @@ func (self *api) UpdateGrant(name string, spec v1alpha1.GrantSpec) (string, erro
 
 func (self *api) DeleteGrant(name string) (string, error) {
 	err := self.workspaceManager.DeleteGrant(name)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource deleted successfully", nil
+}
+
+func (self *api) GetAllGroupGrants() ([]v1alpha1.GroupGrant, error) {
+	resources, err := self.workspaceManager.GetAllGroupGrants()
+	if err != nil {
+		return []v1alpha1.GroupGrant{}, err
+	}
+
+	return resources, nil
+}
+
+func (self *api) GetGroupGrant(name string) (*v1alpha1.GroupGrant, error) {
+	resource, err := self.workspaceManager.GetGroupGrant(name)
+	if err != nil {
+		return nil, err
+	}
+
+	return resource, nil
+}
+
+func (self *api) CreateGroupGrant(name string, spec v1alpha1.GroupGrantSpec) (string, error) {
+	_, err := self.workspaceManager.CreateGroupGrant(name, spec)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource created successfully", nil
+}
+
+func (self *api) UpdateGroupGrant(name string, spec v1alpha1.GroupGrantSpec) (string, error) {
+	_, err := self.workspaceManager.UpdateGroupGrant(name, spec)
+	if err != nil {
+		return "", err
+	}
+
+	return "Resource updated successfully", nil
+}
+
+func (self *api) DeleteGroupGrant(name string) (string, error) {
+	err := self.workspaceManager.DeleteGroupGrant(name)
 	if err != nil {
 		return "", err
 	}

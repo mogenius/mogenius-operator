@@ -1,0 +1,107 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.21.0
+  name: groupgrants.mogenius.com
+spec:
+  group: mogenius.com
+  names:
+    kind: GroupGrant
+    listKind: GroupGrantList
+    plural: groupgrants
+    singular: groupgrant
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.claimValue
+      name: Claim Value
+      type: string
+    - jsonPath: .spec.role
+      name: Role
+      type: string
+    - jsonPath: .spec.targetType
+      name: Target Type
+      type: string
+    - jsonPath: .spec.targetName
+      name: Target
+      type: string
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: |-
+          A mogenius `GroupGrant` is a RULE that maps an identity-provider group
+          (by its group name, delivered in the login token's groups claim) to a
+          role on a mogenius `Workspace` — or on every workspace of the cluster.
+
+          Unlike `Grant` (which materializes access for a concrete `User` resource),
+          a GroupGrant is declarative input: the mogenius platform reconciles it at
+          login time and creates/updates the matching `Grant` resources for each
+          user that carries the group in their claim.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: Maps an IdP group to a workspace (or the whole cluster)
+            properties:
+              claimValue:
+                description: |-
+                  the IdP group name as it appears in the login token's groups claim
+                  (free-form, chosen by the customer at their identity provider)
+                type: string
+              role:
+                description: |-
+                  FALLBACK role, only used when the login claim carries no role for the
+                  group. IdPs that pair groups with roles (e.g. Entra enterprise app
+                  role assignments, delivered as "<group>:<role>") override this — the
+                  claim role always wins.
+
+                  - "viewer"
+                  - "editor"
+                  - "admin"
+                type: string
+              targetName:
+                description: |-
+                  to which specific resource is the grant applied:
+
+                  - workspace.meta.name (empty for targetType "cluster")
+                type: string
+              targetType:
+                description: |-
+                  type of grant:
+
+                  - "workspace"
+                  - "cluster" (applies to every workspace of the cluster)
+                type: string
+            type: object
+          status:
+            description: |-
+              optional so plain `kubectl apply` manifests (GitOps) validate without a
+              status stanza — GroupGrants are customer-authored rules
+            type: object
+        required:
+        - metadata
+        - spec
+        type: object
+    served: true
+    storage: true
+    subresources: {}

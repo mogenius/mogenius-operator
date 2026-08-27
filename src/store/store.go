@@ -1686,6 +1686,24 @@ func GetGrant(namespace string, name string) (*v1alpha1.Grant, error) {
 	return grant, nil
 }
 
+func GetAllGroupGrants(namespace string) ([]v1alpha1.GroupGrant, error) {
+	groupGrants, err := listResourcesByIndex[v1alpha1.GroupGrant](
+		utils.GroupGrantResource.ApiVersion, utils.GroupGrantResource.Kind, namespace, "*")
+	if err != nil {
+		storeLogger().Error("failed to list group grants", "namespace", namespace, "error", err)
+		return nil, err
+	}
+	return groupGrants, nil
+}
+
+func GetGroupGrant(namespace string, name string) (*v1alpha1.GroupGrant, error) {
+	groupGrant, err := valkeyclient.GetObjectForKey[v1alpha1.GroupGrant](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.GroupGrantResource.ApiVersion, utils.GroupGrantResource.Kind, namespace, name)
+	if err != nil || groupGrant == nil {
+		return nil, err
+	}
+	return groupGrant, nil
+}
+
 func GetAllUsers(namespace string) ([]v1alpha1.User, error) {
 	users, err := listResourcesByIndex[v1alpha1.User](
 		utils.UserResource.ApiVersion, utils.UserResource.Kind, namespace, "*")

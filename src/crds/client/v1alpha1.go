@@ -133,6 +133,83 @@ func (self *MogeniusV1alpha1) DeleteGrant(namespace string, name string) error {
 	return nil
 }
 
+// ╭──────────────────────╮
+// │ Client: Group Grants │
+// ╰──────────────────────╯
+
+func (self *MogeniusV1alpha1) ListGroupGrants(namespace string) ([]mov1alpha1.GroupGrant, error) {
+	groupGrants, err := store.GetAllGroupGrants(namespace)
+	if err != nil {
+		return nil, fmt.Errorf("store: %w", err)
+	}
+	if groupGrants == nil {
+		return []mov1alpha1.GroupGrant{}, nil
+	}
+	return groupGrants, nil
+}
+
+func (self *MogeniusV1alpha1) GetGroupGrant(namespace string, name string) (*mov1alpha1.GroupGrant, error) {
+	result, err := store.GetGroupGrant(namespace, name)
+	if err != nil {
+		return nil, fmt.Errorf("store: %w", err)
+	}
+	if result == nil {
+		return nil, fmt.Errorf("store: group grant %s/%s not found", namespace, name)
+	}
+	result.TypeMeta = metav1.TypeMeta{
+		Kind:       "GroupGrant",
+		APIVersion: "mogenius.com/v1alpha1",
+	}
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) CreateGroupGrant(namespace string, name string, spec mov1alpha1.GroupGrantSpec) (*mov1alpha1.GroupGrant, error) {
+	res := &mov1alpha1.GroupGrant{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "GroupGrant",
+			APIVersion: "mogenius.com/v1alpha1",
+		},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: namespace,
+		},
+		Spec: spec,
+	}
+	result := &mov1alpha1.GroupGrant{}
+	err := self.restClient.Post().Namespace(namespace).Resource("groupgrants").Body(res).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) UpdateGroupGrant(namespace string, name string, spec mov1alpha1.GroupGrantSpec) (*mov1alpha1.GroupGrant, error) {
+	patchBytes, err := json.Marshal(&mov1alpha1.GroupGrant{
+		Spec: spec,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	result := &mov1alpha1.GroupGrant{}
+	err = self.restClient.Patch(types.MergePatchType).Namespace(namespace).Resource("groupgrants").Name(name).Body(patchBytes).Do(context.Background()).Into(result)
+	if err != nil {
+		return nil, fmt.Errorf("RESTClient: %w", err)
+	}
+
+	return result, nil
+}
+
+func (self *MogeniusV1alpha1) DeleteGroupGrant(namespace string, name string) error {
+	err := self.restClient.Delete().Namespace(namespace).Resource("groupgrants").Name(name).Do(context.Background()).Error()
+	if err != nil {
+		return fmt.Errorf("RESTClient: %w", err)
+	}
+
+	return nil
+}
+
 // ╭───────────────╮
 // │ Client: Users │
 // ╰───────────────╯

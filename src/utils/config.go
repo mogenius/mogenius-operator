@@ -154,6 +154,13 @@ var GrantResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var GroupGrantResource = ResourceDescriptor{
+	Kind:       "GroupGrant",
+	Plural:     "groupgrants",
+	ApiVersion: "mogenius.com/v1alpha1",
+	Namespaced: true,
+}
+
 var UserResource = ResourceDescriptor{
 	Kind:       "User",
 	Plural:     "users",

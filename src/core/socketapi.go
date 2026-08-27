@@ -1947,6 +1947,103 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		type Request struct{}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "get/group-grants"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) ([]v1alpha1.GroupGrant, error) {
+				return self.apiService.GetAllGroupGrants()
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name       string `json:"name" validate:"required"`
+			ClaimValue string `json:"claimValue" validate:"required"`
+			TargetType string `json:"targetType" validate:"required"`
+			TargetName string `json:"targetName"`
+			Role       string `json:"role" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "create/group-grant"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				spec := v1alpha1.NewGroupGrantSpec(request.ClaimValue, request.TargetType, request.TargetName, request.Role)
+				res, err := self.apiService.CreateGroupGrant(request.Name, spec)
+				var created *unstructured.Unstructured
+				if err == nil {
+					created = crdToAuditObject(&v1alpha1.GroupGrant{
+						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
+						Spec:       spec,
+					}, "GroupGrant", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "get/group-grant"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (*v1alpha1.GroupGrant, error) {
+				return self.apiService.GetGroupGrant(request.Name)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name       string `json:"name" validate:"required"`
+			ClaimValue string `json:"claimValue" validate:"required"`
+			TargetType string `json:"targetType" validate:"required"`
+			TargetName string `json:"targetName"`
+			Role       string `json:"role" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "update/group-grant"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				spec := v1alpha1.NewGroupGrantSpec(request.ClaimValue, request.TargetType, request.TargetName, request.Role)
+				oldGroupGrant, _ := self.apiService.GetGroupGrant(request.Name)
+				res, err := self.apiService.UpdateGroupGrant(request.Name, spec)
+				var oldObj, newObj *unstructured.Unstructured
+				if oldGroupGrant != nil {
+					oldObj = crdToAuditObject(oldGroupGrant, "GroupGrant", request.Name)
+					updated := oldGroupGrant.DeepCopy()
+					updated.Spec = spec
+					newObj = crdToAuditObject(updated, "GroupGrant", request.Name)
+				}
+				return store.AddToAuditLog(datagram, self.logger, res, err, oldObj, newObj)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			Name string `json:"name" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "delete/group-grant"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (string, error) {
+				oldGroupGrant, _ := self.apiService.GetGroupGrant(request.Name)
+				res, err := self.apiService.DeleteGroupGrant(request.Name)
+				return store.AddToAuditLog(datagram, self.logger, res, err, crdToAuditObject(oldGroupGrant, "GroupGrant", request.Name), nil)
+			},
+		)
+	}
+
+	{
 		type Request struct {
 			WorkspaceName      string                      `json:"workspaceName"`
 			Whitelist          []*utils.ResourceDescriptor `json:"whitelist"`

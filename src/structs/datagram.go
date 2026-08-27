@@ -55,6 +55,14 @@ func CreateDatagramForClusterEvent(pattern, apiVersion, kind, name, eventType st
 		status, _, _ = unstructured.NestedFieldNoCopy(obj.Object, "status", "resources")
 	}
 
+	// GroupGrant events must carry the object content: the platform mirrors
+	// these rules into its Redis cache and reconciles logins against them
+	// without querying the cluster.
+	var spec any
+	if kind == "GroupGrant" {
+		spec, _, _ = unstructured.NestedFieldNoCopy(obj.Object, "spec")
+	}
+
 	datagram := Datagram{
 		Id:      utils.NanoId(),
 		Pattern: pattern,
@@ -70,6 +78,7 @@ func CreateDatagramForClusterEvent(pattern, apiVersion, kind, name, eventType st
 				"resourceVersion": obj.GetResourceVersion(),
 
 				"status": status,
+				"spec":   spec,
 			},
 		},
 		CreatedAt: time.Now(),
