@@ -1321,6 +1321,12 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "service/port-forward-connection-request"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request xterm.PortForwardConnectionRequest) (Void, error) {
+			// Take the identity from the datagram's user field so every
+			// handler sees the same one, instead of a copy the payload could
+			// disagree with. Both travel in the same frame (see the UserEmail
+			// doc on the request type), so this is consistency, not a
+			// separate trust level.
+			request.UserEmail = datagram.User.Email
 			go xterm.PortForwardStreamConnection(request)
 			// Same treatment as exec-sh below: interactive cluster access
 			// must leave an audit trail of who opened a tunnel to which pod.

@@ -261,6 +261,20 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_SSH_GATEWAY_ENABLED",
+		DefaultValue: new("true"),
+		Description:  new("Serve SSH sessions (kind=ssh port-forwards) from the embedded SSH gateway: interactive shell, sftp file access and port forwarding inside the pod. Set to false to switch the feature off for this cluster."),
+		Envs:         []string{"SSH_GATEWAY_ENABLED"},
+		Type:         new(config.ConfigVariableTypeBool),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_SSH_GATEWAY_ALLOW_ADMIN_BYPASS",
+		DefaultValue: new("true"),
+		Description:  new("Let sessions the platform marks as organization- or cluster-admin run under the operator's own identity instead of impersonating the user. That marking arrives over the operator's authenticated control connection, so it is only as strong as that connection. Set to false to require an impersonated identity for every session, with no exception."),
+		Envs:         []string{"SSH_GATEWAY_ALLOW_ADMIN_BYPASS"},
+		Type:         new(config.ConfigVariableTypeBool),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_VALKEY_ADDR",
 		Description: new("Address of operator valkey Server"),
 		Validate: func(value string) error {

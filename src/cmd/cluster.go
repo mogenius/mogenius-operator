@@ -21,6 +21,7 @@ import (
 	"mogenius-operator/src/services"
 	"mogenius-operator/src/shell"
 	"mogenius-operator/src/shutdown"
+	"mogenius-operator/src/sshgateway"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
@@ -146,11 +147,22 @@ func initializeClusterSystems(
 	structs.Setup(logManagerModule)
 	xterm.Setup(logManagerModule, base.valkeyClient)
 	allowExternalHosts, _ := configModule.TryGetBool("MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS")
+	sshGatewayEnabled, _ := configModule.TryGetBool("MO_SSH_GATEWAY_ENABLED")
+	allowAdminBypass, _ := configModule.TryGetBool("MO_SSH_GATEWAY_ALLOW_ADMIN_BYPASS")
 	xterm.SetupPortForward(
 		base.clientProvider.ClientConfig(),
 		base.clientProvider.K8sClientSet(),
 		allowExternalHosts,
+		sshGatewayEnabled,
 	)
+	if err := sshgateway.Setup(
+		logManagerModule.CreateLogger("ssh-gateway"),
+		base.clientProvider,
+		configModule.Get("MO_OWN_NAMESPACE"),
+		allowAdminBypass,
+	); err != nil {
+		base.logger.Warn("failed to initialize SSH gateway; kind=ssh tunnels will be rejected", "error", err)
+	}
 
 	argocdModule := argocd.NewArgoCd(logManagerModule, configModule, base.clientProvider, base.valkeyClient)
 	fluxModule := flux.NewFlux(logManagerModule, base.clientProvider)
