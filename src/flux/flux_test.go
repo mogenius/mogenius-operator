@@ -42,6 +42,15 @@ func TestResolveKindGVRRejectsUnsupportedKinds(t *testing.T) {
 	}
 }
 
+// onlySourceRef asserts that refs holds exactly one reference and returns it.
+func onlySourceRef(t *testing.T, refs []fluxSourceRef) fluxSourceRef {
+	t.Helper()
+	if len(refs) != 1 {
+		t.Fatalf("resolveSourceRefs returned %d refs (%+v), want exactly 1", len(refs), refs)
+	}
+	return refs[0]
+}
+
 func TestResolveSourceRefKustomization(t *testing.T) {
 	obj := &unstructured.Unstructured{Object: map[string]any{
 		"apiVersion": "kustomize.toolkit.fluxcd.io/v1",
@@ -54,12 +63,9 @@ func TestResolveSourceRefKustomization(t *testing.T) {
 			},
 		},
 	}}
-	ref := resolveSourceRef(obj)
-	if ref == nil {
-		t.Fatal("resolveSourceRef returned nil, want a sourceRef")
-	}
+	ref := onlySourceRef(t, resolveSourceRefs(obj))
 	if ref.Kind != "GitRepository" || ref.Name != "podinfo" {
-		t.Errorf("resolveSourceRef = %+v, want kind GitRepository name podinfo", ref)
+		t.Errorf("resolveSourceRefs = %+v, want kind GitRepository name podinfo", ref)
 	}
 	if ref.Namespace != "flux-system" {
 		t.Errorf("sourceRef namespace = %q, want fallback to object namespace flux-system", ref.Namespace)
@@ -79,10 +85,7 @@ func TestResolveSourceRefCrossNamespace(t *testing.T) {
 			},
 		},
 	}}
-	ref := resolveSourceRef(obj)
-	if ref == nil {
-		t.Fatal("resolveSourceRef returned nil, want a sourceRef")
-	}
+	ref := onlySourceRef(t, resolveSourceRefs(obj))
 	if ref.Namespace != "flux-system" {
 		t.Errorf("sourceRef namespace = %q, want explicit flux-system", ref.Namespace)
 	}
@@ -105,12 +108,66 @@ func TestResolveSourceRefHelmReleaseChartSpec(t *testing.T) {
 			},
 		},
 	}}
-	ref := resolveSourceRef(obj)
-	if ref == nil {
-		t.Fatal("resolveSourceRef returned nil, want a sourceRef")
-	}
+	ref := onlySourceRef(t, resolveSourceRefs(obj))
 	if ref.Kind != "HelmRepository" || ref.Name != "podinfo-repo" || ref.Namespace != "flux-system" {
-		t.Errorf("resolveSourceRef = %+v, want HelmRepository podinfo-repo in flux-system", ref)
+		t.Errorf("resolveSourceRefs = %+v, want HelmRepository podinfo-repo in flux-system", ref)
+	}
+	if ref.BestEffort {
+		t.Error("a sourceRef read from the spec must not be BestEffort")
+	}
+}
+
+// A HelmRelease built from a spec.chart template must annotate BOTH the
+// HelmRepository and the HelmChart helm-controller generated from it: the
+// HelmChart is what resolves spec.chart.spec.version, and it only sees a new
+// chart version once the repository index has been refreshed.
+func TestResolveSourceRefHelmReleaseIncludesStatusHelmChart(t *testing.T) {
+	obj := &unstructured.Unstructured{Object: map[string]any{
+		"apiVersion": "helm.toolkit.fluxcd.io/v2",
+		"kind":       "HelmRelease",
+		"metadata":   map[string]any{"name": "podinfo", "namespace": "apps"},
+		"spec": map[string]any{
+			"chart": map[string]any{
+				"spec": map[string]any{
+					"chart":   "podinfo",
+					"version": "6.x",
+					"sourceRef": map[string]any{
+						"kind": "HelmRepository",
+						"name": "podinfo-repo",
+					},
+				},
+			},
+		},
+		"status": map[string]any{
+			"helmChart": "apps/apps-podinfo",
+		},
+	}}
+	refs := resolveSourceRefs(obj)
+	if len(refs) != 2 {
+		t.Fatalf("resolveSourceRefs = %+v, want 2 refs (HelmRepository, HelmChart)", refs)
+	}
+	if refs[0].Kind != "HelmRepository" || refs[0].Name != "podinfo-repo" {
+		t.Errorf("refs[0] = %+v, want the HelmRepository first so the index refreshes before the chart re-resolves", refs[0])
+	}
+	if refs[1].Kind != kindHelmChart || refs[1].Name != "apps-podinfo" || refs[1].Namespace != "apps" {
+		t.Errorf("refs[1] = %+v, want HelmChart apps-podinfo in apps", refs[1])
+	}
+	if !refs[1].BestEffort {
+		t.Error("the HelmChart is derived from status and must be BestEffort")
+	}
+}
+
+func TestStatusHelmChartRefRejectsMalformedValues(t *testing.T) {
+	for _, value := range []string{"", "no-slash", "/podinfo", "apps/", "  "} {
+		obj := &unstructured.Unstructured{Object: map[string]any{
+			"apiVersion": "helm.toolkit.fluxcd.io/v2",
+			"kind":       "HelmRelease",
+			"metadata":   map[string]any{"name": "podinfo", "namespace": "apps"},
+			"status":     map[string]any{"helmChart": value},
+		}}
+		if ref := statusHelmChartRef(obj); ref != nil {
+			t.Errorf("statusHelmChartRef(%q) = %+v, want nil", value, ref)
+		}
 	}
 }
 
@@ -133,13 +190,14 @@ func TestResolveSourceRefHelmReleaseChartRefWins(t *testing.T) {
 				},
 			},
 		},
+		// a leftover from a chart-template migration must not be annotated
+		"status": map[string]any{
+			"helmChart": "flux-system/flux-system-podinfo",
+		},
 	}}
-	ref := resolveSourceRef(obj)
-	if ref == nil {
-		t.Fatal("resolveSourceRef returned nil, want a sourceRef")
-	}
+	ref := onlySourceRef(t, resolveSourceRefs(obj))
 	if ref.Kind != "OCIRepository" || ref.Name != "podinfo-oci" {
-		t.Errorf("resolveSourceRef = %+v, want chartRef (OCIRepository podinfo-oci) to win over chart.spec.sourceRef", ref)
+		t.Errorf("resolveSourceRefs = %+v, want chartRef (OCIRepository podinfo-oci) to win over chart.spec.sourceRef and status.helmChart", ref)
 	}
 }
 
@@ -152,8 +210,8 @@ func TestResolveSourceRefNoneForSourceKinds(t *testing.T) {
 			"url": "https://github.com/stefanprodan/podinfo",
 		},
 	}}
-	if ref := resolveSourceRef(obj); ref != nil {
-		t.Errorf("resolveSourceRef = %+v, want nil for a source kind without sourceRef", ref)
+	if refs := resolveSourceRefs(obj); len(refs) != 0 {
+		t.Errorf("resolveSourceRefs = %+v, want none for a source kind without sourceRef", refs)
 	}
 }
 
@@ -169,18 +227,19 @@ func TestResolveSourceRefIncompleteRefIsSkipped(t *testing.T) {
 			},
 		},
 	}}
-	if ref := resolveSourceRef(obj); ref != nil {
-		t.Errorf("resolveSourceRef = %+v, want nil for an incomplete sourceRef", ref)
+	if refs := resolveSourceRefs(obj); len(refs) != 0 {
+		t.Errorf("resolveSourceRefs = %+v, want none for an incomplete sourceRef", refs)
 	}
-	if ref := resolveSourceRef(nil); ref != nil {
-		t.Errorf("resolveSourceRef(nil) = %+v, want nil", ref)
+	if refs := resolveSourceRefs(nil); len(refs) != 0 {
+		t.Errorf("resolveSourceRefs(nil) = %+v, want none", refs)
 	}
 }
 
 func TestSourceRefKindGVRsCoverChartRefKinds(t *testing.T) {
-	// chartRef may point at a HelmChart, which is not directly addressable
-	// via the socket commands but must be resolvable as a source.
-	for _, kind := range []string{"GitRepository", "OCIRepository", "HelmRepository", "Bucket", "HelmChart"} {
+	// chartRef may point at a HelmChart, and helm-controller generates one
+	// for a spec.chart template. Neither is directly addressable via the
+	// socket commands, but both must be resolvable as a source.
+	for _, kind := range []string{"GitRepository", "OCIRepository", "HelmRepository", "Bucket", kindHelmChart} {
 		if _, ok := fluxSourceRefKindGVRs[kind]; !ok {
 			t.Errorf("fluxSourceRefKindGVRs is missing kind %q", kind)
 		}
