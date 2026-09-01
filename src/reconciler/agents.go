@@ -99,10 +99,12 @@ func (d *reconcilerModule) evaluateAgent(agent *v1alpha1.Agent) (metav1.Conditio
 		return metav1.ConditionFalse, "InvalidSpec", err.Error()
 	}
 
-	if ref := agent.Spec.Scope.WorkspaceRef; ref != "" {
-		workspace, err := store.GetWorkspace(ownNamespace, ref)
-		if err != nil || workspace == nil {
-			return metav1.ConditionFalse, "WorkspaceNotFound", fmt.Sprintf("scope references workspace %q which does not exist", ref)
+	if agent.Spec.Scope != nil {
+		if ref := agent.Spec.Scope.WorkspaceRef; ref != "" {
+			workspace, err := store.GetWorkspace(ownNamespace, ref)
+			if err != nil || workspace == nil {
+				return metav1.ConditionFalse, "WorkspaceNotFound", fmt.Sprintf("scope references workspace %q which does not exist", ref)
+			}
 		}
 	}
 

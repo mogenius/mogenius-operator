@@ -23,7 +23,6 @@ const DEFAULT_AGENTS_MARKER_CONFIGMAP = "mogenius-ai-default-agents-seeded"
 // agent. All of them scope to "*" (resolved to an explicit namespace
 // allow-list at run time) and stay strictly read-only like any other agent.
 func defaultAgents() []v1alpha1.Agent {
-	allNamespaces := v1alpha1.AgentScope{Namespaces: []string{"*"}}
 	return []v1alpha1.Agent{
 		{
 			ObjectMeta: metav1.ObjectMeta{Name: "cluster-cleanup"},
@@ -33,7 +32,6 @@ func defaultAgents() []v1alpha1.Agent {
 				Icon:        "fa-broom",
 				Instruction: "You are a cluster janitor. Look for leftovers that accumulate over time: completed or failed Jobs older than a week, ReplicaSets scaled to zero that were superseded by newer revisions, and pods in Succeeded or Failed phase that were never cleaned up. Pick the single most obvious leftover and propose deleting it. Never propose deleting anything that is running, referenced by other resources, or that you are not certain about.",
 				Enabled:     false,
-				Scope:       allNamespaces,
 				Triggers: v1alpha1.AgentTriggers{
 					Cron: "0 6 * * 1",
 				},
@@ -47,7 +45,6 @@ func defaultAgents() []v1alpha1.Agent {
 				Icon:        "fa-gauge-high",
 				Instruction: "You are a resource right-sizing expert. Inspect deployments and stateful sets for missing resource requests or limits, requests that are drastically higher than typical usage for that kind of workload, and containers without memory limits that risk destabilizing nodes. Propose an update for the single most impactful workload, changing only its resources section and keeping every other field untouched. Be conservative — when in doubt, prefer adding missing requests/limits over shrinking existing ones.",
 				Enabled:     false,
-				Scope:       allNamespaces,
 				Triggers: v1alpha1.AgentTriggers{
 					Cron: "0 7 * * 1",
 				},
@@ -61,7 +58,6 @@ func defaultAgents() []v1alpha1.Agent {
 				Icon:        "fa-stethoscope",
 				Instruction: "You are a Kubernetes troubleshooter. Scan the scope for failing workloads — pods in CrashLoopBackOff or ImagePullBackOff, or otherwise not becoming ready. For the most clearly broken one, read its events, container statuses and logs, identify the root cause (bad image tag, failing command, missing config or secret, OOM kills) and propose a minimal fix on the owning controller. Only propose a change you are confident fixes the root cause; otherwise report your diagnosis without a proposed operation.",
 				Enabled:     false,
-				Scope:       allNamespaces,
 				Triggers: v1alpha1.AgentTriggers{
 					OnChange: &v1alpha1.AgentChangeTrigger{
 						Kinds:       []string{"Pod"},
@@ -79,7 +75,6 @@ func defaultAgents() []v1alpha1.Agent {
 				Icon:        "fa-shield-halved",
 				Instruction: "You are a Kubernetes security auditor. Look for privileged containers, hostPath volumes, hostNetwork/hostPID usage, containers running as root without need, images pinned to the latest tag, and missing securityContext hardening. Report the most severe finding and, when the fix is safe and mechanical (e.g. pinning a tag, adding runAsNonRoot), propose the corresponding update. Never propose changes that could break a workload whose requirements you do not know.",
 				Enabled:     false,
-				Scope:       allNamespaces,
 				Triggers: v1alpha1.AgentTriggers{
 					Cron: "0 8 * * 1",
 				},
@@ -93,7 +88,6 @@ func defaultAgents() []v1alpha1.Agent {
 				Icon:        "fa-clipboard-check",
 				Instruction: "You are a Kubernetes reliability reviewer. Check workloads for missing liveness/readiness probes, single-replica deployments serving traffic, missing pod disruption budgets for multi-replica workloads, and absent standard labels. Pick the workload where a fix has the highest operational value and propose the corresponding update — for example adding a readiness probe that matches an exposed port. Keep proposals minimal and safe.",
 				Enabled:     false,
-				Scope:       allNamespaces,
 				Triggers: v1alpha1.AgentTriggers{
 					Cron: "0 9 * * 1",
 				},

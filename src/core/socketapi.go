@@ -2157,7 +2157,7 @@ func (self *socketApi) registerPatterns() {
 					}
 					return []GetAgentResult{*agent}, nil
 				}
-				return self.apiService.GetAllAgents()
+				return self.apiService.GetAllAgents(datagram.Workspace)
 			},
 		)
 	}

@@ -28,7 +28,7 @@ func TestEvaluateAgentIgnoredNamespace(t *testing.T) {
 	module := newAgentTestModule(t)
 	agent := agentFixture("default", v1alpha1.AgentSpec{
 		Enabled: true,
-		Scope:   v1alpha1.AgentScope{Namespaces: []string{"default"}},
+		Scope:   &v1alpha1.AgentScope{WorkspaceRef: "prod"},
 	})
 
 	status, reason, message := module.evaluateAgent(agent)
@@ -40,16 +40,10 @@ func TestEvaluateAgentIgnoredNamespace(t *testing.T) {
 func TestEvaluateAgentInvalidSpec(t *testing.T) {
 	module := newAgentTestModule(t)
 
-	// Empty scope must be rejected.
-	agent := agentFixture("mogenius", v1alpha1.AgentSpec{Enabled: true})
-	status, reason, _ := module.evaluateAgent(agent)
-	assert.Equal(t, metav1.ConditionFalse, status)
-	assert.Equal(t, "InvalidSpec", reason)
-
 	// Invalid cron expression must be rejected.
-	agent = agentFixture("mogenius", v1alpha1.AgentSpec{
+	agent := agentFixture("mogenius", v1alpha1.AgentSpec{
 		Enabled:  true,
-		Scope:    v1alpha1.AgentScope{Namespaces: []string{"prod"}},
+		Scope:    &v1alpha1.AgentScope{WorkspaceRef: "prod"},
 		Triggers: v1alpha1.AgentTriggers{Cron: "not-a-cron"},
 	})
 	status, reason, message := module.evaluateAgent(agent)
@@ -60,7 +54,7 @@ func TestEvaluateAgentInvalidSpec(t *testing.T) {
 	// Change trigger with an invalid change type must be rejected.
 	agent = agentFixture("mogenius", v1alpha1.AgentSpec{
 		Enabled: true,
-		Scope:   v1alpha1.AgentScope{Namespaces: []string{"prod"}},
+		Scope:   &v1alpha1.AgentScope{WorkspaceRef: "prod"},
 		Triggers: v1alpha1.AgentTriggers{
 			OnChange: &v1alpha1.AgentChangeTrigger{On: []string{"modified"}},
 		},
@@ -73,9 +67,9 @@ func TestEvaluateAgentInvalidSpec(t *testing.T) {
 func TestEvaluateAgentValid(t *testing.T) {
 	module := newAgentTestModule(t)
 
+	// Valid enabled agent with a cron trigger; nil scope = wildcard (avoids workspace lookup in unit tests).
 	agent := agentFixture("mogenius", v1alpha1.AgentSpec{
 		Enabled:  true,
-		Scope:    v1alpha1.AgentScope{Namespaces: []string{"prod", "staging"}},
 		Triggers: v1alpha1.AgentTriggers{Cron: "0 6 * * 1"},
 	})
 	status, reason, message := module.evaluateAgent(agent)
@@ -83,10 +77,9 @@ func TestEvaluateAgentValid(t *testing.T) {
 	assert.Equal(t, "Valid", reason)
 	assert.NotContains(t, message, "disabled")
 
-	// Wildcard scope is valid.
+	// Wildcard scope (nil) is valid.
 	agent = agentFixture("mogenius", v1alpha1.AgentSpec{
 		Enabled: true,
-		Scope:   v1alpha1.AgentScope{Namespaces: []string{"*"}},
 	})
 	status, reason, _ = module.evaluateAgent(agent)
 	assert.Equal(t, metav1.ConditionTrue, status)
@@ -95,7 +88,6 @@ func TestEvaluateAgentValid(t *testing.T) {
 	// Disabled agents are still valid, but the message says so.
 	agent = agentFixture("mogenius", v1alpha1.AgentSpec{
 		Enabled: false,
-		Scope:   v1alpha1.AgentScope{Namespaces: []string{"prod"}},
 	})
 	status, _, message = module.evaluateAgent(agent)
 	assert.Equal(t, metav1.ConditionTrue, status)
