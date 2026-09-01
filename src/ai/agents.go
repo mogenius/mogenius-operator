@@ -6,7 +6,6 @@ import (
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
-	"mogenius-operator/src/utils"
 	"regexp"
 	"slices"
 	"sort"
@@ -44,13 +43,8 @@ const agentCacheTTL = 30 * time.Second
 // exist — empty allow-maps would disable namespace checks entirely), a
 // parseable cron expression and a well-formed change trigger.
 func ValidateAgentSpec(spec v1alpha1.AgentSpec) error {
-	if spec.Scope.WorkspaceRef == "" && len(spec.Scope.Namespaces) == 0 {
-		return fmt.Errorf("agent scope must reference a workspace or list at least one namespace")
-	}
-	for _, ns := range spec.Scope.Namespaces {
-		if strings.TrimSpace(ns) == "" {
-			return fmt.Errorf("agent scope contains an empty namespace entry")
-		}
+	if spec.Scope != nil && spec.Scope.WorkspaceRef == "" {
+		return fmt.Errorf("agent scope must reference a workspace")
 	}
 	if spec.Triggers.Cron != "" {
 		if _, err := cron.ParseStandard(spec.Triggers.Cron); err != nil {
@@ -172,21 +166,7 @@ func (ai *aiManager) getAgent(name string) (*v1alpha1.Agent, error) {
 func (ai *aiManager) resolveAgentScope(agent *v1alpha1.Agent) []string {
 	namespaces := map[string]bool{}
 
-	for _, ns := range agent.Spec.Scope.Namespaces {
-		if ns == "*" {
-			for _, nsObj := range store.GetResourceByKindAndNamespace(ai.valkeyClient, utils.NamespaceResource.ApiVersion, utils.NamespaceResource.Kind, "", ai.logger) {
-				if name := nsObj.GetName(); name != "" {
-					namespaces[name] = true
-				}
-			}
-			continue
-		}
-		if ns != "" {
-			namespaces[ns] = true
-		}
-	}
-
-	if agent.Spec.Scope.WorkspaceRef != "" {
+	if agent.Spec.Scope != nil && agent.Spec.Scope.WorkspaceRef != "" {
 		ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
 		if err != nil {
 			ai.logger.Warn("resolveAgentScope: failed to get own namespace", "agent", agent.Name, "error", err)
@@ -365,7 +345,7 @@ func (ai *aiManager) enqueueAgentRun(agent *v1alpha1.Agent, namespaces []string,
 		// arbitrary pick — the alphabetically first scope namespace), so the
 		// scope travels with the task.
 		ScopeNamespaces:    namespaces,
-		ScopeAllNamespaces: slices.Contains(agent.Spec.Scope.Namespaces, "*"),
+		ScopeAllNamespaces: agent.Spec.Scope == nil,
 	}
 	if err := ai.createOrUpdateAiTask(task, key); err != nil {
 		return nil, fmt.Errorf("failed to create agent run task: %w", err)

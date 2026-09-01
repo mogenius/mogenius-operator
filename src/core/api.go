@@ -80,7 +80,7 @@ type Api interface {
 	UpdateGroupGrant(name string, spec v1alpha1.GroupGrantSpec) (string, error)
 	DeleteGroupGrant(name string) (string, error)
 
-	GetAllAgents() ([]GetAgentResult, error)
+	GetAllAgents(workspace string) ([]GetAgentResult, error)
 	GetAgent(name string) (*GetAgentResult, error)
 	CreateAgent(name string, spec v1alpha1.AgentSpec) (string, error)
 	UpdateAgent(name string, spec v1alpha1.AgentSpec) (string, error)
@@ -401,7 +401,7 @@ func newGetAgentResult(agent v1alpha1.Agent) GetAgentResult {
 	}
 }
 
-func (self *api) GetAllAgents() ([]GetAgentResult, error) {
+func (self *api) GetAllAgents(workspace string) ([]GetAgentResult, error) {
 	agents, err := self.workspaceManager.GetAllAgents()
 	if err != nil {
 		return []GetAgentResult{}, err
@@ -409,7 +409,9 @@ func (self *api) GetAllAgents() ([]GetAgentResult, error) {
 
 	result := make([]GetAgentResult, 0, len(agents))
 	for _, agent := range agents {
-		result = append(result, newGetAgentResult(agent))
+		if workspace == "" || agent.Spec.Scope == nil || agent.Spec.Scope.WorkspaceRef == workspace {
+			result = append(result, newGetAgentResult(agent))
+		}
 	}
 	return result, nil
 }

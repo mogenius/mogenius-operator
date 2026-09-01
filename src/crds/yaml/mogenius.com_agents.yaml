@@ -105,24 +105,16 @@ spec:
                   What the agent is allowed to see. Agents are always read-only; the
                   scope additionally restricts reads to the resolved namespaces.
                 properties:
-                  namespaces:
-                    description: |-
-                      Explicit list of namespaces the agent may see. The single entry "*"
-                      grants visibility into all namespaces (resolved at run time).
-                    items:
-                      maxLength: 63
-                      pattern: ^(\*|[a-z0-9]([-a-z0-9]*[a-z0-9])?)$
-                      type: string
-                    type: array
                   workspaceRef:
                     description: Name of a Workspace CR whose namespace resources
                       define the scope.
                     type: string
+                required:
+                - workspaceRef
                 type: object
                 x-kubernetes-validations:
-                - message: scope must reference a workspace or list at least one namespace
-                  rule: (has(self.workspaceRef) && self.workspaceRef != "") || (has(self.namespaces)
-                    && self.namespaces.size() > 0)
+                - message: scope.workspaceRef must not be empty
+                  rule: self.workspaceRef != ""
               tools:
                 description: |-
                   Tools configures which tool groups are available to this agent.
@@ -196,7 +188,6 @@ spec:
                 type: object
             required:
             - enabled
-            - scope
             type: object
           status:
             properties:

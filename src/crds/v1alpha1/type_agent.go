@@ -67,7 +67,7 @@ type AgentSpec struct {
 
 	// What the agent is allowed to see. Agents are always read-only; the
 	// scope additionally restricts reads to the resolved namespaces.
-	Scope AgentScope `json:"scope"`
+	Scope *AgentScope `json:"scope,omitempty"`
 
 	Triggers AgentTriggers `json:"triggers,omitempty"`
 
@@ -119,16 +119,10 @@ type AgentBuiltinTools struct {
 // AgentScope restricts an agent's visibility. At least one of WorkspaceRef or
 // Namespaces must be set; when both are set the union applies.
 //
-// +kubebuilder:validation:XValidation:rule="(has(self.workspaceRef) && self.workspaceRef != \"\") || (has(self.namespaces) && self.namespaces.size() > 0)",message="scope must reference a workspace or list at least one namespace"
+// +kubebuilder:validation:XValidation:rule="self.workspaceRef != \"\"",message="scope.workspaceRef must not be empty"
 type AgentScope struct {
 	// Name of a Workspace CR whose namespace resources define the scope.
-	WorkspaceRef string `json:"workspaceRef,omitempty"`
-
-	// Explicit list of namespaces the agent may see. The single entry "*"
-	// grants visibility into all namespaces (resolved at run time).
-	// +kubebuilder:validation:items:Pattern=`^(\*|[a-z0-9]([-a-z0-9]*[a-z0-9])?)$`
-	// +kubebuilder:validation:items:MaxLength=63
-	Namespaces []string `json:"namespaces,omitempty"`
+	WorkspaceRef string `json:"workspaceRef"`
 }
 
 // AgentTriggers declares when an agent runs. A manual run is always available

@@ -17,7 +17,7 @@ import (
 func TestValidateAgentSpec(t *testing.T) {
 	validSpec := v1alpha1.AgentSpec{
 		Enabled: true,
-		Scope:   v1alpha1.AgentScope{Namespaces: []string{"default"}},
+		Scope:   &v1alpha1.AgentScope{WorkspaceRef: "default"},
 		Triggers: v1alpha1.AgentTriggers{
 			Cron: "*/5 * * * *",
 			OnChange: &v1alpha1.AgentChangeTrigger{
@@ -34,14 +34,14 @@ func TestValidateAgentSpec(t *testing.T) {
 	}{
 		{name: "valid spec", mutate: func(spec *v1alpha1.AgentSpec) {}},
 		{
-			name:    "empty scope",
-			mutate:  func(spec *v1alpha1.AgentSpec) { spec.Scope = v1alpha1.AgentScope{} },
-			wantErr: "scope",
+			name:    "nil scope is valid (wildcard — all namespaces)",
+			mutate:  func(spec *v1alpha1.AgentSpec) { spec.Scope = nil },
+			wantErr: "",
 		},
 		{
-			name:    "blank namespace entry",
-			mutate:  func(spec *v1alpha1.AgentSpec) { spec.Scope.Namespaces = []string{" "} },
-			wantErr: "empty namespace",
+			name:    "blank workspace ref",
+			mutate:  func(spec *v1alpha1.AgentSpec) { spec.Scope.WorkspaceRef = "" },
+			wantErr: "workspace",
 		},
 		{
 			name:    "invalid cron",
@@ -63,7 +63,7 @@ func TestValidateAgentSpec(t *testing.T) {
 		},
 		{
 			name:   "workspace ref only is a valid scope",
-			mutate: func(spec *v1alpha1.AgentSpec) { spec.Scope = v1alpha1.AgentScope{WorkspaceRef: "team-a"} },
+			mutate: func(spec *v1alpha1.AgentSpec) { spec.Scope = &v1alpha1.AgentScope{WorkspaceRef: "team-a"} },
 		},
 	}
 
@@ -109,7 +109,7 @@ func TestNewToolContextFromAgent(t *testing.T) {
 	agent := &v1alpha1.Agent{
 		ObjectMeta: metav1.ObjectMeta{Name: "my-agent"},
 		Spec: v1alpha1.AgentSpec{
-			Scope: v1alpha1.AgentScope{WorkspaceRef: "team-a"},
+			Scope: &v1alpha1.AgentScope{WorkspaceRef: "team-a"},
 		},
 	}
 
