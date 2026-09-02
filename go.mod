@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	github.com/KimMachineGun/automemlimit v1.0.0
 	github.com/alecthomas/kong v1.16.1
-	github.com/alicebob/miniredis/v2 v2.38.0
+	github.com/alicebob/miniredis/v2 v2.39.0
 	github.com/anthropics/anthropic-sdk-go v1.68.0
 	github.com/bitnami/sealed-secrets v0.39.1
 	github.com/creack/pty v1.1.24
