@@ -406,10 +406,9 @@ func (self *api) GetAllAgents(workspace string) ([]GetAgentResult, error) {
 	if err != nil {
 		return []GetAgentResult{}, err
 	}
-
 	result := make([]GetAgentResult, 0, len(agents))
 	for _, agent := range agents {
-		if workspace == "" || agent.Spec.Scope == nil || agent.Spec.Scope.WorkspaceRef == workspace {
+		if workspace == "" || (agent.Spec.Scope != nil && agent.Spec.Scope.WorkspaceRef == workspace) {
 			result = append(result, newGetAgentResult(agent))
 		}
 	}
