@@ -73,10 +73,23 @@ func NfsDiskUsage(volumeNamespace string, volumeName string) (free, used, total 
 	if execErr != nil {
 		return 0, 0, 0, fmt.Errorf("df exec failed: %w", execErr)
 	}
+	return parseDfOutput(output)
+}
 
-	// df -B1 output (header + data line):
-	// Filesystem     1-blocks      Used Available Use% Mounted on
-	// overlay        5368709120  102400  5266309120   2% /exports
+// PodDiskUsage returns free/used/total bytes of mountPath by executing
+// `df -B1 <mountPath>` inside the given container.
+func PodDiskUsage(namespace, podName, container, mountPath string) (free, used, total uint64, err error) {
+	output, execErr := ExecInPod(namespace, podName, container, []string{"df", "-B1", mountPath}, nil)
+	if execErr != nil {
+		return 0, 0, 0, fmt.Errorf("df exec failed: %w", execErr)
+	}
+	return parseDfOutput(output)
+}
+
+// parseDfOutput parses `df -B1 <path>` output (header + data line):
+// Filesystem     1-blocks      Used Available Use% Mounted on
+// overlay        5368709120  102400  5266309120   2% /exports
+func parseDfOutput(output string) (free, used, total uint64, err error) {
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	if len(lines) < 2 {
 		return 0, 0, 0, fmt.Errorf("unexpected df output: %q", output)
@@ -123,7 +136,27 @@ func ExecInNfsPodToWriter(volumeNamespace, volumeName string, command []string, 
 	return execInNfsPodStream(volumeNamespace, podNames[0], command, stdin, stdout)
 }
 
+// ExecInPod executes a command inside the given container of a pod and returns
+// the buffered stdout. stdin may be nil.
+func ExecInPod(namespace, podName, container string, command []string, stdin io.Reader) (string, error) {
+	var stdout bytes.Buffer
+	err := execInPodStream(namespace, podName, container, command, stdin, &stdout)
+	return stdout.String(), err
+}
+
+// ExecInPodToWriter streams exec stdout of the given container directly into
+// the provided writer. stdin may be nil.
+func ExecInPodToWriter(namespace, podName, container string, command []string, stdin io.Reader, stdout io.Writer) error {
+	return execInPodStream(namespace, podName, container, command, stdin, stdout)
+}
+
+// execInNfsPodStream keeps the legacy NFS entry point; the NFS server pod
+// always runs its single container named "nfs-server".
 func execInNfsPodStream(namespace, podName string, command []string, stdin io.Reader, stdout io.Writer) error {
+	return execInPodStream(namespace, podName, "nfs-server", command, stdin, stdout)
+}
+
+func execInPodStream(namespace, podName, container string, command []string, stdin io.Reader, stdout io.Writer) error {
 	clientset := clientProvider.K8sClientSet()
 	restConfig := clientProvider.ClientConfig()
 
@@ -132,7 +165,7 @@ func execInNfsPodStream(namespace, podName string, command []string, stdin io.Re
 		Name(podName).
 		Namespace(namespace).
 		SubResource("exec").
-		Param("container", "nfs-server").
+		Param("container", container).
 		Param("stdout", "true").
 		Param("stderr", "true").
 		Param("tty", "false")

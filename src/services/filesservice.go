@@ -13,19 +13,209 @@ import (
 	"mogenius-operator/src/utils"
 	"net/http"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
 )
 
+// fileExecTarget is the resolved exec substrate for one file operation: the
+// container to exec in and the mount root all request paths resolve against.
+type fileExecTarget struct {
+	Namespace string
+	Pod       string
+	Container string
+	MountRoot string
+}
+
+// resolveNfsFileTarget resolves the legacy NFS exec target: the nfs-server pod
+// of a mogenius volume, always container "nfs-server" with mount root /exports.
+func resolveNfsFileTarget(volumeNamespace, volumeName string) (fileExecTarget, error) {
+	podNames := mokubernetes.AllPodNamesForLabel(volumeNamespace, "app", fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName))
+	if len(podNames) == 0 {
+		return fileExecTarget{}, fmt.Errorf("NFS server pod not found for %s/%s", volumeNamespace, volumeName)
+	}
+	return fileExecTarget{
+		Namespace: volumeNamespace,
+		Pod:       podNames[0],
+		Container: "nfs-server",
+		MountRoot: "/exports",
+	}, nil
+}
+
+// resolvePvcFileTarget resolves the v2 exec target: any running pod that
+// mounts the PVC without subPath, chosen by ResolvePvcTarget.
+func resolvePvcFileTarget(namespace, pvcName string) (fileExecTarget, error) {
+	target, err := ResolvePvcTarget(namespace, pvcName)
+	if err != nil {
+		return fileExecTarget{}, err
+	}
+	return fileExecTarget{
+		Namespace: target.Namespace,
+		Pod:       target.PodName,
+		Container: target.ContainerName,
+		MountRoot: target.MountPath,
+	}, nil
+}
+
+// ── legacy NFS entry points (deprecated patterns files/*) ─────────────────────
+
 func List(folder dtos.PersistentFileRequestDto) ([]dtos.PersistentFileDto, error) {
-	containerPath, err := resolveNfs(&folder)
+	target, err := resolveNfsFileTarget(folder.VolumeNamespace, folder.VolumeName)
+	if err != nil {
+		return nil, err
+	}
+	return listImpl(target, folder.Path)
+}
+
+func Info(r dtos.PersistentFileRequestDto) (dtos.PersistentFileDto, error) {
+	target, err := resolveNfsFileTarget(r.VolumeNamespace, r.VolumeName)
+	if err != nil {
+		return dtos.PersistentFileDto{}, err
+	}
+	return infoImpl(target, r.Path)
+}
+
+func Download(pfile dtos.PersistentFileRequestDto, postTo string) (FilesDownloadResponse, error) {
+	target, err := resolveNfsFileTarget(pfile.VolumeNamespace, pfile.VolumeName)
+	if err != nil {
+		return FilesDownloadResponse{Error: err.Error()}, err
+	}
+	return downloadImpl(target, pfile.Path, postTo)
+}
+
+func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) error {
+	target, err := resolveNfsFileTarget(fileReq.File.VolumeNamespace, fileReq.File.VolumeName)
+	if err != nil {
+		return fmt.Errorf("error verifying file %s: %w", fileReq.File.Path, err)
+	}
+	return uploadedImpl(target, tempZipFileSrc, fileReq.File.Path, fileReq.SizeInBytes)
+}
+
+func CreateFolder(folder dtos.PersistentFileRequestDto) error {
+	target, err := resolveNfsFileTarget(folder.VolumeNamespace, folder.VolumeName)
+	if err != nil {
+		return err
+	}
+	return createFolderImpl(target, folder.Path)
+}
+
+func Rename(file dtos.PersistentFileRequestDto, newName string) error {
+	target, err := resolveNfsFileTarget(file.VolumeNamespace, file.VolumeName)
+	if err != nil {
+		return err
+	}
+	return renameImpl(target, file.Path, newName)
+}
+
+func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString string) error {
+	target, err := resolveNfsFileTarget(file.VolumeNamespace, file.VolumeName)
+	if err != nil {
+		return err
+	}
+	return chownImpl(target, file.Path, uidString, gidString)
+}
+
+func Chmod(file dtos.PersistentFileRequestDto, mode string) error {
+	target, err := resolveNfsFileTarget(file.VolumeNamespace, file.VolumeName)
+	if err != nil {
+		return err
+	}
+	return chmodImpl(target, file.Path, mode)
+}
+
+func Delete(file dtos.PersistentFileRequestDto) error {
+	target, err := resolveNfsFileTarget(file.VolumeNamespace, file.VolumeName)
+	if err != nil {
+		return err
+	}
+	return deleteImpl(target, file.Path)
+}
+
+// ── v2 entry points (files/v2/* patterns, any mounted PVC) ────────────────────
+
+func ListV2(folder dtos.PvcFileRequestDto) ([]dtos.PersistentFileDto, error) {
+	target, err := resolvePvcFileTarget(folder.Namespace, folder.PvcName)
+	if err != nil {
+		return nil, err
+	}
+	return listImpl(target, folder.Path)
+}
+
+func InfoV2(r dtos.PvcFileRequestDto) (dtos.PersistentFileDto, error) {
+	target, err := resolvePvcFileTarget(r.Namespace, r.PvcName)
+	if err != nil {
+		return dtos.PersistentFileDto{}, err
+	}
+	return infoImpl(target, r.Path)
+}
+
+func DownloadV2(pfile dtos.PvcFileRequestDto, postTo string) (FilesDownloadResponse, error) {
+	target, err := resolvePvcFileTarget(pfile.Namespace, pfile.PvcName)
+	if err != nil {
+		return FilesDownloadResponse{Error: err.Error()}, err
+	}
+	return downloadImpl(target, pfile.Path, postTo)
+}
+
+func UploadedV2(tempZipFileSrc string, fileReq FilesUploadRequestV2) error {
+	target, err := resolvePvcFileTarget(fileReq.File.Namespace, fileReq.File.PvcName)
+	if err != nil {
+		return fmt.Errorf("error verifying file %s: %w", fileReq.File.Path, err)
+	}
+	return uploadedImpl(target, tempZipFileSrc, fileReq.File.Path, fileReq.SizeInBytes)
+}
+
+func CreateFolderV2(folder dtos.PvcFileRequestDto) error {
+	target, err := resolvePvcFileTarget(folder.Namespace, folder.PvcName)
+	if err != nil {
+		return err
+	}
+	return createFolderImpl(target, folder.Path)
+}
+
+func RenameV2(file dtos.PvcFileRequestDto, newName string) error {
+	target, err := resolvePvcFileTarget(file.Namespace, file.PvcName)
+	if err != nil {
+		return err
+	}
+	return renameImpl(target, file.Path, newName)
+}
+
+func ChownV2(file dtos.PvcFileRequestDto, uidString string, gidString string) error {
+	target, err := resolvePvcFileTarget(file.Namespace, file.PvcName)
+	if err != nil {
+		return err
+	}
+	return chownImpl(target, file.Path, uidString, gidString)
+}
+
+func ChmodV2(file dtos.PvcFileRequestDto, mode string) error {
+	target, err := resolvePvcFileTarget(file.Namespace, file.PvcName)
+	if err != nil {
+		return err
+	}
+	return chmodImpl(target, file.Path, mode)
+}
+
+func DeleteV2(file dtos.PvcFileRequestDto) error {
+	target, err := resolvePvcFileTarget(file.Namespace, file.PvcName)
+	if err != nil {
+		return err
+	}
+	return deleteImpl(target, file.Path)
+}
+
+// ── target-based implementations ──────────────────────────────────────────────
+
+func listImpl(target fileExecTarget, requestPath string) ([]dtos.PersistentFileDto, error) {
+	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
 		return nil, err
 	}
 
-	output, err := mokubernetes.ExecInNfsPod(
-		folder.VolumeNamespace, folder.VolumeName,
+	output, err := mokubernetes.ExecInPod(
+		target.Namespace, target.Pod, target.Container,
 		[]string{
 			"find", containerPath,
 			"-maxdepth", "1", "-mindepth", "1",
@@ -55,33 +245,33 @@ func List(folder dtos.PersistentFileRequestDto) ([]dtos.PersistentFileDto, error
 	return result, nil
 }
 
-func Info(r dtos.PersistentFileRequestDto) (dtos.PersistentFileDto, error) {
-	containerPath, err := resolveNfs(&r)
+func infoImpl(target fileExecTarget, requestPath string) (dtos.PersistentFileDto, error) {
+	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
 		return dtos.PersistentFileDto{}, err
 	}
 
-	output, err := mokubernetes.ExecInNfsPod(
-		r.VolumeNamespace, r.VolumeName,
+	output, err := mokubernetes.ExecInPod(
+		target.Namespace, target.Pod, target.Container,
 		[]string{"stat", "-c", "%n\t%F\t%s\t%u\t%g\t%a\t%Y", containerPath},
 		nil,
 	)
 	if err != nil {
 		return dtos.PersistentFileDto{}, err
 	}
-	return parseStatLine("/exports", strings.TrimSpace(output))
+	return parseStatLine(target.MountRoot, strings.TrimSpace(output))
 }
 
-func Download(pfile dtos.PersistentFileRequestDto, postTo string) (FilesDownloadResponse, error) {
+func downloadImpl(target fileExecTarget, requestPath string, postTo string) (FilesDownloadResponse, error) {
 	result := FilesDownloadResponse{}
 
-	containerPath, err := resolveNfs(&pfile)
+	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
 		result.Error = err.Error()
 		return result, err
 	}
 
-	info, err := Info(pfile)
+	info, err := infoImpl(target, requestPath)
 	if err != nil {
 		result.Error = err.Error()
 		return result, err
@@ -104,14 +294,14 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) (FilesDownload
 	}
 
 	if info.Type == "directory" {
-		err = mokubernetes.ExecInNfsPodToWriter(
-			pfile.VolumeNamespace, pfile.VolumeName,
+		err = mokubernetes.ExecInPodToWriter(
+			target.Namespace, target.Pod, target.Container,
 			[]string{"tar", "czf", "-", "-C", path.Dir(containerPath), path.Base(containerPath)},
 			nil, w,
 		)
 	} else {
-		err = mokubernetes.ExecInNfsPodToWriter(
-			pfile.VolumeNamespace, pfile.VolumeName,
+		err = mokubernetes.ExecInPodToWriter(
+			target.Namespace, target.Pod, target.Container,
 			[]string{"cat", containerPath},
 			nil, w,
 		)
@@ -149,62 +339,63 @@ func Download(pfile dtos.PersistentFileRequestDto, postTo string) (FilesDownload
 	return result, nil
 }
 
-func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) error {
-	containerPath, err := resolveNfs(&fileReq.File)
+func uploadedImpl(target fileExecTarget, tempZipFileSrc string, requestPath string, sizeInBytes int64) error {
+	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
-		return fmt.Errorf("error verifying file %s: %w", fileReq.File.Path, err)
+		return fmt.Errorf("error verifying file %s: %w", requestPath, err)
 	}
 	serviceLogger.Info(
 		"verified file",
-		"VolumeName", fileReq.File.VolumeName,
+		"pod", target.Pod,
+		"container", target.Container,
 		"targetDestination", containerPath,
-		"size", utils.BytesToHumanReadable(fileReq.SizeInBytes),
-		"path", fileReq.File.Path,
+		"size", utils.BytesToHumanReadable(sizeInBytes),
+		"path", requestPath,
 	)
 
-	// Convert zip → tar in-memory, then stream into the NFS pod via exec stdin.
+	// Convert zip → tar in-memory, then stream into the target pod via exec stdin.
 	tarBuf, err := zipToTar(tempZipFileSrc)
 	if err != nil {
-		return fmt.Errorf("error converting zip to tar for %s: %w", fileReq.File.Path, err)
+		return fmt.Errorf("error converting zip to tar for %s: %w", requestPath, err)
 	}
 
-	_, err = mokubernetes.ExecInNfsPod(
-		fileReq.File.VolumeNamespace, fileReq.File.VolumeName,
+	_, err = mokubernetes.ExecInPod(
+		target.Namespace, target.Pod, target.Container,
 		[]string{"sh", "-c", fmt.Sprintf("mkdir -p '%s' && tar xf - -C '%s'", containerPath, containerPath)},
 		tarBuf,
 	)
 	return err
 }
 
-func CreateFolder(folder dtos.PersistentFileRequestDto) error {
-	containerPath, err := resolveNfs(&folder)
+func createFolderImpl(target fileExecTarget, requestPath string) error {
+	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
 		return err
 	}
-	_, err = mokubernetes.ExecInNfsPod(
-		folder.VolumeNamespace, folder.VolumeName,
+	_, err = mokubernetes.ExecInPod(
+		target.Namespace, target.Pod, target.Container,
 		[]string{"mkdir", "-p", containerPath},
 		nil,
 	)
 	return err
 }
 
-func Rename(file dtos.PersistentFileRequestDto, newName string) error {
-	containerPath, err := resolveNfs(&file)
+func renameImpl(target fileExecTarget, requestPath string, newName string) error {
+	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
 		return err
 	}
 	newPath := path.Join(path.Dir(containerPath), newName)
-	_, err = mokubernetes.ExecInNfsPod(
-		file.VolumeNamespace, file.VolumeName,
+	_, err = mokubernetes.ExecInPod(
+		target.Namespace, target.Pod, target.Container,
 		[]string{"mv", containerPath, newPath},
 		nil,
 	)
 	return err
 }
 
-func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString string) error {
-	containerPath, err := resolveNfs(&file)
+func chownImpl(target fileExecTarget, requestPath string, uidString string, gidString string) error {
+	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
 		return err
 	}
@@ -222,16 +413,16 @@ func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString strin
 		return fmt.Errorf("gid/uid > 0 and < 2^32")
 	}
 
-	_, err = mokubernetes.ExecInNfsPod(
-		file.VolumeNamespace, file.VolumeName,
+	_, err = mokubernetes.ExecInPod(
+		target.Namespace, target.Pod, target.Container,
 		[]string{"chown", fmt.Sprintf("%s:%s", uidString, gidString), containerPath},
 		nil,
 	)
 	return err
 }
 
-func Chmod(file dtos.PersistentFileRequestDto, mode string) error {
-	containerPath, err := resolveNfs(&file)
+func chmodImpl(target fileExecTarget, requestPath string, mode string) error {
+	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
 		return err
 	}
@@ -241,21 +432,21 @@ func Chmod(file dtos.PersistentFileRequestDto, mode string) error {
 		return fmt.Errorf("failed to parse oct permissions: %s %w", mod, err)
 	}
 
-	_, err = mokubernetes.ExecInNfsPod(
-		file.VolumeNamespace, file.VolumeName,
+	_, err = mokubernetes.ExecInPod(
+		target.Namespace, target.Pod, target.Container,
 		[]string{"chmod", mod, containerPath},
 		nil,
 	)
 	return err
 }
 
-func Delete(file dtos.PersistentFileRequestDto) error {
-	containerPath, err := resolveNfs(&file)
+func deleteImpl(target fileExecTarget, requestPath string) error {
+	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
 		return err
 	}
-	_, err = mokubernetes.ExecInNfsPod(
-		file.VolumeNamespace, file.VolumeName,
+	_, err = mokubernetes.ExecInPod(
+		target.Namespace, target.Pod, target.Container,
 		[]string{"rm", "-rf", containerPath},
 		nil,
 	)
@@ -275,29 +466,44 @@ type FilesUploadRequest struct {
 	Id          string                        `json:"id"`
 }
 
+type FilesUploadRequestV2 struct {
+	File        dtos.PvcFileRequestDto `json:"file"`
+	SizeInBytes int64                  `json:"sizeInBytes"`
+	Id          string                 `json:"id"`
+}
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-// resolveNfs validates the request path and returns the absolute path inside the
-// NFS container (/exports/...).
-func resolveNfs(data *dtos.PersistentFileRequestDto) (string, error) {
-	if data.Path == "" {
+// resolvePath validates the request path and returns the absolute path inside
+// the container, rooted at mountRoot. Legacy NFS callers pass "/exports".
+func resolvePath(mountRoot, requestPath string) (string, error) {
+	if requestPath == "" {
 		return "", fmt.Errorf("path cannot be empty. Must at least contain '/'")
 	}
-	if strings.Contains(data.Path, "..") {
+	if strings.Contains(requestPath, "..") {
 		return "", fmt.Errorf("path cannot contain '..'")
 	}
-	if strings.Contains(data.Path, "./") {
+	if strings.Contains(requestPath, "./") {
 		return "", fmt.Errorf("path cannot contain './'")
 	}
-	if strings.Contains(data.Path, "~") {
+	if strings.Contains(requestPath, "~") {
 		return "", fmt.Errorf("path cannot contain '~'")
 	}
 
-	relPath := strings.TrimPrefix(data.Path, "/")
+	relPath := strings.TrimPrefix(requestPath, "/")
 	if relPath == "" {
-		return "/exports", nil
+		return mountRoot, nil
 	}
-	return "/exports/" + relPath, nil
+	joined := mountRoot + "/" + relPath
+
+	// Defense in depth on top of the rejections above: the cleaned result must
+	// stay inside mountRoot. The uncleaned join is returned so legacy paths
+	// stay byte-for-byte identical (e.g. trailing slashes survive).
+	cleanedRoot := filepath.Clean(mountRoot)
+	if cleaned := filepath.Clean(joined); cleaned != cleanedRoot && !strings.HasPrefix(cleaned, cleanedRoot+"/") {
+		return "", fmt.Errorf("path escapes mount root")
+	}
+	return joined, nil
 }
 
 // parseStatLine parses one line of `stat -c '%n\t%F\t%s\t%u\t%g\t%a\t%Y'` output.

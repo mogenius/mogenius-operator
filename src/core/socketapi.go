@@ -807,6 +807,126 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
+	// files/v2/*: file operations on any PVC mounted by a running pod,
+	// executed in that pod (no mogenius NFS server required). The binary
+	// upload counterpart (files/v2/upload) is handled in the job client
+	// read loop next to the legacy files/upload framing.
+	{
+		type Request struct {
+			Folder dtos.PvcFileRequestDto `json:"folder" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "files/v2/list"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) ([]dtos.PersistentFileDto, error) {
+				return services.ListV2(request.Folder)
+			},
+		)
+	}
+
+	RegisterPatternHandler(
+		PatternHandle{self, "files/v2/info"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request dtos.PvcFileRequestDto) (dtos.PersistentFileDto, error) {
+			return services.InfoV2(request)
+		},
+	)
+
+	{
+		type Request struct {
+			Folder dtos.PvcFileRequestDto `json:"folder" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "files/v2/create-folder"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (bool, error) {
+				err := services.CreateFolderV2(request.Folder)
+				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			File    dtos.PvcFileRequestDto `json:"file" validate:"required"`
+			NewName string                 `json:"newName" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "files/v2/rename"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (bool, error) {
+				err := services.RenameV2(request.File, request.NewName)
+				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			File dtos.PvcFileRequestDto `json:"file" validate:"required"`
+			Uid  string                 `json:"uid" validate:"required"`
+			Gid  string                 `json:"gid" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "files/v2/chown"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (bool, error) {
+				err := services.ChownV2(request.File, request.Uid, request.Gid)
+				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			File dtos.PvcFileRequestDto `json:"file" validate:"required"`
+			Mode string                 `json:"mode" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "files/v2/chmod"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (bool, error) {
+				err := services.ChmodV2(request.File, request.Mode)
+				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			File dtos.PvcFileRequestDto `json:"file" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "files/v2/delete"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (bool, error) {
+				err := services.DeleteV2(request.File)
+				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
+			},
+		)
+	}
+
+	{
+		type Request struct {
+			File   dtos.PvcFileRequestDto `json:"file" validate:"required"`
+			PostTo string                 `json:"postTo" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "files/v2/download"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (services.FilesDownloadResponse, error) {
+				return services.DownloadV2(request.File, request.PostTo)
+			},
+		)
+	}
+
 	RegisterPatternHandler(
 		PatternHandle{self, "prometheus/query"},
 		PatternConfig{},
@@ -2651,6 +2771,33 @@ func (self *socketApi) registerPatterns() {
 		},
 	)
 
+	// storage/v2/info: batch PVC info (status, capacity, mounts, browsability)
+	// with one pod scan per distinct namespace in the batch.
+	RegisterPatternHandler(
+		PatternHandle{self, "storage/v2/info"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request services.StorageV2InfoRequest) (services.StorageV2InfoResponse, error) {
+			return services.StorageV2Info(request)
+		},
+	)
+
+	// storage/v2/stats: lazy filesystem usage of one PVC, read via df in a
+	// pod that mounts it.
+	{
+		type Request struct {
+			Namespace string `json:"namespace" validate:"required"`
+			PvcName   string `json:"pvcName" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "storage/v2/stats"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (services.StorageV2StatsResponse, error) {
+				return services.StorageV2Stats(request.Namespace, request.PvcName)
+			},
+		)
+	}
+
 	{
 		type Request struct {
 			Limit         int    `json:"limit" validate:"required"`
@@ -3081,8 +3228,13 @@ func (self *socketApi) sendNoHandlerError(client websocket.WebsocketClient, data
 
 func (self *socketApi) startJobClientReadLoop() {
 	go func() {
+		// One binary upload may be pending at a time: either a legacy
+		// files/upload request or a files/v2/upload request, never both.
+		// The variant that is non-nil decides where END_UPLOAD dispatches.
 		var preparedFileName *string
 		var preparedFileRequest *services.FilesUploadRequest
+		var preparedFileRequestV2 *services.FilesUploadRequestV2
+		var preparedUploadDatagramV2 *structs.Datagram
 		var openFile *os.File
 
 		jobs := make(chan structs.Datagram, messageWorkerCount)
@@ -3122,6 +3274,11 @@ func (self *socketApi) startJobClientReadLoop() {
 					if uploadErr != nil {
 						self.logger.Error("Error uploading file", "error", uploadErr)
 					}
+				} else if preparedFileName != nil && preparedFileRequestV2 != nil {
+					uploadErr = services.UploadedV2(*preparedFileName, *preparedFileRequestV2)
+					if uploadErr != nil {
+						self.logger.Error("Error uploading file", "error", uploadErr)
+					}
 				} else if preparedFileName == nil {
 					uploadErr = fmt.Errorf("upload failed: could not open temporary file")
 				}
@@ -3137,8 +3294,22 @@ func (self *socketApi) startJobClientReadLoop() {
 					go self.JobServerSendData(self.jobClients[0], ack)
 				}
 
+				if preparedFileRequestV2 != nil {
+					// uploads mutate the PVC: audit with the original datagram
+					if preparedUploadDatagramV2 != nil {
+						_, _ = store.AddToAuditLog(*preparedUploadDatagramV2, self.logger, uploadErr == nil, uploadErr, nil, nil)
+					}
+					ack := structs.CreateDatagramAck("ack:files/v2/upload:end", preparedFileRequestV2.Id)
+					if uploadErr != nil {
+						ack.Err = uploadErr.Error()
+					}
+					go self.JobServerSendData(self.jobClients[0], ack)
+				}
+
 				preparedFileName = nil
 				preparedFileRequest = nil
+				preparedFileRequestV2 = nil
+				preparedUploadDatagramV2 = nil
 				continue
 			}
 
@@ -3161,8 +3332,20 @@ func (self *socketApi) startJobClientReadLoop() {
 			// TODO: refactor! @bene
 			if datagram.Pattern == "files/upload" {
 				preparedFileRequest = self.executeBinaryRequestUpload(datagram)
+				preparedFileRequestV2 = nil
+				preparedUploadDatagramV2 = nil
 
 				var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
+				go self.JobServerSendData(self.jobClients[0], ack)
+				continue
+			}
+
+			if datagram.Pattern == "files/v2/upload" {
+				preparedFileRequestV2 = self.executeBinaryRequestUploadV2(datagram)
+				preparedUploadDatagramV2 = &datagram
+				preparedFileRequest = nil
+
+				var ack = structs.CreateDatagramAck("ack:files/v2/upload:datagram", datagram.Id)
 				go self.JobServerSendData(self.jobClients[0], ack)
 				continue
 			}
@@ -3512,6 +3695,12 @@ func podEventStreamConnection(podLogConnectionRequest xterm.PodEventConnectionRe
 
 func (self *socketApi) executeBinaryRequestUpload(datagram structs.Datagram) *services.FilesUploadRequest {
 	data := services.FilesUploadRequest{}
+	structs.MarshalUnmarshal(&datagram, &data)
+	return &data
+}
+
+func (self *socketApi) executeBinaryRequestUploadV2(datagram structs.Datagram) *services.FilesUploadRequestV2 {
+	data := services.FilesUploadRequestV2{}
 	structs.MarshalUnmarshal(&datagram, &data)
 	return &data
 }
