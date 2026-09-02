@@ -384,6 +384,28 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_STORAGE_HELPER_TTL",
+		DefaultValue: new("15m"),
+		Description:  new("idle TTL after which an unused storage helper pod (PVC browsing) is deleted, as Go duration"),
+		Envs:         []string{"storage_helper_ttl"},
+		Validate: func(value string) error {
+			ttl, err := time.ParseDuration(value)
+			if err != nil {
+				return fmt.Errorf("'MO_STORAGE_HELPER_TTL' needs to be a Go duration (e.g. 15m): %s", err.Error())
+			}
+			if ttl <= 0 {
+				return fmt.Errorf("'MO_STORAGE_HELPER_TTL' needs to be positive")
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_STORAGE_HELPER_IMAGE",
+		DefaultValue: new("busybox:1.37"),
+		Description:  new("image of the ephemeral storage helper pod that mounts a PVC for browsing"),
+		Envs:         []string{"storage_helper_image"},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ENABLE_POD_STATS_COLLECTOR",
 		DefaultValue: new("true"),
 		Description:  new("enable collection of pod stats"),

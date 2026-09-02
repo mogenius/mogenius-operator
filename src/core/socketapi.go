@@ -2796,6 +2796,29 @@ func (self *socketApi) registerPatterns() {
 				return services.StorageV2Stats(request.Namespace, request.PvcName)
 			},
 		)
+
+		// storage/v2/mount: ensure an ephemeral helper pod mounts the PVC so the
+		// exec-based file operations work on an otherwise unmounted volume.
+		// Idempotent: an existing helper pod is reported with its current state.
+		RegisterPatternHandler(
+			PatternHandle{self, "storage/v2/mount"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (services.StorageV2MountResponse, error) {
+				response, err := services.StorageV2Mount(request.Namespace, request.PvcName)
+				return store.AddToAuditLog(datagram, self.logger, response, err, nil, nil)
+			},
+		)
+
+		// storage/v2/unmount: delete the helper pod for the PVC. Idempotent:
+		// true even when no helper pod exists.
+		RegisterPatternHandler(
+			PatternHandle{self, "storage/v2/unmount"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (bool, error) {
+				err := services.StorageV2Unmount(request.Namespace, request.PvcName)
+				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
+			},
+		)
 	}
 
 	{
