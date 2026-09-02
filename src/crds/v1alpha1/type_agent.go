@@ -116,10 +116,10 @@ type AgentBuiltinTools struct {
 	Helm bool `json:"helm,omitempty"`
 }
 
-// AgentScope restricts an agent's visibility. At least one of WorkspaceRef or
-// Namespaces must be set; when both are set the union applies.
+// AgentScope restricts an agent's visibility. When set, workspaceRef must be
+// provided — a scope block without a workspace reference is invalid.
 //
-// +kubebuilder:validation:XValidation:rule="self.workspaceRef != \"\"",message="scope.workspaceRef must not be empty"
+// +kubebuilder:validation:XValidation:rule="has(self.workspaceRef) && self.workspaceRef != \"\"",message="scope.workspaceRef must not be empty"
 type AgentScope struct {
 	// Name of a Workspace CR whose namespace resources define the scope.
 	WorkspaceRef string `json:"workspaceRef"`

@@ -114,7 +114,7 @@ spec:
                 type: object
                 x-kubernetes-validations:
                 - message: scope.workspaceRef must not be empty
-                  rule: self.workspaceRef != ""
+                  rule: has(self.workspaceRef) && self.workspaceRef != ""
               tools:
                 description: |-
                   Tools configures which tool groups are available to this agent.
