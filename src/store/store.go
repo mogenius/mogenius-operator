@@ -1540,6 +1540,22 @@ func GetPods(namespace string) []coreV1.Pod {
 	return pods
 }
 
+func GetPersistentVolumeClaim(namespace string, name string) *coreV1.PersistentVolumeClaim {
+	pvc, err := valkeyclient.GetObjectForKey[coreV1.PersistentVolumeClaim](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.PersistentVolumeClaimResource.ApiVersion, utils.PersistentVolumeClaimResource.Kind, namespace, name)
+	if err != nil || pvc == nil {
+		return nil
+	}
+	return pvc
+}
+
+func GetPersistentVolume(name string) *coreV1.PersistentVolume {
+	pv, err := valkeyclient.GetObjectForKey[coreV1.PersistentVolume](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.PersistentVolumeResource.ApiVersion, utils.PersistentVolumeResource.Kind, "", name)
+	if err != nil || pv == nil {
+		return nil
+	}
+	return pv
+}
+
 func GetReplicaset(namespace string, name string) *v1.ReplicaSet {
 	replicaSet, err := valkeyclient.GetObjectForKey[v1.ReplicaSet](valkeyClient, VALKEY_RESOURCE_PREFIX, utils.ReplicaSetResource.ApiVersion, utils.ReplicaSetResource.Kind, namespace, name)
 	if err != nil || replicaSet == nil {

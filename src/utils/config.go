@@ -91,6 +91,20 @@ var PodResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var PersistentVolumeClaimResource = ResourceDescriptor{
+	Kind:       "PersistentVolumeClaim",
+	Plural:     "persistentvolumeclaims",
+	ApiVersion: "v1",
+	Namespaced: true,
+}
+
+var PersistentVolumeResource = ResourceDescriptor{
+	Kind:       "PersistentVolume",
+	Plural:     "persistentvolumes",
+	ApiVersion: "v1",
+	Namespaced: false,
+}
+
 var IngressClassResource = ResourceDescriptor{
 	Kind:       "IngressClass",
 	Plural:     "ingressclasses",
