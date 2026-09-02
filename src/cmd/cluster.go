@@ -274,6 +274,9 @@ func startClusterSystems(logManagerModule logging.SlogManager, configModule *con
 	systems.podStatsCollector.Run()
 	logStep("Pod stats collector started")
 
+	services.StartStorageHelperReaper()
+	logStep("Storage helper reaper started")
+
 	systems.nodeMetricsCollector.Orchestrate()
 	logStep("Node metrics collector started")
 

@@ -58,6 +58,7 @@ type StorageV2InfoItem struct {
 	MountedBy        []StorageV2MountedBy `json:"mountedBy"`
 	Browsable        bool                 `json:"browsable"`
 	BrowsableReason  string               `json:"browsableReason"`
+	HelperMounted    bool                 `json:"helperMounted"`
 	Events           []StorageV2Event     `json:"events,omitempty"`
 }
 
@@ -160,6 +161,9 @@ func StorageV2Info(request StorageV2InfoRequest) (StorageV2InfoResponse, error) 
 
 		index := podIndexes[item.Namespace]
 		infoItem.MountedBy, infoItem.Browsable, infoItem.BrowsableReason = computeMounts(index, item.PvcName)
+		// the helper pod itself shows up in mountedBy naturally (controllerKind
+		// "Pod"); this flag just tells the UI that one of them is ours
+		infoItem.HelperMounted = helperMountedFor(index, item.PvcName)
 
 		if request.WithEvents {
 			pvName := ""

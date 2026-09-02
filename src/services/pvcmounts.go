@@ -106,7 +106,13 @@ func cachedProbe(probe probeFn) probeFn {
 // Returns one of the ErrPvc* sentinel errors when no usable candidate exists.
 func ResolvePvcTarget(namespace, pvcName string) (PvcMountTarget, error) {
 	pods := store.GetPods(namespace)
-	return resolvePvcTargetFrom(pods, namespace, pvcName, cachedProbe(defaultExecProbe))
+	target, err := resolvePvcTargetFrom(pods, namespace, pvcName, cachedProbe(defaultExecProbe))
+	if err == nil {
+		// single funnel of all files/v2 and storage/v2/stats calls: keep the
+		// idle-TTL reaper away from helper pods that are actively used
+		touchStorageHelperIfTarget(pods, target)
+	}
+	return target, err
 }
 
 // resolvePvcTargetFrom is the pure core of ResolvePvcTarget, split out so
