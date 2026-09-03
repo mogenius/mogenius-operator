@@ -18,7 +18,7 @@ require (
 	github.com/mattn/go-isatty v0.0.24
 	github.com/modelcontextprotocol/go-sdk v1.7.0
 	github.com/nwidger/jsoncolor v0.3.2
-	github.com/ollama/ollama v0.33.2
+	github.com/ollama/ollama v0.33.3
 	github.com/openai/openai-go/v3 v3.56.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/sftp v1.13.11
