@@ -3,7 +3,10 @@
   "extends": [
     "config:recommended"
   ],
-  "postUpdateOptions": ["gomodTidy", "gomodUpdateImportPaths"],
+  "postUpdateOptions": [
+    "gomodTidy",
+    "gomodUpdateImportPaths"
+  ],
   "automerge": true,
   "automergeType": "pr",
   "patch": {
@@ -16,7 +19,9 @@
       "managerFilePatterns": [
         "/^src/gitops/installer\\.go$/"
       ],
-      "matchStrings": ["moacVersion\\s+=\\s+\"(?<currentValue>[^\"]+)\""],
+      "matchStrings": [
+        "moacVersion\\s+=\\s+\"(?<currentValue>[^\"]+)\""
+      ],
       "datasourceTemplate": "helm",
       "depNameTemplate": "moac",
       "registryUrlTemplate": "https://helm.mogenius.com/public"
@@ -27,9 +32,23 @@
       "managerFilePatterns": [
         "/^Dockerfile$/"
       ],
-      "matchStrings": ["SNOOPY_VERSION=(?<currentValue>v[\\d.]+)"],
+      "matchStrings": [
+        "SNOOPY_VERSION=(?<currentValue>v[\\d.]+)"
+      ],
       "depNameTemplate": "mogenius/snoopy",
       "datasourceTemplate": "github-releases"
+    },
+    {
+      "description": "Update container images pinned in Go string literals, annotated with a renovate comment (leading or trailing)",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/\\.go$/"
+      ],
+      "matchStrings": [
+        "// renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)\\s+[^\"\\n]*\"[^\"\\n]*:(?<currentValue>[^\"\\n]+)\"",
+        "\"[^\"\\n]*:(?<currentValue>[^\"\\n]+)\"[^\\n]*// renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)"
+      ],
+      "datasourceTemplate": "docker"
     }
   ],
   "packageRules": [
@@ -44,8 +63,12 @@
     },
     {
       "description": "sealed-secrets renamed module path from bitnami-labs to bitnami at v0.38.x",
-      "matchDatasources": ["go"],
-      "matchPackageNames": ["github.com/bitnami-labs/sealed-secrets"],
+      "matchDatasources": [
+        "go"
+      ],
+      "matchPackageNames": [
+        "github.com/bitnami-labs/sealed-secrets"
+      ],
       "replacementName": "github.com/bitnami/sealed-secrets",
       "replacementVersion": "v0.38.1"
     }
