@@ -151,6 +151,12 @@ func pvcMountCandidates(pods []v1.Pod, namespace, pvcName string) ([]PvcMountTar
 	for i := range pods {
 		pod := &pods[i]
 
+		// terminating pods vanish within their grace period - exec'ing into them
+		// would race the kubelet, and after an unmount the UI must see NOT_MOUNTED
+		if pod.DeletionTimestamp != nil {
+			continue
+		}
+
 		// volume names in this pod backed by the requested claim
 		volumeNames := map[string]bool{}
 		for _, volume := range pod.Spec.Volumes {

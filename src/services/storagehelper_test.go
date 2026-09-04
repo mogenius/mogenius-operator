@@ -8,6 +8,7 @@ import (
 	"time"
 
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var dns1123Label = regexp.MustCompile(`^[a-z0-9]([-a-z0-9]*[a-z0-9])?$`)
@@ -164,6 +165,16 @@ func TestHelperMountedFor(t *testing.T) {
 		idx := buildTestIndex(helperPod("test-ns", "helper", "other-pvc"))
 		if helperMountedFor(idx, "my-pvc") {
 			t.Fatal("expected helperMounted=false for a helper on a different pvc")
+		}
+	})
+
+	t.Run("terminating helper pod no longer counts as mounted", func(t *testing.T) {
+		pod := helperPod("test-ns", "helper", "my-pvc")
+		deleted := metav1.NewTime(now)
+		pod.DeletionTimestamp = &deleted
+		idx := buildTestIndex(pod)
+		if helperMountedFor(idx, "my-pvc") {
+			t.Fatal("expected helperMounted=false while the helper is terminating")
 		}
 	})
 }
