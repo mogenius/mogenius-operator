@@ -44,22 +44,36 @@ type StorageV2Event struct {
 	LastTimestamp string `json:"lastTimestamp"`
 }
 
+// StorageV2HelperStatus reports the live state of the helper pod mounting a
+// PVC — present on an item only while such a pod exists, so the UI can show
+// why a mount hangs (e.g. FailedMount events, ContainerCreating) instead of a
+// static "Mounting…" text.
+type StorageV2HelperStatus struct {
+	PodName string           `json:"podName"`
+	Phase   string           `json:"phase"`
+	Ready   bool             `json:"ready"`
+	Reason  string           `json:"reason"`
+	Message string           `json:"message"`
+	Events  []StorageV2Event `json:"events,omitempty"`
+}
+
 type StorageV2InfoItem struct {
-	Namespace        string               `json:"namespace"`
-	PvcName          string               `json:"pvcName"`
-	Phase            string               `json:"phase"`
-	RequestedBytes   int64                `json:"requestedBytes"`
-	CapacityBytes    int64                `json:"capacityBytes"`
-	StorageClassName string               `json:"storageClassName"`
-	AccessModes      []string             `json:"accessModes"`
-	VolumeName       string               `json:"volumeName"`
-	VolumeMode       string               `json:"volumeMode"`
-	Provisioner      string               `json:"provisioner"`
-	MountedBy        []StorageV2MountedBy `json:"mountedBy"`
-	Browsable        bool                 `json:"browsable"`
-	BrowsableReason  string               `json:"browsableReason"`
-	HelperMounted    bool                 `json:"helperMounted"`
-	Events           []StorageV2Event     `json:"events,omitempty"`
+	Namespace        string                 `json:"namespace"`
+	PvcName          string                 `json:"pvcName"`
+	Phase            string                 `json:"phase"`
+	RequestedBytes   int64                  `json:"requestedBytes"`
+	CapacityBytes    int64                  `json:"capacityBytes"`
+	StorageClassName string                 `json:"storageClassName"`
+	AccessModes      []string               `json:"accessModes"`
+	VolumeName       string                 `json:"volumeName"`
+	VolumeMode       string                 `json:"volumeMode"`
+	Provisioner      string                 `json:"provisioner"`
+	MountedBy        []StorageV2MountedBy   `json:"mountedBy"`
+	Browsable        bool                   `json:"browsable"`
+	BrowsableReason  string                 `json:"browsableReason"`
+	HelperMounted    bool                   `json:"helperMounted"`
+	HelperStatus     *StorageV2HelperStatus `json:"helperStatus,omitempty"`
+	Events           []StorageV2Event       `json:"events,omitempty"`
 }
 
 type StorageV2InfoResponse struct {
@@ -162,8 +176,12 @@ func StorageV2Info(request StorageV2InfoRequest) (StorageV2InfoResponse, error) 
 		index := podIndexes[item.Namespace]
 		infoItem.MountedBy, infoItem.Browsable, infoItem.BrowsableReason = computeMounts(index, item.PvcName)
 		// the helper pod itself shows up in mountedBy naturally (controllerKind
-		// "Pod"); this flag just tells the UI that one of them is ours
-		infoItem.HelperMounted = helperMountedFor(index, item.PvcName)
+		// "Pod"); this flag just tells the UI that one of them is ours, and
+		// helperStatus carries its live state while it exists
+		if helper := helperPodFor(index, item.PvcName); helper != nil {
+			infoItem.HelperMounted = true
+			infoItem.HelperStatus = buildHelperStatus(helper, item.Namespace, request.WithEvents)
+		}
 
 		if request.WithEvents {
 			pvName := ""
@@ -339,6 +357,35 @@ func getPv(name string) *v1.PersistentVolume {
 		return nil
 	}
 	return pv
+}
+
+// storageHelperEventLimit caps the events embedded in helperStatus — the UI
+// needs the recent mount failures (e.g. FailedMount), not the full history.
+const storageHelperEventLimit = 10
+
+// buildHelperStatus maps the helper pod's live state onto the wire shape.
+// Events are fetched only for withEvents requests (the single-item detail
+// call the UI polls), newest first, capped at storageHelperEventLimit.
+func buildHelperStatus(pod *v1.Pod, namespace string, withEvents bool) *StorageV2HelperStatus {
+	reason, message := storageHelperWaitingReason(pod)
+	status := &StorageV2HelperStatus{
+		PodName: pod.Name,
+		Phase:   string(pod.Status.Phase),
+		Ready:   storageHelperStatus(pod) == StorageHelperStatusReady,
+		Reason:  reason,
+		Message: message,
+	}
+	if withEvents {
+		events := listEventsFor(namespace, pod.Name, "Pod")
+		sort.SliceStable(events, func(i, j int) bool {
+			return events[i].LastTimestamp > events[j].LastTimestamp
+		})
+		if len(events) > storageHelperEventLimit {
+			events = events[:storageHelperEventLimit]
+		}
+		status.Events = events
+	}
+	return status
 }
 
 // collectPvcEvents lists the events for the PVC and (when bound) its PV,

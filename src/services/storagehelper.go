@@ -207,16 +207,21 @@ func findStorageHelperPod(pods []v1.Pod, pvcName string) *v1.Pod {
 	return nil
 }
 
-// helperMountedFor reports whether at least one pod referencing the PVC in the
-// pre-built namespace pod index carries the helper label (storage/v2/info's
-// helperMounted field).
-func helperMountedFor(index namespacePodIndex, pvcName string) bool {
+// helperPodFor returns the first helper-labeled pod referencing the PVC in the
+// pre-built namespace pod index, nil when none exists. Feeds storage/v2/info's
+// helperMounted flag and helperStatus field from the one scan the index holds.
+func helperPodFor(index namespacePodIndex, pvcName string) *v1.Pod {
 	for _, podIdx := range index.podsPerClaim[pvcName] {
 		if isStorageHelperPod(&index.pods[podIdx]) {
-			return true
+			return &index.pods[podIdx]
 		}
 	}
-	return false
+	return nil
+}
+
+// helperMountedFor reports whether a helper pod references the PVC.
+func helperMountedFor(index namespacePodIndex, pvcName string) bool {
+	return helperPodFor(index, pvcName) != nil
 }
 
 // storageHelperStatus maps a helper pod's state onto the wire status.
@@ -230,6 +235,30 @@ func storageHelperStatus(pod *v1.Pod) string {
 		}
 	}
 	return StorageHelperStatusStarting
+}
+
+// storageHelperWaitingReason derives why a helper pod is not (yet) running:
+// the first container's Waiting state (e.g. "ContainerCreating" while kubelet
+// retries a FailedMount) is preferred; a Pending pod with no container status
+// yet falls back to its PodScheduled/ContainersReady condition. Both empty
+// when the pod runs fine.
+func storageHelperWaitingReason(pod *v1.Pod) (reason string, message string) {
+	if len(pod.Status.ContainerStatuses) > 0 {
+		if waiting := pod.Status.ContainerStatuses[0].State.Waiting; waiting != nil {
+			return waiting.Reason, waiting.Message
+		}
+		return "", ""
+	}
+	if pod.Status.Phase == v1.PodPending {
+		for _, conditionType := range []v1.PodConditionType{v1.PodScheduled, v1.ContainersReady} {
+			for _, condition := range pod.Status.Conditions {
+				if condition.Type == conditionType && condition.Status != v1.ConditionTrue && condition.Reason != "" {
+					return condition.Reason, condition.Message
+				}
+			}
+		}
+	}
+	return "", ""
 }
 
 // ── mount / unmount ──────────────────────────────────────────────────────────
