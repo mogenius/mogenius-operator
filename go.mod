@@ -28,7 +28,7 @@ require (
 	github.com/stretchr/testify v1.12.1
 	github.com/tklauser/go-sysconf v0.4.0
 	github.com/valkey-io/valkey-go v1.0.77
-	golang.org/x/crypto v0.55.0
+	golang.org/x/crypto v0.56.0
 	golang.org/x/term v0.45.0
 	helm.sh/helm/v4 v4.2.4
 	k8s.io/api v0.37.0
