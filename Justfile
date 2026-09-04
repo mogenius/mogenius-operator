@@ -25,7 +25,7 @@ scale-up:
 
 # Build a native binary with flags similar to the production build
 build: generate
-    go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
+    go build -trimpath -ldflags="-s -w \
         -X 'mogenius-operator/src/utils.DevBuild=yes' \
         -X 'mogenius-operator/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
         -X 'mogenius-operator/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
@@ -37,7 +37,7 @@ build-all: build-linux-amd64 build-linux-arm64 build-linux-armv7
 
 # Build binary for target linux-amd64
 build-linux-amd64:
-    GOOS=linux GOARCH=amd64 go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
+    GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w \
         -X 'mogenius-operator/src/utils.DevBuild=yes' \
         -X 'mogenius-operator/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
         -X 'mogenius-operator/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
@@ -46,7 +46,7 @@ build-linux-amd64:
 
 # Build binary for target linux-arm64
 build-linux-arm64:
-    GOOS=linux GOARCH=arm64 go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
+    GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w \
         -X 'mogenius-operator/src/utils.DevBuild=yes' \
         -X 'mogenius-operator/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
         -X 'mogenius-operator/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
@@ -55,7 +55,7 @@ build-linux-arm64:
 
 # Build binary for target linux-armv7
 build-linux-armv7:
-    GOOS=linux GOARCH=arm go build -trimpath -gcflags="all=-l" -ldflags="-s -w \
+    GOOS=linux GOARCH=arm go build -trimpath -ldflags="-s -w \
         -X 'mogenius-operator/src/utils.DevBuild=yes' \
         -X 'mogenius-operator/src/version.GitCommitHash=$(git rev-parse --short HEAD)' \
         -X 'mogenius-operator/src/version.Branch=$(git branch | grep \* | cut -d ' ' -f2 | tr '[:upper:]' '[:lower:]')' \
