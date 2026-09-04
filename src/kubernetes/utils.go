@@ -66,10 +66,14 @@ func ServiceForNfsVolume(volumeNamespace string, volumeName string) *core.Servic
 	return nil
 }
 
+// dfArgs is the POSIX-portable df invocation (1K blocks, portable layout). GNU's
+// -B1 is rejected by busybox/BSD/uutils df found in arbitrary app containers.
+var dfArgs = []string{"df", "-P", "-k"}
+
 // NfsDiskUsage returns free/used/total bytes of the NFS export directory by
-// executing `df -B1 /exports` inside the NFS server pod – no local mount needed.
+// executing df inside the NFS server pod – no local mount needed.
 func NfsDiskUsage(volumeNamespace string, volumeName string) (free, used, total uint64, err error) {
-	output, execErr := ExecInNfsPod(volumeNamespace, volumeName, []string{"df", "-B1", "/exports"}, nil)
+	output, execErr := ExecInNfsPod(volumeNamespace, volumeName, append(dfArgs, "/exports"), nil)
 	if execErr != nil {
 		return 0, 0, 0, fmt.Errorf("df exec failed: %w", execErr)
 	}
@@ -77,42 +81,56 @@ func NfsDiskUsage(volumeNamespace string, volumeName string) (free, used, total 
 }
 
 // PodDiskUsage returns free/used/total bytes of mountPath by executing
-// `df -B1 <mountPath>` inside the given container.
+// `df -P -k <mountPath>` inside the given container.
 func PodDiskUsage(namespace, podName, container, mountPath string) (free, used, total uint64, err error) {
-	output, execErr := ExecInPod(namespace, podName, container, []string{"df", "-B1", mountPath}, nil)
+	output, execErr := ExecInPod(namespace, podName, container, append(dfArgs, mountPath), nil)
 	if execErr != nil {
 		return 0, 0, 0, fmt.Errorf("df exec failed: %w", execErr)
 	}
 	return parseDfOutput(output)
 }
 
-// parseDfOutput parses `df -B1 <path>` output (header + data line):
-// Filesystem     1-blocks      Used Available Use% Mounted on
-// overlay        5368709120  102400  5266309120   2% /exports
+// parseDfOutput parses `df -P -k <path>` output (header + data line, 1K blocks):
+// Filesystem     1024-blocks   Used Available Capacity Mounted on
+// overlay        5242880        100   5142780       1% /exports
 func parseDfOutput(output string) (free, used, total uint64, err error) {
+	const blockSize = 1024
 	lines := strings.Split(strings.TrimSpace(output), "\n")
 	if len(lines) < 2 {
 		return 0, 0, 0, fmt.Errorf("unexpected df output: %q", output)
 	}
 	fields := strings.Fields(lines[len(lines)-1])
-	if len(fields) < 4 {
+
+	// Anchor on the capacity column ("20%") instead of fixed positions: long
+	// device names (NFS exports) make some df builds wrap the name onto its own
+	// line, which shifts every column of the data line by one.
+	capacityIdx := -1
+	for i, f := range fields {
+		if strings.HasSuffix(f, "%") {
+			if _, perr := strconv.ParseUint(strings.TrimSuffix(f, "%"), 10, 64); perr == nil {
+				capacityIdx = i
+				break
+			}
+		}
+	}
+	if capacityIdx < 3 {
 		return 0, 0, 0, fmt.Errorf("unexpected df output format: %q", lines[len(lines)-1])
 	}
 
-	total, err = strconv.ParseUint(fields[1], 10, 64)
+	total, err = strconv.ParseUint(fields[capacityIdx-3], 10, 64)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("parse total: %w", err)
 	}
-	used, err = strconv.ParseUint(fields[2], 10, 64)
+	used, err = strconv.ParseUint(fields[capacityIdx-2], 10, 64)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("parse used: %w", err)
 	}
-	free, err = strconv.ParseUint(fields[3], 10, 64)
+	free, err = strconv.ParseUint(fields[capacityIdx-1], 10, 64)
 	if err != nil {
 		return 0, 0, 0, fmt.Errorf("parse free: %w", err)
 	}
 
-	return free, used, total, nil
+	return free * blockSize, used * blockSize, total * blockSize, nil
 }
 
 // ExecInNfsPod executes a command inside the NFS server pod for the given volume and
