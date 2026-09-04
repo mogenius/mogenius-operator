@@ -63,6 +63,20 @@ func makePvcPod(name string, created time.Time, phase v1.PodPhase, claimName str
 
 func probeOk(string, string, string, string) error { return nil }
 
+func TestPvcMountCandidatesSkipTerminatingPods(t *testing.T) {
+	now := time.Now()
+	terminating := makePvcPod("helper", now, v1.PodRunning, "pvc", []testMount{{container: "helper", ready: true}})
+	deleted := metav1.NewTime(now)
+	terminating.DeletionTimestamp = &deleted
+
+	// an unmounted helper still lingers in the store during its grace period;
+	// the UI must already see NOT_MOUNTED instead of a browsable volume
+	_, err := pvcMountCandidates([]v1.Pod{terminating}, "test-ns", "pvc")
+	if !errors.Is(err, ErrPvcNotMounted) {
+		t.Fatalf("expected ErrPvcNotMounted for a terminating pod, got %v", err)
+	}
+}
+
 func TestResolvePvcTargetFromStructuralErrors(t *testing.T) {
 	now := time.Now()
 

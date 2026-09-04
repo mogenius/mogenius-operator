@@ -212,8 +212,10 @@ func findStorageHelperPod(pods []v1.Pod, pvcName string) *v1.Pod {
 // helperMounted flag and helperStatus field from the one scan the index holds.
 func helperPodFor(index namespacePodIndex, pvcName string) *v1.Pod {
 	for _, podIdx := range index.podsPerClaim[pvcName] {
-		if isStorageHelperPod(&index.pods[podIdx]) {
-			return &index.pods[podIdx]
+		pod := &index.pods[podIdx]
+		// a helper that is already terminating (unmount in progress) no longer counts as mounted
+		if isStorageHelperPod(pod) && pod.DeletionTimestamp == nil {
+			return pod
 		}
 	}
 	return nil
