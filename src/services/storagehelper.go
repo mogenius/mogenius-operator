@@ -38,7 +38,7 @@ const (
 	// Fallback defaults; overridable via MO_STORAGE_HELPER_TTL and
 	// MO_STORAGE_HELPER_IMAGE (declared in cmd.go).
 	defaultStorageHelperTTL   = 15 * time.Minute
-	defaultStorageHelperImage = "busybox:1.37"
+	defaultStorageHelperImage = "busybox:1.37" // renovate: datasource=docker depName=busybox
 
 	// storageHelperReapInterval is how often the reaper scans for idle pods.
 	storageHelperReapInterval = 60 * time.Second
