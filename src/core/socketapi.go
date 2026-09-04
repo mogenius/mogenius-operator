@@ -825,6 +825,24 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
+	// free-text name search below Folder.Path - one find instead of a client
+	// walking the tree folder by folder
+	{
+		type Request struct {
+			Folder     dtos.PvcFileRequestDto `json:"folder" validate:"required"`
+			Query      string                 `json:"query" validate:"required"`
+			MaxResults int                    `json:"maxResults"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "files/v2/search"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (services.FilesSearchResult, error) {
+				return services.SearchV2(request.Folder, request.Query, request.MaxResults)
+			},
+		)
+	}
+
 	RegisterPatternHandler(
 		PatternHandle{self, "files/v2/info"},
 		PatternConfig{},

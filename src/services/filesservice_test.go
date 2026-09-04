@@ -1,6 +1,7 @@
 package services
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -66,6 +67,48 @@ func TestResolvePath(t *testing.T) {
 		}
 		if got != "/var/lib/data/sub/dir" {
 			t.Fatalf("expected /var/lib/data/sub/dir, got %q", got)
+		}
+	})
+}
+
+func TestSearchFindArgs(t *testing.T) {
+	args := searchFindArgs("/data", "err")
+	joined := strings.Join(args, " ")
+
+	t.Run("matches case-insensitively as substring", func(t *testing.T) {
+		if !strings.Contains(joined, "-iname *err*") {
+			t.Fatalf("expected -iname *err*, got %q", joined)
+		}
+	})
+
+	t.Run("skips lost+found", func(t *testing.T) {
+		if !strings.Contains(joined, "! -name lost+found") || !strings.Contains(joined, "! -path */lost+found/*") {
+			t.Fatalf("expected lost+found exclusion, got %q", joined)
+		}
+	})
+
+	t.Run("keeps the query as one argv element without a shell", func(t *testing.T) {
+		args := searchFindArgs("/data", "a b; rm -rf /")
+		if args[0] != "find" {
+			t.Fatalf("search must exec find directly, got %v", args)
+		}
+		found := false
+		for _, arg := range args {
+			if arg == "*a b; rm -rf /*" {
+				found = true
+			}
+			if arg == "sh" || arg == "/bin/sh" {
+				t.Fatalf("search must not go through a shell: %v", args)
+			}
+		}
+		if !found {
+			t.Fatalf("query not passed verbatim: %v", args)
+		}
+	})
+
+	t.Run("uses the shared stat format", func(t *testing.T) {
+		if !strings.Contains(joined, "-exec stat -c "+statFormat+" {} ;") {
+			t.Fatalf("expected stat exec, got %q", joined)
 		}
 	})
 }

@@ -142,6 +142,14 @@ func ListV2(folder dtos.PvcFileRequestDto) ([]dtos.PersistentFileDto, error) {
 	return listImpl(target, folder.Path)
 }
 
+func SearchV2(folder dtos.PvcFileRequestDto, query string, maxResults int) (FilesSearchResult, error) {
+	target, err := resolvePvcFileTarget(folder.Namespace, folder.PvcName)
+	if err != nil {
+		return FilesSearchResult{}, err
+	}
+	return searchImpl(target, folder.Path, query, maxResults)
+}
+
 func InfoV2(r dtos.PvcFileRequestDto) (dtos.PersistentFileDto, error) {
 	target, err := resolvePvcFileTarget(r.Namespace, r.PvcName)
 	if err != nil {
@@ -208,6 +216,82 @@ func DeleteV2(file dtos.PvcFileRequestDto) error {
 
 // ── target-based implementations ──────────────────────────────────────────────
 
+// statFormat is the tab-separated stat -c format listImpl/infoImpl/searchImpl
+// share; parseStatLine reads it back.
+const statFormat = "%n\t%F\t%s\t%u\t%g\t%a\t%Y"
+
+// filesSearchDefaultMaxResults caps a files/v2/search answer when the caller
+// sends no limit.
+const filesSearchDefaultMaxResults = 500
+
+// FilesSearchResult is the wire shape of files/v2/search.
+type FilesSearchResult struct {
+	Items     []dtos.PersistentFileDto `json:"items"`
+	Truncated bool                     `json:"truncated"`
+}
+
+// searchFindArgs builds the find invocation of a free-text name search below
+// containerPath. The pattern travels as one argv element - there is no shell,
+// so the query cannot inject commands; glob characters in it act as wildcards.
+// lost+found is skipped like the listing does.
+func searchFindArgs(containerPath, query string) []string {
+	return []string{
+		"find", containerPath,
+		"-mindepth", "1",
+		"!", "-name", "lost+found",
+		"!", "-path", "*/lost+found/*",
+		"-iname", "*" + query + "*",
+		"-exec", "stat", "-c", statFormat, "{}", ";",
+	}
+}
+
+// searchImpl runs one find over the subtree below requestPath and returns the
+// matching entries with paths relative to that subtree. Results are capped at
+// maxResults; Truncated tells the caller the list is incomplete.
+func searchImpl(target fileExecTarget, requestPath, query string, maxResults int) (FilesSearchResult, error) {
+	query = strings.TrimSpace(query)
+	if query == "" {
+		return FilesSearchResult{}, fmt.Errorf("query cannot be empty")
+	}
+	if maxResults <= 0 {
+		maxResults = filesSearchDefaultMaxResults
+	}
+
+	containerPath, err := resolvePath(target.MountRoot, requestPath)
+	if err != nil {
+		return FilesSearchResult{}, err
+	}
+
+	output, err := mokubernetes.ExecInPod(
+		target.Namespace, target.Pod, target.Container,
+		searchFindArgs(containerPath, query),
+		nil,
+	)
+	// find exits non-zero when a subfolder is unreadable but still prints
+	// every match it reached - keep those instead of failing the search
+	if err != nil && strings.TrimSpace(output) == "" {
+		return FilesSearchResult{}, err
+	}
+
+	result := FilesSearchResult{Items: []dtos.PersistentFileDto{}}
+	for line := range strings.SplitSeq(strings.TrimSpace(output), "\n") {
+		if line == "" || !strings.Contains(line, "\t") {
+			continue
+		}
+		if len(result.Items) >= maxResults {
+			result.Truncated = true
+			break
+		}
+		item, parseErr := parseStatLine(containerPath, line)
+		if parseErr != nil {
+			serviceLogger.Warn("Search: parseStatLine error", "line", line, "error", parseErr)
+			continue
+		}
+		result.Items = append(result.Items, item)
+	}
+	return result, nil
+}
+
 func listImpl(target fileExecTarget, requestPath string) ([]dtos.PersistentFileDto, error) {
 	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
@@ -219,7 +303,7 @@ func listImpl(target fileExecTarget, requestPath string) ([]dtos.PersistentFileD
 		[]string{
 			"find", containerPath,
 			"-maxdepth", "1", "-mindepth", "1",
-			"-exec", "stat", "-c", "%n\t%F\t%s\t%u\t%g\t%a\t%Y", "{}", ";",
+			"-exec", "stat", "-c", statFormat, "{}", ";",
 		},
 		nil,
 	)
@@ -253,7 +337,7 @@ func infoImpl(target fileExecTarget, requestPath string) (dtos.PersistentFileDto
 
 	output, err := mokubernetes.ExecInPod(
 		target.Namespace, target.Pod, target.Container,
-		[]string{"stat", "-c", "%n\t%F\t%s\t%u\t%g\t%a\t%Y", containerPath},
+		[]string{"stat", "-c", statFormat, containerPath},
 		nil,
 	)
 	if err != nil {

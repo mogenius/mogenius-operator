@@ -74,6 +74,8 @@ type StorageV2InfoItem struct {
 	HelperMounted    bool                   `json:"helperMounted"`
 	HelperStatus     *StorageV2HelperStatus `json:"helperStatus,omitempty"`
 	Events           []StorageV2Event       `json:"events,omitempty"`
+	// PVC creationTimestamp as RFC3339, "" when unknown
+	CreatedAt string `json:"createdAt,omitempty"`
 }
 
 type StorageV2InfoResponse struct {
@@ -201,6 +203,9 @@ func StorageV2Info(request StorageV2InfoRequest) (StorageV2InfoResponse, error) 
 func fillPvcFields(item *StorageV2InfoItem, pvc *v1.PersistentVolumeClaim) {
 	item.Phase = string(pvc.Status.Phase)
 	item.VolumeName = pvc.Spec.VolumeName
+	if !pvc.CreationTimestamp.IsZero() {
+		item.CreatedAt = pvc.CreationTimestamp.UTC().Format(time.RFC3339)
+	}
 
 	if requested, ok := pvc.Spec.Resources.Requests[v1.ResourceStorage]; ok {
 		item.RequestedBytes = requested.Value()
