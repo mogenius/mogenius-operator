@@ -424,6 +424,7 @@ func StartStorageHelperReaper() {
 				return
 			case <-ticker.C:
 				reapIdleStorageHelpers()
+				reapStorageHelpersOfTerminatingPvcs()
 			}
 		}
 	}()
@@ -452,6 +453,53 @@ func listStorageHelperPods() []v1.Pod {
 		return nil
 	}
 	return list.Items
+}
+
+// helperPodClaim returns the PVC a helper pod mounts (its single "data" volume).
+func helperPodClaim(pod *v1.Pod) string {
+	for _, volume := range pod.Spec.Volumes {
+		if volume.PersistentVolumeClaim != nil {
+			return volume.PersistentVolumeClaim.ClaimName
+		}
+	}
+	return ""
+}
+
+// selectHelpersOfTerminatingPvcs returns the live helper pods whose PVC carries
+// a deletionTimestamp. Such a pod pins kubernetes.io/pvc-protection and the PVC
+// would hang in Terminating forever - e.g. after a kubectl delete that bypassed
+// the API's unmount-before-delete.
+func selectHelpersOfTerminatingPvcs(pods []v1.Pod, lookup func(namespace, name string) *v1.PersistentVolumeClaim) []v1.Pod {
+	var blocking []v1.Pod
+	for i := range pods {
+		pod := &pods[i]
+		if pod.DeletionTimestamp != nil {
+			continue
+		}
+		claim := helperPodClaim(pod)
+		if claim == "" {
+			continue
+		}
+		if pvc := lookup(pod.Namespace, claim); pvc != nil && pvc.DeletionTimestamp != nil {
+			blocking = append(blocking, *pod)
+		}
+	}
+	return blocking
+}
+
+func reapStorageHelpersOfTerminatingPvcs() {
+	blocking := selectHelpersOfTerminatingPvcs(listStorageHelperPods(), getPvc)
+	for _, pod := range blocking {
+		err := clientProvider.K8sClientSet().CoreV1().Pods(pod.Namespace).Delete(context.Background(), pod.Name, metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			serviceLogger.Warn("storage helper reaper: failed to delete helper pod of terminating pvc",
+				"namespace", pod.Namespace, "pod", pod.Name, "error", err)
+			continue
+		}
+		serviceLogger.Info("storage helper reaper: deleted helper pod of terminating pvc",
+			"namespace", pod.Namespace, "pod", pod.Name, "pvc", helperPodClaim(&pod))
+		helperTracker.forget(pod.Namespace, pod.Name)
+	}
 }
 
 func reapIdleStorageHelpers() {

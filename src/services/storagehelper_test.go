@@ -342,3 +342,33 @@ func TestStorageHelperPodSpec(t *testing.T) {
 		t.Fatal("capabilities must not be restricted (default set required for chown/chmod as root)")
 	}
 }
+
+func TestSelectHelpersOfTerminatingPvcs(t *testing.T) {
+	now := metav1.Now()
+	helper := func(name, claim string) v1.Pod {
+		pod := *buildStorageHelperPod("ns", claim)
+		pod.Name = name
+		return pod
+	}
+	pvcs := map[string]*v1.PersistentVolumeClaim{
+		"ns/gone":  {ObjectMeta: metav1.ObjectMeta{Name: "gone", Namespace: "ns", DeletionTimestamp: &now}},
+		"ns/alive": {ObjectMeta: metav1.ObjectMeta{Name: "alive", Namespace: "ns"}},
+	}
+	lookup := func(namespace, name string) *v1.PersistentVolumeClaim { return pvcs[namespace+"/"+name] }
+
+	t.Run("helper of a terminating pvc is selected", func(t *testing.T) {
+		got := selectHelpersOfTerminatingPvcs([]v1.Pod{helper("h-gone", "gone"), helper("h-alive", "alive")}, lookup)
+		if len(got) != 1 || got[0].Name != "h-gone" {
+			t.Fatalf("expected only h-gone, got %+v", got)
+		}
+	})
+
+	t.Run("already terminating helper and unknown pvc are left alone", func(t *testing.T) {
+		terminating := helper("h-term", "gone")
+		terminating.DeletionTimestamp = &now
+		got := selectHelpersOfTerminatingPvcs([]v1.Pod{terminating, helper("h-unknown", "missing")}, lookup)
+		if len(got) != 0 {
+			t.Fatalf("expected no selection, got %+v", got)
+		}
+	})
+}
