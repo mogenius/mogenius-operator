@@ -401,7 +401,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_STORAGE_HELPER_IMAGE",
-		DefaultValue: new("busybox:1.37"), // renovate: datasource=docker depName=busybox
+		DefaultValue: new("busybox:1.38"), // renovate: datasource=docker depName=busybox
 		Description:  new("image of the ephemeral storage helper pod that mounts a PVC for browsing"),
 		Envs:         []string{"storage_helper_image"},
 	})
