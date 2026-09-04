@@ -1,7 +1,6 @@
 package core
 
 import (
-	"bytes"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/ai"
@@ -809,8 +808,9 @@ func (self *socketApi) registerPatterns() {
 
 	// files/v2/*: file operations on any PVC mounted by a running pod,
 	// executed in that pod (no mogenius NFS server required). The binary
-	// upload counterpart (files/v2/upload) is handled in the job client
-	// read loop next to the legacy files/upload framing.
+	// upload counterpart (files/v2/upload) is intercepted by the upload
+	// receiver of every job client read loop (see socketapi_upload.go),
+	// next to the legacy files/upload framing.
 	{
 		type Request struct {
 			Folder dtos.PvcFileRequestDto `json:"folder" validate:"required"`
@@ -3176,19 +3176,22 @@ func (self *socketApi) LoadRequest(datagram *structs.Datagram, data any) error {
 }
 
 func (self *socketApi) startMessageHandler() {
-	// Start the main read loop for the first jobClient (includes file upload support)
-	self.startJobClientReadLoop()
-
-	// Start a read loop for each additional jobClient
-	for i := 1; i < len(self.jobClients); i++ {
-		self.startClientReadLoop(self.jobClients[i])
+	// Every job client runs the same loop. The platform api picks one of the
+	// connections at random per request, so each of them has to speak the
+	// binary upload protocol — with its own upload state, because announce,
+	// framing and chunks of one transfer all arrive on the same connection.
+	for _, client := range self.jobClients {
+		self.startClientReadLoop(client)
 	}
 }
 
-// startClientReadLoop starts a message read loop for a non-default WebSocket client.
-// It only dispatches patterns that are explicitly registered for this client.
+// startClientReadLoop starts the message read loop for one job client. Upload
+// announces and framing are intercepted here and acked on the connection they
+// came in on; everything else is dispatched to the registered pattern handlers.
 func (self *socketApi) startClientReadLoop(client websocket.WebsocketClient) {
 	go func() {
+		upload := newUploadReceiver(self.logger)
+
 		jobs := make(chan structs.Datagram, messageWorkerCount)
 		defer close(jobs) // signals workers to exit when the read loop ends
 
@@ -3199,11 +3202,18 @@ func (self *socketApi) startClientReadLoop(client websocket.WebsocketClient) {
 		for !client.IsTerminated() {
 			_, message, err := client.ReadMessage()
 			if err != nil {
-				self.logger.Error("failed to read message from websocket connection", "error", err)
-				time.Sleep(time.Second)
+				self.logger.Error("failed to read message from websocket connection", "client", self.clientName(client), "error", err)
+				time.Sleep(time.Second) // wait before next attempt to read
 				continue
 			}
 			if len(message) == 0 {
+				continue
+			}
+
+			if acks, consumed := upload.frame(message); consumed {
+				for _, ack := range acks {
+					go self.JobServerSendData(client, ack)
+				}
 				continue
 			}
 
@@ -3215,17 +3225,23 @@ func (self *socketApi) startClientReadLoop(client websocket.WebsocketClient) {
 
 			datagram.DisplayReceiveSummary(self.logger)
 
+			if ack, ok := upload.announce(datagram); ok {
+				go self.JobServerSendData(client, ack)
+				continue
+			}
+
 			// Blocks when all workers are busy. This backpressures the read
 			// loop instead of spawning unbounded goroutines.
 			jobs <- datagram
 		}
-		self.logger.Debug("client messagehandler finished as the websocket client was terminated")
+		self.logger.Debug("messagehandler finished as the websocket client was terminated", "client", self.clientName(client))
 	}()
 }
 
 // dispatchClientMessages runs one worker that looks up the handler for each
 // incoming datagram and either executes it or replies with a no-handler error.
-// Exits when jobs is closed.
+// Handlers registered without a client serve every connection; a handler bound
+// to a client only serves that one. Exits when jobs is closed.
 func (self *socketApi) dispatchClientMessages(client websocket.WebsocketClient, jobs <-chan structs.Datagram) {
 	for datagram := range jobs {
 		self.patternHandlerLock.RLock()
@@ -3235,20 +3251,15 @@ func (self *socketApi) dispatchClientMessages(client websocket.WebsocketClient, 
 		if exists && (handler.Client == nil || handler.Client == client) {
 			self.handlePatternRequest(datagram, client)
 		} else {
-			self.sendNoHandlerError(client, datagram, true)
+			self.sendNoHandlerError(client, datagram)
 		}
 	}
 }
 
 // sendNoHandlerError writes a structured error datagram back to the client
-// for an unrecognized pattern. perClient indicates whether the warning log
-// should mention the specific client (used by the per-client read loop).
-func (self *socketApi) sendNoHandlerError(client websocket.WebsocketClient, datagram structs.Datagram, perClient bool) {
-	if perClient {
-		self.logger.Warn("no handler for pattern found on client", "pattern", datagram.Pattern, "client", self.clientName(client))
-	} else {
-		self.logger.Warn("no handler for pattern found", "pattern", datagram.Pattern)
-	}
+// for an unrecognized pattern.
+func (self *socketApi) sendNoHandlerError(client websocket.WebsocketClient, datagram structs.Datagram) {
+	self.logger.Warn("no handler for pattern found on client", "pattern", datagram.Pattern, "client", self.clientName(client))
 
 	result := structs.Datagram{
 		Id:      datagram.Id,
@@ -3265,152 +3276,6 @@ func (self *socketApi) sendNoHandlerError(client websocket.WebsocketClient, data
 	}
 
 	self.JobServerSendData(client, result)
-}
-
-func (self *socketApi) startJobClientReadLoop() {
-	go func() {
-		// One binary upload may be pending at a time: either a legacy
-		// files/upload request or a files/v2/upload request, never both.
-		// The variant that is non-nil decides where END_UPLOAD dispatches.
-		var preparedFileName *string
-		var preparedFileRequest *services.FilesUploadRequest
-		var preparedFileRequestV2 *services.FilesUploadRequestV2
-		var preparedUploadDatagramV2 *structs.Datagram
-		var openFile *os.File
-
-		jobs := make(chan structs.Datagram, messageWorkerCount)
-		defer close(jobs)
-
-		for range messageWorkerCount {
-			go self.dispatchJobClientMessages(jobs)
-		}
-
-		for !self.jobClients[0].IsTerminated() {
-			_, message, err := self.jobClients[0].ReadMessage()
-			if err != nil {
-				self.logger.Error("failed to read message from websocket connection", "error", err)
-				time.Sleep(time.Second) // wait before next attempt to read
-				continue
-			}
-			if len(message) == 0 {
-				continue
-			}
-			if bytes.HasPrefix(message, []byte("######START_UPLOAD######;")) {
-				preparedFileName = new(fmt.Sprintf("/tmp/%s.zip", utils.NanoId()))
-				openFile, err = os.OpenFile(*preparedFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-				if err != nil {
-					self.logger.Error("Cannot open uploadfile", "filename", *preparedFileName, "error", err)
-					preparedFileName = nil
-					openFile = nil
-				}
-				continue
-			}
-			if bytes.HasPrefix(message, []byte("######END_UPLOAD######;")) {
-				if openFile != nil {
-					_ = openFile.Close()
-				}
-				var uploadErr error
-				if preparedFileName != nil && preparedFileRequest != nil {
-					uploadErr = services.Uploaded(*preparedFileName, *preparedFileRequest)
-					if uploadErr != nil {
-						self.logger.Error("Error uploading file", "error", uploadErr)
-					}
-				} else if preparedFileName != nil && preparedFileRequestV2 != nil {
-					uploadErr = services.UploadedV2(*preparedFileName, *preparedFileRequestV2)
-					if uploadErr != nil {
-						self.logger.Error("Error uploading file", "error", uploadErr)
-					}
-				} else if preparedFileName == nil {
-					uploadErr = fmt.Errorf("upload failed: could not open temporary file")
-				}
-				if preparedFileName != nil {
-					_ = os.Remove(*preparedFileName)
-				}
-
-				if preparedFileRequest != nil {
-					ack := structs.CreateDatagramAck("ack:files/upload:end", preparedFileRequest.Id)
-					if uploadErr != nil {
-						ack.Err = uploadErr.Error()
-					}
-					go self.JobServerSendData(self.jobClients[0], ack)
-				}
-
-				if preparedFileRequestV2 != nil {
-					// uploads mutate the PVC: audit with the original datagram
-					if preparedUploadDatagramV2 != nil {
-						_, _ = store.AddToAuditLog(*preparedUploadDatagramV2, self.logger, uploadErr == nil, uploadErr, nil, nil)
-					}
-					ack := structs.CreateDatagramAck("ack:files/v2/upload:end", preparedFileRequestV2.Id)
-					if uploadErr != nil {
-						ack.Err = uploadErr.Error()
-					}
-					go self.JobServerSendData(self.jobClients[0], ack)
-				}
-
-				preparedFileName = nil
-				preparedFileRequest = nil
-				preparedFileRequestV2 = nil
-				preparedUploadDatagramV2 = nil
-				continue
-			}
-
-			if preparedFileName != nil {
-				_, err := openFile.Write(message)
-				if err != nil {
-					self.logger.Error("Error writing to file", "error", err)
-				}
-				continue
-			}
-
-			datagram, err := self.ParseDatagram(message)
-			if err != nil {
-				self.logger.Error("failed to parse datagram", "error", err)
-				continue
-			}
-
-			datagram.DisplayReceiveSummary(self.logger)
-
-			// TODO: refactor! @bene
-			if datagram.Pattern == "files/upload" {
-				preparedFileRequest = self.executeBinaryRequestUpload(datagram)
-				preparedFileRequestV2 = nil
-				preparedUploadDatagramV2 = nil
-
-				var ack = structs.CreateDatagramAck("ack:files/upload:datagram", datagram.Id)
-				go self.JobServerSendData(self.jobClients[0], ack)
-				continue
-			}
-
-			if datagram.Pattern == "files/v2/upload" {
-				preparedFileRequestV2 = self.executeBinaryRequestUploadV2(datagram)
-				preparedUploadDatagramV2 = &datagram
-				preparedFileRequest = nil
-
-				var ack = structs.CreateDatagramAck("ack:files/v2/upload:datagram", datagram.Id)
-				go self.JobServerSendData(self.jobClients[0], ack)
-				continue
-			}
-
-			// Blocks when all workers are busy (backpressures the read loop
-			// instead of spawning unbounded goroutines).
-			jobs <- datagram
-		}
-		self.logger.Debug("api messagehandler finished as the websocket client was terminated")
-	}()
-}
-
-// dispatchJobClientMessages runs one worker for the default jobClient read
-// loop. Looks up the handler for each incoming datagram and either executes
-// it or replies with a no-handler error. Exits when jobs is closed.
-func (self *socketApi) dispatchJobClientMessages(jobs <-chan structs.Datagram) {
-	client := self.jobClients[0]
-	for datagram := range jobs {
-		if self.patternHandlerExists(datagram.Pattern) {
-			self.handlePatternRequest(datagram, client)
-		} else {
-			self.sendNoHandlerError(client, datagram, false)
-		}
-	}
 }
 
 // clientName returns a human-readable label for the given client, used in logs.
@@ -3560,11 +3425,6 @@ func (self *socketApi) logPattern(executionTime time.Duration, sendTime time.Dur
 		utils.BytesToHumanReadable(size),
 		datagram.User.Email,
 	)
-}
-
-func (self *socketApi) patternHandlerExists(pattern string) bool {
-	_, ok := self.patternHandler[pattern]
-	return ok
 }
 
 func (self *socketApi) ParseDatagram(data []byte) (structs.Datagram, error) {
@@ -3732,18 +3592,6 @@ func podEventStreamConnection(podLogConnectionRequest xterm.PodEventConnectionRe
 		podLogConnectionRequest.Namespace,
 		podLogConnectionRequest.Controller,
 	)
-}
-
-func (self *socketApi) executeBinaryRequestUpload(datagram structs.Datagram) *services.FilesUploadRequest {
-	data := services.FilesUploadRequest{}
-	structs.MarshalUnmarshal(&datagram, &data)
-	return &data
-}
-
-func (self *socketApi) executeBinaryRequestUploadV2(datagram structs.Datagram) *services.FilesUploadRequestV2 {
-	data := services.FilesUploadRequestV2{}
-	structs.MarshalUnmarshal(&datagram, &data)
-	return &data
 }
 
 func (self *socketApi) NormalizePatternName(pattern string) string {
