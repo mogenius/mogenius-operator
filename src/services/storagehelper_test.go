@@ -1,6 +1,7 @@
 package services
 
 import (
+	"encoding/json"
 	"regexp"
 	"strings"
 	"testing"
@@ -187,6 +188,111 @@ func TestPendingHelperPodYieldsPodNotReady(t *testing.T) {
 	}
 	if !helperMountedFor(idx, "my-pvc") {
 		t.Fatal("expected helperMounted=true for the pending helper pod")
+	}
+}
+
+// A helper pod stuck in ContainerCreating (e.g. kubelet FailedMount on a dead
+// NFS server) must surface as helperStatus with that waiting reason, so the UI
+// can replace the static "Mounting…" text with the live state.
+func TestBuildHelperStatusContainerCreating(t *testing.T) {
+	pod := helperPod("test-ns", "mo-storage-helper-my-pvc", "my-pvc")
+	pod.Status.Phase = v1.PodPending
+	pod.Status.ContainerStatuses = []v1.ContainerStatus{
+		{
+			Name:  storageHelperContainerName,
+			Ready: false,
+			State: v1.ContainerState{
+				Waiting: &v1.ContainerStateWaiting{
+					Reason:  "ContainerCreating",
+					Message: "",
+				},
+			},
+		},
+	}
+
+	idx := buildTestIndex(pod)
+	found := helperPodFor(idx, "my-pvc")
+	if found == nil {
+		t.Fatal("expected helperPodFor to find the helper pod")
+	}
+
+	status := buildHelperStatus(found, "test-ns", false)
+	if status.PodName != "mo-storage-helper-my-pvc" {
+		t.Fatalf("unexpected podName %q", status.PodName)
+	}
+	if status.Phase != string(v1.PodPending) {
+		t.Fatalf("expected phase Pending, got %q", status.Phase)
+	}
+	if status.Ready {
+		t.Fatal("a ContainerCreating helper pod must not be ready")
+	}
+	if status.Reason != "ContainerCreating" {
+		t.Fatalf("expected reason ContainerCreating, got %q", status.Reason)
+	}
+	if status.Events != nil {
+		t.Fatal("events must not be fetched without withEvents")
+	}
+}
+
+// A Pending helper pod without container statuses falls back to the failing
+// pod condition (unschedulable etc.) for reason/message.
+func TestBuildHelperStatusPendingConditionFallback(t *testing.T) {
+	pod := helperPod("test-ns", "mo-storage-helper-my-pvc", "my-pvc")
+	pod.Status.Phase = v1.PodPending
+	pod.Status.ContainerStatuses = nil
+	pod.Status.Conditions = []v1.PodCondition{
+		{
+			Type:    v1.PodScheduled,
+			Status:  v1.ConditionFalse,
+			Reason:  "Unschedulable",
+			Message: "0/3 nodes are available",
+		},
+	}
+
+	status := buildHelperStatus(&pod, "test-ns", false)
+	if status.Reason != "Unschedulable" || status.Message != "0/3 nodes are available" {
+		t.Fatalf("expected condition fallback, got reason %q message %q", status.Reason, status.Message)
+	}
+}
+
+// A running, ready helper pod reports ready=true with empty reason/message.
+func TestBuildHelperStatusRunning(t *testing.T) {
+	pod := helperPod("test-ns", "mo-storage-helper-my-pvc", "my-pvc")
+
+	status := buildHelperStatus(&pod, "test-ns", false)
+	if !status.Ready || status.Phase != string(v1.PodRunning) {
+		t.Fatalf("expected ready running status, got %+v", status)
+	}
+	if status.Reason != "" || status.Message != "" {
+		t.Fatalf("expected empty reason/message while running, got %q / %q", status.Reason, status.Message)
+	}
+}
+
+// Without a helper pod the item's helperStatus stays nil and the JSON field is
+// omitted entirely (the frozen wire contract).
+func TestHelperStatusOmittedWithoutHelperPod(t *testing.T) {
+	now := time.Now()
+	idx := buildTestIndex(makePvcPod("app", now, v1.PodRunning, "my-pvc", []testMount{{container: "app", ready: true}}))
+	if helperPodFor(idx, "my-pvc") != nil {
+		t.Fatal("expected no helper pod for a pvc mounted only by regular pods")
+	}
+
+	item := StorageV2InfoItem{Namespace: "test-ns", PvcName: "my-pvc"}
+	encoded, err := json.Marshal(item)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	if strings.Contains(string(encoded), "helperStatus") {
+		t.Fatalf("helperStatus must be omitted when nil, got %s", encoded)
+	}
+
+	item.HelperStatus = &StorageV2HelperStatus{PodName: "mo-storage-helper-my-pvc", Phase: "Pending", Reason: "ContainerCreating"}
+	encoded, err = json.Marshal(item)
+	if err != nil {
+		t.Fatalf("marshal failed: %v", err)
+	}
+	if !strings.Contains(string(encoded), `"helperStatus":{"podName":"mo-storage-helper-my-pvc","phase":"Pending","ready":false,"reason":"ContainerCreating","message":""}`) {
+		t.Fatalf("unexpected helperStatus encoding: %s", encoded)
 	}
 }
 
