@@ -1,5 +1,53 @@
 # Changelog
 
+## [2.30.0](https://github.com/mogenius/mogenius-operator/compare/v2.29.0...v2.30.0) (2026-09-05)
+
+
+### Features
+
+* add GroupGrant rule CRD with socket patterns and spec-carrying cluster events ([327228a](https://github.com/mogenius/mogenius-operator/commit/327228a6ad5db41661b88cdd20fc62d9e36fdea9))
+* add oci helm cart upgrade path ([019c082](https://github.com/mogenius/mogenius-operator/commit/019c0821363b3bb1dbe8c2c9e6ca68f0655820b2))
+* allow helm repo unlinking ([226b685](https://github.com/mogenius/mogenius-operator/commit/226b685f2f9b72e939ee0e3c3da416361ef662dd))
+* show set values for oci helm releases ([c9b727e](https://github.com/mogenius/mogenius-operator/commit/c9b727e71101398fb7be3245c5cf659a1bca61d3))
+* SSH, scp and port forwarding without sshd ([cdf8c6f](https://github.com/mogenius/mogenius-operator/commit/cdf8c6f44884606c8fcf20de6a3550f7b1a7be71))
+* **storage:** expose helper pod status in storage/v2/info ([ba4f6a3](https://github.com/mogenius/mogenius-operator/commit/ba4f6a33653ca005db8595e8156baf4730bde768))
+* **storage:** files/v2/search pattern and createdAt in storage/v2/info ([4417b0d](https://github.com/mogenius/mogenius-operator/commit/4417b0d89cd3da9c69dab3de40439cd4ed69896e))
+* **storage:** generic PVC exec substrate and storage/files v2 patterns ([05a72d4](https://github.com/mogenius/mogenius-operator/commit/05a72d40310efa6b6fee85e92416e215f4fc87ea))
+* **storage:** helper mounter pod for unmounted PVCs ([e4f45d2](https://github.com/mogenius/mogenius-operator/commit/e4f45d24d27f268173cfc40d0b34a0538ceb6b07))
+
+
+### Bug Fixes
+
+* **agent:** fail the agent if compaction fails ([78267e6](https://github.com/mogenius/mogenius-operator/commit/78267e6c57a7994bb3392d27cdb83a6bbe2d0fbc))
+* **agent:** improve agent label when reasoning is finished ([8c9a2b4](https://github.com/mogenius/mogenius-operator/commit/8c9a2b4fe302bd6e6b23bf082416ef928be7601e))
+* **agent:** improve budget tests and error handling ([b04bde9](https://github.com/mogenius/mogenius-operator/commit/b04bde90eb6e279c856e35537243184168ac71d7))
+* **agent:** improve message if agent hit its context limits ([fa41889](https://github.com/mogenius/mogenius-operator/commit/fa4188950bb189252236a05acc00f1d337fe6deb))
+* agents can only be scoped on a single workspace and listed by workspace ([a8fbce7](https://github.com/mogenius/mogenius-operator/commit/a8fbce76504795e39844d91bd756e41ba91b53db))
+* **agents:** adding warning if ai response lenght isnt readable ([714b859](https://github.com/mogenius/mogenius-operator/commit/714b859bb8f662425400df47e06cbfc3d7312158))
+* container started might not yet be set ([1a1bf0d](https://github.com/mogenius/mogenius-operator/commit/1a1bf0d2d680c492339320701caacca269decbb7))
+* **deps:** update kubernetes monorepo to v0.37.0 ([#1197](https://github.com/mogenius/mogenius-operator/issues/1197)) ([4d2d4d5](https://github.com/mogenius/mogenius-operator/commit/4d2d4d5fd46fca2e83015a7f8913d12abad62d31))
+* **deps:** update module github.com/alicebob/miniredis/v2 to v2.39.0 ([9530604](https://github.com/mogenius/mogenius-operator/commit/95306048c9846601404bba5f9c107e87b9b3a9bd))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.68.0 ([f422eb8](https://github.com/mogenius/mogenius-operator/commit/f422eb83a8d66318060dfe87fb415a5a925f8dfb))
+* **deps:** update module github.com/bitnami/sealed-secrets to v0.39.1 ([#1194](https://github.com/mogenius/mogenius-operator/issues/1194)) ([2cfd838](https://github.com/mogenius/mogenius-operator/commit/2cfd83895e83873534d9f3c2790a208964056e35))
+* **deps:** update module github.com/go-playground/validator/v10 to v10.30.4 ([#1219](https://github.com/mogenius/mogenius-operator/issues/1219)) ([31dbf4f](https://github.com/mogenius/mogenius-operator/commit/31dbf4fd96fdc4bbdc299e62b385624e4029312d))
+* **deps:** update module github.com/kimmachinegun/automemlimit to v1 ([cb782a2](https://github.com/mogenius/mogenius-operator/commit/cb782a2426bf77a057ea4558216125024c5efa3e))
+* **deps:** update module github.com/ollama/ollama to v0.33.2 ([adafe21](https://github.com/mogenius/mogenius-operator/commit/adafe21c08c13259d7e7e939ba3c8427759c455e))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.54.0 ([#1200](https://github.com/mogenius/mogenius-operator/issues/1200)) ([2f6497a](https://github.com/mogenius/mogenius-operator/commit/2f6497a9fb148217446c07fc8616ddfeb4a2eeed))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.56.0 ([#1207](https://github.com/mogenius/mogenius-operator/issues/1207)) ([52e4597](https://github.com/mogenius/mogenius-operator/commit/52e4597787eb5acfb91420fcc79ac5cd6aba268a))
+* **deps:** update module golang.org/x/crypto to v0.56.0 ([#1210](https://github.com/mogenius/mogenius-operator/issues/1210)) ([07e1951](https://github.com/mogenius/mogenius-operator/commit/07e19513dfa1aa05a02717da4fdc6facf7c0d4c2))
+* do not collect metrics if node does not have an adress ([32e1176](https://github.com/mogenius/mogenius-operator/commit/32e1176dbdbc1fa00b9e1565f91f44e5d8e586f5))
+* **flux:** annotate the generated HelmChart on reconcile-with-source ([26af765](https://github.com/mogenius/mogenius-operator/commit/26af7652d1022f8cf74a18f0a1f86044de7d38aa))
+* if chat call failed mark the step as failed ([fbc12bb](https://github.com/mogenius/mogenius-operator/commit/fbc12bbd2ca5b36eb6e2d1c6e4d4ea249560ff1f))
+* improve validation for workspace ref ([cccc183](https://github.com/mogenius/mogenius-operator/commit/cccc183f0df811974c47f9dc7353f69682f0b6b5))
+* remove inlining to reduce cpu load ([6886f6b](https://github.com/mogenius/mogenius-operator/commit/6886f6b50aba32df38f0174c45f0426e147f1e52))
+* renovate for busybox incode stuff ([f8251a2](https://github.com/mogenius/mogenius-operator/commit/f8251a202d8b101b146b721b3ce1ef4cffe1873d))
+* set max ai response lenght to 8000 chars ([e9b95d4](https://github.com/mogenius/mogenius-operator/commit/e9b95d4371fed8003091a189bd4b391d12c847b3))
+* **storage:** handle file uploads on every API connection ([720f0ba](https://github.com/mogenius/mogenius-operator/commit/720f0baab565c58772cd45bffe3c8a337c595577))
+* **storage:** ignore terminating pods for mount state and exec targets ([d549099](https://github.com/mogenius/mogenius-operator/commit/d5490998e50efc0482c8b5633f8ba8728a458edb))
+* **storage:** portable df (-P -k) and position-independent parsing ([42f727c](https://github.com/mogenius/mogenius-operator/commit/42f727ccb266618671c3a5105d08d07094e16781))
+* **storage:** reap helper pods of terminating PVCs ([e6e347b](https://github.com/mogenius/mogenius-operator/commit/e6e347bb7f0633fcb950d70d41bc335028b1c2d1))
+* workspace selector mismatch for agents ([86abcd4](https://github.com/mogenius/mogenius-operator/commit/86abcd4d9db60bf6388aa7e396855f8ada01bb63))
+
 ## [2.29.0](https://github.com/mogenius/mogenius-operator/compare/v2.28.0...v2.29.0) (2026-08-21)
 
 
