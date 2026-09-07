@@ -247,6 +247,12 @@ func computeMounts(index namespacePodIndex, pvcName string) ([]StorageV2MountedB
 
 	for _, podIdx := range index.podsPerClaim[pvcName] {
 		pod := &index.pods[podIdx]
+		// a terminating pod (e.g. the helper right after an unmount) is no mount
+		// target anymore; keeping it here would report browsable=true for a
+		// volume nobody can exec into and the UI would keep the file view open
+		if pod.DeletionTimestamp != nil {
+			continue
+		}
 
 		volumeNames := map[string]bool{}
 		for _, volume := range pod.Spec.Volumes {
