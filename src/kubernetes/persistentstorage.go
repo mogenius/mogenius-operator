@@ -3,11 +3,13 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/websocket"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -27,9 +29,37 @@ const (
 	PersitentVolumeKillingEventReason string = "Killing"
 )
 
-func handlePVDeletion(pv *v1.PersistentVolume) {
-	clientset := clientProvider.K8sClientSet()
+// pvEventRecorder is shared by all PV deletions. Previously every deletion
+// built its own record.NewBroadcaster() and never called Shutdown() on it,
+// leaking the broadcaster's goroutines and watch fan-out per deleted PV for
+// the lifetime of the process. A sink on Events("") creates each event in
+// the namespace of the object it is recorded against, so one recorder
+// serves every namespace.
+var (
+	pvEventRecorderOnce sync.Once
+	pvEventRecorder     record.EventRecorder
+)
 
+// pvDeletionEventDelay orders the Killing event after the PV deletion that
+// triggers it.
+const pvDeletionEventDelay = 2 * time.Second
+
+func getPvEventRecorder() record.EventRecorder {
+	pvEventRecorderOnce.Do(func() {
+		broadcaster := record.NewBroadcaster()
+		broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{
+			Interface: clientProvider.K8sClientSet().CoreV1().Events(""),
+		})
+		shutdown.Add(broadcaster.Shutdown)
+		pvEventRecorder = broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "mogenius.io/WatchPersistentVolumes"})
+	})
+	return pvEventRecorder
+}
+
+// handlePVDeletion records a Killing event in the namespace a mogenius NFS
+// volume belonged to. It runs on the informer delete handler and must return
+// promptly: the store deletion of the PV waits behind it.
+func handlePVDeletion(pv *v1.PersistentVolume) {
 	if !ContainsLabelKey(pv.Labels, LabelKeyVolumeName) {
 		return
 	}
@@ -37,7 +67,7 @@ func handlePVDeletion(pv *v1.PersistentVolume) {
 	// Extract label value from the PV
 	volumeName, err := GetLabelValue(pv.Labels, LabelKeyVolumeName)
 	if err != nil {
-		k8sLogger.Warn("Label value for identifier:'%s' not found on PV %s", LabelKeyVolumeName, pv.Name)
+		k8sLogger.Warn("Label value not found on PV", "label", LabelKeyVolumeName, "pv", pv.Name)
 		return
 	}
 
@@ -45,22 +75,19 @@ func handlePVDeletion(pv *v1.PersistentVolume) {
 	objectMetaName := pv.Name
 	namespaceName := strings.TrimSuffix(objectMetaName, "-"+volumeName)
 
-	// Set up a dynamic event broadcaster for the specific namespace
-	broadcaster := record.NewBroadcaster()
-	eventInterface := clientset.CoreV1().Events(namespaceName)
-	broadcaster.StartRecordingToSink(&typedcorev1.EventSinkImpl{Interface: eventInterface})
-	namespaceRecorder := broadcaster.NewRecorder(scheme.Scheme, v1.EventSource{Component: "mogenius.io/WatchPersistentVolumes"})
-
-	// Manipulate PV to match the namespace constraint for the event
+	// Manipulate PV to match the namespace constraint for the event. pv is a
+	// typed copy converted by the caller, not the informer's cached object.
 	pv.Namespace = namespaceName
 	pv.Name = volumeName
 
-	delayDuration := 2 * time.Second
-	time.Sleep(delayDuration)
+	recorder := getPvEventRecorder()
 
-	// Trigger custom event
-	k8sLogger.Info("PV %s is being deleted in namespace %s, triggering event", objectMetaName, namespaceName)
-	namespaceRecorder.Eventf(pv, v1.EventTypeNormal, PersitentVolumeKillingEventReason, "PersistentVolume %s is being deleted", objectMetaName)
+	// Delay off the handler goroutine instead of sleeping on it: a bulk PV
+	// cleanup used to stall the store's delete path for 2s per PV.
+	time.AfterFunc(pvDeletionEventDelay, func() {
+		k8sLogger.Info("PV is being deleted, triggering event", "pv", objectMetaName, "namespace", namespaceName)
+		recorder.Eventf(pv, v1.EventTypeNormal, PersitentVolumeKillingEventReason, "PersistentVolume %s is being deleted", objectMetaName)
+	})
 }
 
 func GetVolumeMountsForK8sManager() ([]structs.Volume, error) {
