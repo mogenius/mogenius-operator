@@ -1293,6 +1293,9 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 	if data.DryRun {
 		upgrade.DryRunStrategy = action.DryRunServer
 	}
+	// Unset MaxHistory means unlimited: one release Secret per revision,
+	// forever. Use the CLI default (HELM_MAX_HISTORY, 10) like `helm upgrade`.
+	upgrade.MaxHistory = settings.MaxHistory
 	// Helm v4 requires a wait strategy whenever any wait happens — and hooks are
 	// always awaited. HookOnly waits only for hooks, not for full release readiness.
 	upgrade.WaitStrategy = kube.HookOnlyStrategy
@@ -2055,6 +2058,7 @@ func HelmReleaseRollback(data HelmReleaseRollbackRequest) (string, error) {
 	}
 
 	rollback := action.NewRollback(actionConfig)
+	rollback.MaxHistory = settings.MaxHistory
 	rollback.ServerSideApply = "auto"
 	rollback.WaitStrategy = kube.StatusWatcherStrategy
 	rollback.Version = data.Revision
