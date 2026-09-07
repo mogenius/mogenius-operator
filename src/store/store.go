@@ -559,6 +559,9 @@ func SetResourceWithIndex(
 	// Persist the authoritative TypeMeta with the object: readers that
 	// aggregate across kinds (workspace search filters, helm workload
 	// matching) rely on GetKind()/GetAPIVersion() of the stored payload.
+	// For watcher-sourced objects this is a no-op - the informer transform
+	// already stamped TypeMeta, and the cached object must not be written
+	// to here. ensureTypeMeta only writes when a field is empty.
 	ensureTypeMeta(obj, apiVersion, kind)
 
 	payload, err := json.Marshal(obj)
