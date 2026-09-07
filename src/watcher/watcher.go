@@ -294,16 +294,33 @@ func (self *watcher) registerAndStartInformer(gvr schema.GroupVersionResource, r
 	resourceInformer := factory.ForResource(gvr).Informer()
 
 	if !self.informersConfigured[gvr] {
-		// Strip large metadata fields before caching to reduce in-process
-		// memory usage. managedFields (server-side apply tracking) and
+		// The transform is the only place that may mutate an object: it runs
+		// once, before the object enters the informer cache. Event handlers
+		// receive the cached pointer and share it with every other handler,
+		// with the resync path and with the goroutines that marshal it, so
+		// any write there is a concurrent map write.
+		//
+		// Strip large metadata fields to reduce in-process memory usage.
+		// managedFields (server-side apply tracking) and
 		// last-applied-configuration are never used by event handlers and
 		// can be several KB per object.
+		//
+		// Stamp apiVersion/kind while we are here: Unstructured objects from
+		// the dynamic client frequently arrive with empty TypeMeta, and the
+		// store persists it so cross-kind readers can call GetKind().
+		apiVersion, kind := resource.ApiVersion, resource.Kind
 		if err := resourceInformer.SetTransform(func(obj any) (any, error) {
 			if u, ok := obj.(*unstructured.Unstructured); ok {
 				u.SetManagedFields(nil)
 				annotations := u.GetAnnotations()
 				delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
 				u.SetAnnotations(annotations)
+				if u.GetAPIVersion() == "" {
+					u.SetAPIVersion(apiVersion)
+				}
+				if u.GetKind() == "" {
+					u.SetKind(kind)
+				}
 			}
 			return obj, nil
 		}); err != nil {

@@ -263,7 +263,10 @@ func handleCRDDeletion(wm watcher.WatcherModule, resource utils.ResourceDescript
 }
 
 func setStoreIfNeeded(apiVersion string, resourceName string, kind string, namespace string, obj *unstructured.Unstructured) {
-	obj = removeUnusedFieds(obj)
+	// obj is the informer's cached object and must not be modified here:
+	// it is shared with every other handler, with the resync path and with
+	// the goroutine that marshals it for the event server. managedFields
+	// and TypeMeta are already handled by the informer transform.
 
 	// store primary key + ZSET indexes (by-creation, by-name). The indexes are
 	// what every list read enumerates, so this pair has to stay in step; the
@@ -728,10 +731,5 @@ func removeManagedFields(obj *unstructured.Unstructured) *unstructured.Unstructu
 	if meta, ok := unstructuredContent["metadata"].(map[string]any); ok {
 		delete(meta, "managedFields")
 	}
-	return obj
-}
-
-func removeUnusedFieds(obj *unstructured.Unstructured) *unstructured.Unstructured {
-	obj = removeManagedFields(obj)
 	return obj
 }
