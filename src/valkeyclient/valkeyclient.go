@@ -58,6 +58,9 @@ const (
 	// Defaults for time-series stream retention. Tuned for 1-minute write
 	// cadence: 1440 entries = 24h, which keeps each stream around ~400 KiB
 	// instead of the multi-MB streams produced by 10800 entries / 7d.
+	// Streams keyed per controller receive one entry per pod per minute, so
+	// the MAXLEN cap covers 24h/N for an N-replica controller; the MINID trim
+	// on MAX_RETENTION_TIME is what bounds the time window.
 	// Override with MO_STATS_RETENTION_MAX_ENTRIES and MO_STATS_RETENTION_HOURS.
 	defaultRetentionSize  int64         = 1440
 	defaultRetentionHours time.Duration = 24 * time.Hour
@@ -1031,7 +1034,14 @@ func (self *valkeyClient) StoreSortedListEntry(data any, timestamp int64, keys .
 		timestamp = timestamp * 1000
 	}
 
-	id := fmt.Sprintf("%d-0", timestamp)
+	// Let the server assign the sequence part of the stream ID. Pod and
+	// traffic stats key their streams per controller but write one entry per
+	// pod, all with the same minute-truncated timestamp. With a fixed "-0"
+	// sequence every replica after the first collided with the stream's top
+	// ID and was rejected (and swallowed below as a "duplicate"), so a
+	// 3-replica Deployment persisted one pod's stats and the per-minute
+	// aggregations under-reported by the replica count.
+	id := fmt.Sprintf("%d-*", timestamp)
 
 	// This path runs per log line and per pod-stats write. Pipeline XADD,
 	// retention trims and TTL refresh into a single roundtrip instead of
@@ -1059,9 +1069,10 @@ func (self *valkeyClient) StoreSortedListEntry(data any, timestamp int64, keys .
 		errString := err.Error()
 
 		if strings.Contains(errString, "The ID specified in XADD is equal or smaller than the target stream top item") {
-			// This means we're trying to insert a duplicate entry
-			// we dont care about duplicates (and skip the publish so
-			// subscribers don't see the same entry twice)
+			// Only reachable when a writer's clock is behind the stream's
+			// top entry (e.g. two nodes writing the same controller stream
+			// with skewed clocks). Nothing to store; skip the publish so
+			// subscribers don't see an entry that was not persisted.
 			return nil
 		}
 		// Previously: on WRONGTYPE the wrapper silently DEL'd the
