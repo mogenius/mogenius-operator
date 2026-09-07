@@ -1,6 +1,7 @@
 package core
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/ai"
@@ -1635,14 +1636,14 @@ func (self *socketApi) registerPatterns() {
 				self.logger.Warn("could not verify resource deletion status", "error", getErr)
 				return nil, nil
 			}
-			// Resource still exists - check if it's terminating
+			// Resource still exists - report only finalizers that will not resolve on
+			// their own (e.g. pvc-protection while a running pod still mounts the PVC).
 			if obj.GetDeletionTimestamp() != nil {
-				if blocking := kubernetes.BlockingFinalizers(obj.GetFinalizers()); len(blocking) > 0 {
-					return nil, fmt.Errorf("resource is terminating but blocked by finalizers: %v", blocking)
+				if reason := kubernetes.DeletionBlockReason(obj); reason != "" {
+					return nil, errors.New(reason)
 				}
-				// Deletion accepted; grace periods and GC finalizers resolve asynchronously.
-				return nil, nil
 			}
+			// Deletion accepted; grace periods and GC/protection finalizers resolve asynchronously.
 			return nil, nil
 		},
 	)

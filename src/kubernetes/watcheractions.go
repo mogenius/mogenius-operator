@@ -465,6 +465,65 @@ func BlockingFinalizers(finalizers []string) []string {
 	return blocking
 }
 
+const (
+	pvcProtectionFinalizer = "kubernetes.io/pvc-protection"
+	pvProtectionFinalizer  = "kubernetes.io/pv-protection"
+)
+
+// DeletionBlockReason explains why a terminating object is stuck, or returns ""
+// when its remaining finalizers resolve on their own.
+//
+// Every PVC/PV carries kubernetes.io/pvc-protection / pv-protection. The
+// kube-controller-manager removes them asynchronously once no pod mounts the
+// volume, so right after a delete they are always still present and must not
+// be reported as blocking. They only block while a non-terminating pod still
+// mounts the volume - in that case the pod names are returned.
+func DeletionBlockReason(obj *unstructured.Unstructured) string {
+	other := []string{}
+	for _, finalizer := range BlockingFinalizers(obj.GetFinalizers()) {
+		switch finalizer {
+		case pvcProtectionFinalizer:
+			if pods := podsMountingPvc(obj.GetNamespace(), obj.GetName()); len(pods) > 0 {
+				return fmt.Sprintf("persistent volume claim is still mounted by pod(s): %s", strings.Join(pods, ", "))
+			}
+		case pvProtectionFinalizer:
+			namespace, _, _ := unstructured.NestedString(obj.Object, "spec", "claimRef", "namespace")
+			claim, _, _ := unstructured.NestedString(obj.Object, "spec", "claimRef", "name")
+			if claim == "" {
+				continue
+			}
+			if pods := podsMountingPvc(namespace, claim); len(pods) > 0 {
+				return fmt.Sprintf("persistent volume is bound to claim %s/%s which is still mounted by pod(s): %s", namespace, claim, strings.Join(pods, ", "))
+			}
+		default:
+			other = append(other, finalizer)
+		}
+	}
+	if len(other) > 0 {
+		return fmt.Sprintf("resource is terminating but blocked by finalizers: %v", other)
+	}
+	return ""
+}
+
+// podsMountingPvc returns the names of the non-terminating pods in namespace
+// that reference claimName in spec.volumes. Terminating pods are skipped: the
+// protection controller releases the claim as soon as they are gone.
+func podsMountingPvc(namespace, claimName string) []string {
+	names := []string{}
+	for _, pod := range store.GetPods(namespace) {
+		if pod.DeletionTimestamp != nil {
+			continue
+		}
+		for _, volume := range pod.Spec.Volumes {
+			if volume.PersistentVolumeClaim != nil && volume.PersistentVolumeClaim.ClaimName == claimName {
+				names = append(names, pod.Name)
+				break
+			}
+		}
+	}
+	return names
+}
+
 func DeleteUnstructuredResource(apiVersion string, plural string, namespace string, resourceName string) error {
 	dynamicClient := clientProvider.DynamicClient()
 	if namespace != "" {
@@ -661,7 +720,6 @@ func removeManagedFields(obj *unstructured.Unstructured) *unstructured.Unstructu
 	}
 	return obj
 }
-
 
 func removeUnusedFieds(obj *unstructured.Unstructured) *unstructured.Unstructured {
 	obj = removeManagedFields(obj)
