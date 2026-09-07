@@ -178,9 +178,12 @@ type AiPromptConfig struct {
 	SystemPrompt string `json:"systemPrompt"`
 }
 
+// AiPrompts carries the platform-injected chat system prompt. The former
+// githubSystemPrompt (appended when a GitHub PAT was configured) is gone —
+// MCP servers, GitHub included, are McpServer CRs now and describe their own
+// tools.
 type AiPrompts struct {
-	ChatSystemPrompt   string `json:"chatSystemPrompt"`
-	GithubSystemPrompt string `json:"githubSystemPrompt"`
+	ChatSystemPrompt string `json:"chatSystemPrompt"`
 }
 
 type AiManagerStatus struct {
@@ -328,7 +331,6 @@ type aiManager struct {
 	error             string
 	warning           string
 	mcpManager        *mcpClientManager
-	mcpConnectors     []MCPServerConnector
 
 	// cron trigger state: last evaluation time per agent. In-memory only —
 	// after a restart schedules re-anchor to the first ticker run.
@@ -490,13 +492,6 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.pendingApprovals = make(map[string]chan approvalResult)
 	self.runSem = make(chan struct{}, maxConcurrentRuns)
 
-	// Register MCP server connectors
-	self.mcpConnectors = []MCPServerConnector{
-		newGitHubMCPConnector(self.getGitHubPat),
-		// Add future MCP connectors here, e.g.:
-		// newGitLabMCPConnector(...),
-	}
-
 	return self
 }
 
@@ -539,10 +534,8 @@ func (ai *aiManager) Run() {
 		ai.logger.Error("Failed resetting in-progress AI tasks on startup", "error", err)
 	}
 
-	// Connect to configured MCP servers (hard-coded connectors, e.g. GitHub)
-	ai.connectMCPServers()
-
 	// Connect to McpServer CR-defined servers available in the store at startup.
+	// (The hard-coded GitHub PAT connector is gone; GitHub is a McpServer CR.)
 	ai.RefreshAllMcpServerCRConnections()
 
 	ticker := time.NewTicker(1 * time.Minute)

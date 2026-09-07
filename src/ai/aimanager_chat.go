@@ -54,21 +54,13 @@ func (ai *aiManager) Chat(ctx context.Context, ioChannel IOChatChannel) error {
 		return nil
 	}
 
-	// Connect to configured MCP servers
-	ai.connectMCPServers()
-
 	// Build system prompt with user info
 	ai.chatPromptMu.RLock()
 	systemPrompt := ai.aiPrompts.ChatSystemPrompt
-	githubSystemPrompt := ai.aiPrompts.GithubSystemPrompt
 	ai.chatPromptMu.RUnlock()
 
 	if systemPrompt == "" {
 		ai.logger.Warn("No AI model configuration found, using default value")
-	}
-
-	if pat, err := ai.getGitHubPat(); err == nil && pat != "" {
-		systemPrompt += "\n\n" + githubSystemPrompt
 	}
 
 	systemPrompt = strings.ReplaceAll(systemPrompt, "{{USER_NAME}}", fmt.Sprintf("%s %s", ioChannel.User.FirstName, ioChannel.User.LastName))

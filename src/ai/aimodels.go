@@ -158,8 +158,8 @@ func ValidateAiModelSpec(spec v1alpha1.AiModelSpec) error {
 	return nil
 }
 
-// resolveApiKeyFromRef reads the API key an AiModel points at. Mirrors
-// getAiSettingByKey: store cache first, then a direct API read.
+// resolveApiKeyFromRef reads the API key an AiModel points at: store cache
+// first, then a direct API read.
 func (ai *aiManager) resolveApiKeyFromRef(namespace string, ref *v1alpha1.SecretKeyRef) (string, error) {
 	if ref == nil || ref.Name == "" {
 		return "", nil
