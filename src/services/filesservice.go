@@ -7,11 +7,13 @@ import (
 	"fmt"
 	"io"
 	"math"
+	"mime"
 	"mime/multipart"
 	"mogenius-operator/src/dtos"
 	mokubernetes "mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/utils"
 	"net/http"
+	"net/textproto"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -343,7 +345,53 @@ func infoImpl(target fileExecTarget, requestPath string) (dtos.PersistentFileDto
 	if err != nil {
 		return dtos.PersistentFileDto{}, err
 	}
-	return parseStatLine(target.MountRoot, strings.TrimSpace(output))
+	line := strings.TrimSpace(output)
+	info, err := parseStatLine(target.MountRoot, line)
+	if err != nil {
+		return dtos.PersistentFileDto{}, err
+	}
+	// only regular files are sniffed: `head` on a fifo or a device would block
+	// the exec, and the exec has no deadline
+	if isRegularFileStatLine(line) {
+		info.MimeType, info.ContentType = detectContentType(target, containerPath)
+	}
+	return info, nil
+}
+
+// isRegularFileStatLine reports whether the %F field of a statFormat line is
+// "regular file" or "regular empty file".
+func isRegularFileStatLine(line string) bool {
+	parts := strings.Split(line, "\t")
+	return len(parts) > 1 && strings.HasPrefix(parts[1], "regular")
+}
+
+// mimeSniffBytes is how much of a file detectContentType reads; it is the
+// window http.DetectContentType looks at, more would be wasted transfer.
+const mimeSniffBytes = 512
+
+// detectContentType sniffs the media type of a regular file from its first
+// bytes, the same way a browser would. It answers ("text/plain",
+// "text/plain; charset=utf-8") for an extension-less text file and
+// ("application/octet-stream", ...) for binary data. Best effort: a failing
+// exec yields empty strings, callers fall back to extension-based guesses.
+// Only used on single-file paths (info, download), never per list entry -
+// that would be one exec per file.
+func detectContentType(target fileExecTarget, containerPath string) (mimeType string, contentType string) {
+	head, err := mokubernetes.ExecInPod(
+		target.Namespace, target.Pod, target.Container,
+		[]string{"head", "-c", strconv.Itoa(mimeSniffBytes), containerPath},
+		nil,
+	)
+	if err != nil {
+		serviceLogger.Debug("content type sniff failed", "path", containerPath, "error", err)
+		return "", ""
+	}
+	contentType = http.DetectContentType([]byte(head))
+	mimeType, _, err = mime.ParseMediaType(contentType)
+	if err != nil {
+		mimeType = contentType
+	}
+	return mimeType, contentType
 }
 
 func downloadImpl(target fileExecTarget, requestPath string, postTo string) (FilesDownloadResponse, error) {
@@ -364,14 +412,24 @@ func downloadImpl(target fileExecTarget, requestPath string, postTo string) (Fil
 	buf := new(bytes.Buffer)
 	multiPartWriter := multipart.NewWriter(buf)
 
-	var filename string
+	// CreateFormFile would stamp every part application/octet-stream; the
+	// platform passes the part's Content-Type straight through to the browser,
+	// so a sniffed type here is what lets the UI preview an extension-less
+	// text file without asking.
+	filename := info.Name
+	contentType := info.ContentType
 	if info.Type == "directory" {
 		filename = info.Name + ".tar.gz"
-	} else {
-		filename = info.Name
+		contentType = "application/gzip"
 	}
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	partHeader := make(textproto.MIMEHeader)
+	partHeader.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(filename)))
+	partHeader.Set("Content-Type", contentType)
 
-	w, err := multiPartWriter.CreateFormFile("file", filename)
+	w, err := multiPartWriter.CreatePart(partHeader)
 	if err != nil {
 		result.Error = err.Error()
 		return result, err
