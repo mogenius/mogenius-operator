@@ -85,11 +85,15 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3600)
 	defer cancel()
 	// websocket connection
-	_, conn, connWriteLock, _, err := xterm.GenerateWsConnection(datagram.Pattern, "", "", "", "", websocketUrl, conReq, ctx, cancel)
+	readMessages, conn, connWriteLock, _, err := xterm.GenerateWsConnection(datagram.Pattern, "", "", "", "", websocketUrl, conReq, ctx, cancel)
 	if err != nil {
 		logger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
+	// GenerateWsConnection already runs the single reader for this conn
+	// (gorilla allows one concurrent reader); consume its channel instead
+	// of reading the conn a second time from here.
+	go xterm.DiscardReadMessages(readMessages)
 
 	listener := NewMessageCallback(datagram, func(message any) {
 		if conn != nil {
@@ -105,16 +109,6 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 
 	httpApi.Broadcaster().AddListener(listener)
 	defer httpApi.Broadcaster().RemoveListener(listener)
-
-	go func() {
-		for {
-			_, _, err := conn.ReadMessage()
-			if err != nil {
-				logger.Error("failed to read from connection", "error", err)
-				break
-			}
-		}
-	}()
 
 	// Pre-build set for O(1) pod name lookups instead of linear search per entry
 	podNameSet := make(map[string]bool, len(podNames))

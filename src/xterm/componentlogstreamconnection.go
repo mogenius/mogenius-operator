@@ -41,11 +41,15 @@ func ComponentStreamConnection(
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(30*time.Minute))
 	// websocket connection
-	_, conn, connWriteLock, _, err := GenerateWsConnection("log", "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
+	readMessages, conn, connWriteLock, _, err := GenerateWsConnection("log", "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
 		xtermLogger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
+	// Component logs are write-only from our side; inbound frames (peer
+	// ready, pings, close) still have to be consumed so the reader can
+	// observe the close and release the connection.
+	go DiscardReadMessages(readMessages)
 
 	defer func() {
 		cancel()

@@ -195,7 +195,9 @@ func GenerateWsConnection(
 ) (readMessages *chan XtermReadMessages, conn *websocket.Conn, connWriteLock *sync.Mutex, connReadLock *sync.Mutex, err error) {
 	maxRetries := 6
 	currentRetries := 0
-	xtermMessages := make(chan XtermReadMessages)
+	// Small buffer so a burst of control frames (PEER_IS_READY, resize) does
+	// not park the reader goroutine while the consumer is between receives.
+	xtermMessages := make(chan XtermReadMessages, 16)
 
 	for {
 		// add header
@@ -276,7 +278,17 @@ func oncloseWs(conn *websocket.Conn, connReadLock *sync.Mutex, ctx context.Conte
 			messageType, p, err := conn.ReadMessage()
 			connReadLock.Unlock()
 			if readMessages != nil {
-				readMessages <- XtermReadMessages{MessageType: messageType, Data: p, Err: err}
+				// Never block on a consumer that has gone away. An
+				// unconditional send here parked this goroutine forever
+				// once the consumer returned (or never existed), and with
+				// it the connection, its buffers and connReadLock - one
+				// permanent leak per stream. The deferred cancel/close only
+				// runs if we can get out of this select.
+				select {
+				case readMessages <- XtermReadMessages{MessageType: messageType, Data: p, Err: err}:
+				case <-ctx.Done():
+					return
+				}
 			}
 			if err != nil {
 				if closeErr, ok := err.(*websocket.CloseError); ok {
@@ -372,6 +384,19 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 			}
 			return
 		}
+	}
+}
+
+// DiscardReadMessages drains a GenerateWsConnection read channel for
+// callers that never act on inbound frames. Without a consumer the reader
+// goroutine would block on its first delivery and the connection would only
+// be released when the context expires. Returns when oncloseWs closes the
+// channel, so its lifetime is bound to the connection.
+func DiscardReadMessages(readMessages *chan XtermReadMessages) {
+	if readMessages == nil {
+		return
+	}
+	for range *readMessages {
 	}
 }
 
