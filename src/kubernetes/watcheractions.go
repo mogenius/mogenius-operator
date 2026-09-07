@@ -30,19 +30,29 @@ const (
 	VALKEY_RESOURCE_PREFIX = "resources"
 )
 
-// deprecatedResources are skipped during resource discovery because the API
-// version is deprecated and a non-deprecated replacement is already watched.
-// Watching them produces noisy client-go deprecation warnings and stores
-// duplicate data in Valkey. Keyed by "groupVersion/kind".
+// excludedResources are skipped during resource discovery. Every watched kind
+// costs a LIST + long-lived WATCH, a full in-memory informer cache, and per
+// event a JSON marshal, a Valkey write pipeline and a datagram to the event
+// server - so kinds that nothing reads back are pure overhead. Keyed by
+// "groupVersion/kind".
 //
-//   - v1/Endpoints: replaced by discovery.k8s.io/v1 EndpointSlice; scheduled
-//     for removal in Kubernetes 1.33+.
-var deprecatedResources = map[string]struct{}{
-	"v1/Endpoints": {},
+//   - v1/Endpoints: deprecated, replaced by discovery.k8s.io/v1 EndpointSlice
+//     (which is watched); scheduled for removal in Kubernetes 1.33+.
+//   - coordination.k8s.io/v1/Lease: every kubelet renews its node lease every
+//     10s and every leader-elected controller renews every 2-5s. On a
+//     100-node cluster that alone is ~10 events/s around the clock, and no
+//     code path reads Leases from the store.
+//   - events.k8s.io/v1/Event: the same Event objects as v1/Event, served
+//     under a second API group. Watching both stored every event twice under
+//     two key prefixes; only the v1/Event prefix is ever read.
+var excludedResources = map[string]struct{}{
+	"v1/Endpoints":                 {},
+	"coordination.k8s.io/v1/Lease": {},
+	"events.k8s.io/v1/Event":       {},
 }
 
-func isDeprecatedResource(groupVersion, kind string) bool {
-	_, ok := deprecatedResources[groupVersion+"/"+kind]
+func isExcludedResource(groupVersion, kind string) bool {
+	_, ok := excludedResources[groupVersion+"/"+kind]
 	return ok
 }
 
@@ -662,7 +672,7 @@ func GetAvailableResources() ([]utils.ResourceDescriptor, error) {
 			if !slices.Contains(resource.Verbs, "list") || !slices.Contains(resource.Verbs, "watch") {
 				continue
 			}
-			if isDeprecatedResource(resourceList.GroupVersion, resource.Kind) {
+			if isExcludedResource(resourceList.GroupVersion, resource.Kind) {
 				continue
 			}
 			availableResources = append(availableResources, utils.ResourceDescriptor{
