@@ -258,6 +258,17 @@ func TestComputeMountsStructural(t *testing.T) {
 		}
 	})
 
+	t.Run("terminating pod is neither listed nor browsable", func(t *testing.T) {
+		terminating := makePvcPod("helper", now, v1.PodRunning, "my-pvc", []testMount{{container: "helper", ready: true}})
+		deleted := metav1.NewTime(now)
+		terminating.DeletionTimestamp = &deleted
+		idx := index(terminating)
+		mounts, browsable, reason := computeMounts(idx, "my-pvc")
+		if browsable || reason != BrowsableReasonNotMounted || len(mounts) != 0 {
+			t.Fatalf("expected NOT_MOUNTED without mounts, got browsable=%v reason=%q mounts=%d", browsable, reason, len(mounts))
+		}
+	})
+
 	t.Run("direct owner is attributed without replicaset walk", func(t *testing.T) {
 		pod := makePvcPod("db-0", now, v1.PodRunning, "my-pvc", []testMount{{container: "db", ready: true}})
 		controller := true
