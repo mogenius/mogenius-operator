@@ -23,13 +23,14 @@ repository:
     # -- name of the existing Secret, in this release's namespace
     name: ""
 
+# -- Flux as the GitOps engine, via the flux-operator chart. The default engine.
+# -- Values of that chart pass through under this key. Mutually exclusive with
+# -- argoCd.enabled.
+flux:
+  enabled: true
+
 # -- Argo CD as the GitOps engine. Values of the upstream argo-cd chart pass
 # -- through under this key. Mutually exclusive with flux.enabled.
 argoCd:
-  enabled: true
-
-# -- Flux as the GitOps engine, via the flux-operator chart. Values of that
-# -- chart pass through under this key. Mutually exclusive with argoCd.enabled.
-flux:
   enabled: false
 

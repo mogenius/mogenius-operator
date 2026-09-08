@@ -48,10 +48,12 @@ func (b PlatformBootstrap) gitOpsSpec() map[string]any {
 	engineBlock := map[string]any{"enabled": false}
 
 	gitOps := map[string]any{}
-	if b.Engine == gitops.EngineFlux {
-		gitOps["fluxcd"] = engineBlock
-	} else {
+	// Flux unless Argo CD was asked for by name, so an empty or unrecognised
+	// value lands on the same engine the charts default to.
+	if b.Engine == gitops.EngineArgoCD {
 		gitOps["argocd"] = engineBlock
+	} else {
+		gitOps["fluxcd"] = engineBlock
 	}
 
 	gitOps["repositories"] = []any{

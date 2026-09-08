@@ -70,17 +70,20 @@ func TestPlatformBootstrapGitOpsSpecFlux(t *testing.T) {
 	assert.NotContains(t, spec, "argocd")
 }
 
-// An unrecognised engine falls back to Argo CD rather than declaring nothing:
-// a spec with no engine block leaves the platform unable to tell what runs.
-func TestPlatformBootstrapGitOpsSpecUnknownEngineFallsBackToArgo(t *testing.T) {
+// An unrecognised engine falls back to Flux rather than declaring nothing: a
+// spec with no engine block leaves the platform unable to tell what runs, and
+// Flux is what the charts install when nobody chose.
+func TestPlatformBootstrapGitOpsSpecUnknownEngineFallsBackToFlux(t *testing.T) {
 	t.Parallel()
 
-	spec := PlatformBootstrap{
-		RepositoryURL: "https://github.com/acme/platform.git",
-		Path:          "platform",
-		Engine:        "something-else",
-	}.gitOpsSpec()
+	for _, engine := range []string{"", "something-else"} {
+		spec := PlatformBootstrap{
+			RepositoryURL: "https://github.com/acme/platform.git",
+			Path:          "platform",
+			Engine:        engine,
+		}.gitOpsSpec()
 
-	assert.Contains(t, spec, "argocd")
-	assert.NotContains(t, spec, "fluxcd")
+		assert.Contains(t, spec, "fluxcd", "engine %q", engine)
+		assert.NotContains(t, spec, "argocd", "engine %q", engine)
+	}
 }

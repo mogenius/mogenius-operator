@@ -45,14 +45,14 @@ all.
 
 | Key | Default | Description |
 | --- | --- | --- |
-| `argoCd.enabled` | `true` | Install Argo CD. Mutually exclusive with `flux.enabled`. Upstream `argo-cd` chart values pass through under this key. |
-| `flux.enabled` | `false` | Install Flux via `flux-operator`. Mutually exclusive with `argoCd.enabled`. Upstream chart values pass through under this key. |
+| `flux.enabled` | `true` | Install Flux via `flux-operator`. The default engine. Mutually exclusive with `argoCd.enabled`. Upstream chart values pass through under this key. |
+| `argoCd.enabled` | `false` | Install Argo CD instead. Mutually exclusive with `flux.enabled`. Upstream `argo-cd` chart values pass through under this key. |
 | `repository.name` | `platform` | Name given to the credential Secret and, later, to the sync objects. |
 | `repository.url` | *required* | Clone URL of the repository holding `platformconfig.yaml`. |
 | `repository.token` | `""` | Token for a private repository. Written into a Secret in the engine's own format. Leave empty for a public repository. |
 | `repository.existingSecret.name` | `""` | Use a credential Secret you created yourself instead of passing a token. It must already be in the engine's format: labelled `argocd.argoproj.io/secret-type=repository` for Argo CD, a basic-auth Secret for Flux. Wins over `token`. |
 
-Install into the namespace the engine should run in — `argocd` or `flux-system`
+Install into the namespace the engine should run in — `flux-system` or `argocd`
 by convention. Every object this chart creates lands in the release namespace.
 
 Because the engine charts are aliased (`argoCd`, `flux`) so that one value both
