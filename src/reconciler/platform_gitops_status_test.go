@@ -35,6 +35,12 @@ func argoCDDetection() *engineDetection {
 	}
 }
 
+// leftoverDetection is what an uninstalled engine leaves behind: its CRDs are
+// still registered, but nothing runs.
+func leftoverDetection(engine string) *engineDetection {
+	return &engineDetection{engine: engine, installed: false}
+}
+
 func TestBuildGitOpsStatusSpecWins(t *testing.T) {
 	t.Parallel()
 
@@ -334,4 +340,54 @@ func TestDeliveryEngineNoEngineAnywhere(t *testing.T) {
 	engine, namespace = deliveryEngine("", "", nil)
 	assert.Empty(t, engine)
 	assert.Empty(t, namespace)
+}
+
+func TestBuildGitOpsStatusLeftoverCRDsDoNotOutrankRunningEngine(t *testing.T) {
+	t.Parallel()
+
+	// The reported symptom: Argo CD was uninstalled, its CRDs stayed, and Flux
+	// is what actually runs. Reporting Argo CD here also hides Flux, because the
+	// API matches the reported engine before it believes either is installed.
+	spec := v1alpha1.PlatformConfigSpec{
+		GitOps: &v1alpha1.GitOpsConfig{
+			FluxCD: &v1alpha1.FluxCDInstallConfig{Enabled: false},
+		},
+	}
+	detection := gitOpsDetection{argoCD: leftoverDetection(gitOpsEngineArgoCD), flux: fluxDetection()}
+
+	status := buildGitOpsStatus(spec, detection)
+
+	assert.Equal(t, gitOpsEngineFlux, status.Engine)
+	assert.Equal(t, gitOpsSourceDetected, status.Source)
+	assert.True(t, status.Installed)
+	assert.Equal(t, "flux-system", status.Namespace)
+}
+
+func TestBuildGitOpsStatusLeftoverCRDsAreNotInstalled(t *testing.T) {
+	t.Parallel()
+
+	spec := v1alpha1.PlatformConfigSpec{
+		GitOps: &v1alpha1.GitOpsConfig{
+			ArgoCD: &v1alpha1.ArgoCDInstallConfig{Enabled: false},
+		},
+	}
+
+	status := buildGitOpsStatus(spec, gitOpsDetection{argoCD: leftoverDetection(gitOpsEngineArgoCD)})
+
+	// Nothing runs, so nothing may be delivered through it either.
+	assert.False(t, status.Installed)
+	engine, namespace := deliveryEngine("", "", status)
+	assert.Empty(t, engine)
+	assert.Empty(t, namespace)
+}
+
+func TestPreferredIgnoresEnginesThatDoNotRun(t *testing.T) {
+	t.Parallel()
+
+	assert.Nil(t, gitOpsDetection{}.preferred())
+	assert.Nil(t, gitOpsDetection{argoCD: leftoverDetection(gitOpsEngineArgoCD)}.preferred())
+
+	// Both running: Argo CD wins, it is the engine mogenius installs by default.
+	both := gitOpsDetection{argoCD: argoCDDetection(), flux: fluxDetection()}
+	assert.Equal(t, gitOpsEngineArgoCD, both.preferred().engine)
 }

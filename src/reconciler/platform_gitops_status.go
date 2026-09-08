@@ -58,13 +58,19 @@ func (g gitOpsDetection) forEngine(engine string) *engineDetection {
 	return nil
 }
 
-// preferred picks the engine to report when the spec names none. ArgoCD wins a
-// tie because it is the engine mogenius installs by default.
+// preferred picks the engine to report when the spec names none. Only an engine
+// that actually runs qualifies: CRDs outlive the install they came with, so a
+// leftover argoproj.io group must not outrank the engine doing the work. ArgoCD
+// wins a tie because it is the engine mogenius installs by default. Nil means
+// nothing runs, which leaves whatever the spec declares in place.
 func (g gitOpsDetection) preferred() *engineDetection {
-	if g.argoCD != nil {
+	if g.argoCD != nil && g.argoCD.installed {
 		return g.argoCD
 	}
-	return g.flux
+	if g.flux != nil && g.flux.installed {
+		return g.flux
+	}
+	return nil
 }
 
 // detectGitOpsStatus probes the live cluster for installed GitOps engines.
@@ -77,17 +83,18 @@ func (d *reconcilerModule) detectGitOpsStatus(ctx context.Context) gitOpsDetecti
 	}
 }
 
-// detectEngine probes a single engine. crd is the resource whose presence proves
-// the engine is installed; partOf is the app.kubernetes.io/part-of label value
-// its controller deployments carry.
+// detectEngine probes a single engine. crd is the resource the engine registers
+// -- without it the engine was never installed here, with it the probe goes on
+// to look for what actually runs; partOf is the app.kubernetes.io/part-of label
+// value its controller deployments carry.
 func (d *reconcilerModule) detectEngine(ctx context.Context, engine string, crd utils.ResourceDescriptor, partOf string) *engineDetection {
 	if !d.crdChecker.IsAvailable(crd) {
 		return nil
 	}
 
-	detection := &engineDetection{engine: engine, installed: true}
+	detection := &engineDetection{engine: engine}
 
-	deployments := d.listEngineDeployments(ctx, partOf)
+	deployments, listErr := d.listEngineDeployments(ctx, partOf)
 	for _, deployment := range deployments {
 		annotations := deployment.GetAnnotations()
 		if detection.namespace == "" {
@@ -101,10 +108,12 @@ func (d *reconcilerModule) detectEngine(ctx context.Context, engine string, crd 
 
 	switch engine {
 	case gitOpsEngineFlux:
-		detection.version = firstNonEmpty(
-			d.fluxReportVersion(ctx, detection.namespace),
-			mostCommonControllerVersion(detection.controllers),
-		)
+		reportVersion, reportFound := d.fluxReport(ctx, detection.namespace)
+		detection.version = firstNonEmpty(reportVersion, mostCommonControllerVersion(detection.controllers))
+		// The Flux Operator reports the distribution it manages, which proves the
+		// install on its own -- its controllers are created by the operator and
+		// need not be there yet.
+		detection.installed = reportFound
 	case gitOpsEngineArgoCD:
 		detection.version = firstNonEmpty(
 			controllerVersionByName(detection.controllers, argoCDServerDeployment),
@@ -112,44 +121,53 @@ func (d *reconcilerModule) detectEngine(ctx context.Context, engine string, crd 
 		)
 	}
 
+	// The CRD alone is no evidence of an install: neither `helm uninstall` nor
+	// `kubectl delete -f install.yaml` removes CRDs, so a removed engine would
+	// stay "installed" forever and outrank the engine that replaced it. Running
+	// controllers are the evidence -- except when they could not be listed at
+	// all, where the CRD is the only thing left to go by.
+	detection.installed = detection.installed || len(detection.controllers) > 0 || listErr != nil
+
 	return detection
 }
 
 // listEngineDeployments returns the engine's controller deployments across all
-// namespaces. Any error yields an empty list: namespace/version/controllers are
-// enrichment, the engine stays "detected" through its CRD alone.
-func (d *reconcilerModule) listEngineDeployments(ctx context.Context, partOf string) []unstructured.Unstructured {
+// namespaces. The error is handed up rather than swallowed: an empty list means
+// the engine has no controllers, and only the error tells that apart from not
+// having been allowed to look.
+func (d *reconcilerModule) listEngineDeployments(ctx context.Context, partOf string) ([]unstructured.Unstructured, error) {
 	gvr := kubernetes.CreateGroupVersionResource(utils.DeploymentResource.ApiVersion, utils.DeploymentResource.Plural)
 	list, err := d.clientProvider.DynamicClient().Resource(gvr).List(ctx, metav1.ListOptions{
 		LabelSelector: partOfLabel + "=" + partOf,
 	})
 	if err != nil {
 		d.logger.Debug("GitOps detection: listing engine deployments failed", "partOf", partOf, "error", err)
-		return nil
+		return nil, err
 	}
-	return list.Items
+	return list.Items, nil
 }
 
-// fluxReportVersion reads the distribution version from the Flux Operator's
-// FluxReport. The CRD is frequently absent, so every failure is silent.
-func (d *reconcilerModule) fluxReportVersion(ctx context.Context, namespace string) string {
+// fluxReport reads the Flux Operator's FluxReport and returns the distribution
+// version it carries plus whether the report exists at all. The CRD is
+// frequently absent, so every failure is silent and reports "not found".
+func (d *reconcilerModule) fluxReport(ctx context.Context, namespace string) (version string, found bool) {
 	if namespace == "" {
 		namespace = fluxcdDefaultNamespace
 	}
 	report, err := d.clientProvider.DynamicClient().Resource(fluxReportGVR).Namespace(namespace).Get(ctx, fluxReportName, metav1.GetOptions{})
 	if err != nil {
 		d.logger.Debug("GitOps detection: FluxReport unavailable", "namespace", namespace, "error", err)
-		return ""
+		return "", false
 	}
 	for _, path := range [][]string{
 		{"spec", "distribution", "version"},
 		{"status", "distribution", "version"},
 	} {
-		if version, found, err := unstructured.NestedString(report.Object, path...); err == nil && found && version != "" {
-			return version
+		if version, ok, err := unstructured.NestedString(report.Object, path...); err == nil && ok && version != "" {
+			return version, true
 		}
 	}
-	return ""
+	return "", true
 }
 
 func controllerStatus(deployment unstructured.Unstructured) v1alpha1.GitOpsControllerStatus {
