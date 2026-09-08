@@ -2,7 +2,13 @@
 
 GitOps engine: {{ if .Values.argoCd.enabled }}Argo CD{{ else }}Flux{{ end }}
 Repository:    {{ .Values.repository.url }}
-
+{{ if and .Values.repository.token .Values.repository.writeCredential.enabled (not .Values.repository.writeCredential.existingSecret.name) -}}
+Write access:  {{ include "bootstrap.writeCredentialMode" . }}, with the credential in
+               {{ .Values.operatorNamespace }}/{{ include "bootstrap.writeCredentialSecretName" . }}
+{{ else -}}
+Write access:  none. The platform cannot commit platformconfig.yaml back, so
+               edit it in git{{ if .Values.repository.writeCredential.existingSecret.name }} or point the PlatformConfig at {{ .Values.repository.writeCredential.existingSecret.name }}{{ end }}.
+{{ end }}
 What happens next is driven by the mogenius platform, not by this chart:
 
   1. the mogenius operator connects and reports the engine it found here

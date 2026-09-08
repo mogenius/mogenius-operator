@@ -22,6 +22,50 @@ repository:
   existingSecret:
     # -- name of the existing Secret, in this release's namespace
     name: ""
+  # -- credential the mogenius platform commits platformconfig.yaml back with.
+  # -- A second Secret next to the engine's: the engine only reads, while the
+  # -- platform needs a git provider API token to write the file. Created from
+  # -- repository.token above, per cluster and in the operator's namespace, so
+  # -- the platform never holds a token that reaches more than one repository.
+  # --
+  # -- Rendered only when repository.token is set -- a write credential without
+  # -- a token is meaningless.
+  writeCredential:
+    # -- create the write credential. Turn it off to let the engine read with
+    # -- the token above without letting the platform commit with it. The
+    # -- PlatformConfig then has to be edited in git by hand.
+    enabled: true
+    # -- how the platform writes: PULL_REQUEST opens a branch and a PR against
+    # -- the tracked branch, DIRECT_COMMIT commits straight to it. The
+    # -- PlatformConfig's own spec.gitOps.repositories[].write.mode wins over
+    # -- this once the config is synced.
+    mode: PULL_REQUEST
+    # -- git provider, in the platform's spelling: GIT_HUB, GIT_LAB or GITEA.
+    # -- Derived from repository.url when the host says which (github.,
+    # -- gitlab., gitea., codeberg.org); required for a self-hosted host that
+    # -- does not. The install fails rather than writing a credential with no
+    # -- provider, which the platform would skip.
+    provider: ""
+    # -- username stored alongside the token. Only some provider APIs use it;
+    # -- the platform's default is mogenius.
+    username: mogenius
+    # -- reference a write credential Secret you created yourself instead of
+    # -- letting this chart create one. Nothing is rendered when set. It has to
+    # -- be in the operator's namespace with token/username/provider keys, and
+    # -- unless it is named mogenius-gitops-write-<repository.name> the
+    # -- PlatformConfig has to point spec.gitOps.repositories[].write.secretRef
+    # -- at it.
+    existingSecret:
+      # -- name of the existing Secret, in operatorNamespace
+      name: ""
+
+# -- namespace the mogenius operator runs in. Only the write credential goes
+# -- there -- everything else this chart creates lands in the release namespace,
+# -- which is the engine's (flux-system or argocd). The platform API reads the
+# -- credential from the operator's namespace, so this has to match the
+# -- namespace mogenius-operator was installed into, and that namespace has to
+# -- exist before this release is installed.
+operatorNamespace: mogenius
 
 # -- Flux as the GitOps engine, via the flux-operator chart. The default engine.
 # -- Values of that chart pass through under this key. Mutually exclusive with
