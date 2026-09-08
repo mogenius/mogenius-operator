@@ -133,11 +133,11 @@ platformBootstrap:
     # -- so pointing at the repository root would sync every manifest next to it.
     path: platform
   gitOps:
-    # -- engine this cluster runs, "argo-cd" or "flux". Declared in the seeded
+    # -- engine this cluster runs, "flux" or "argo-cd". Declared in the seeded
     # -- PlatformConfig without being enabled: the mogenius-platform-bootstrap
     # -- chart installs it, and enabling it here would have the operator install
     # -- a second one alongside.
-    engine: argo-cd
+    engine: flux
 
 # -- environment variables to be set in the mogenius-operator deployment
 envVars:

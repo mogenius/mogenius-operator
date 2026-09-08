@@ -280,8 +280,8 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_PLATFORM_BOOTSTRAP_GITOPS_ENGINE",
-		DefaultValue: new("argo-cd"),
-		Description:  new("GitOps engine this cluster runs, \"argo-cd\" or \"flux\". Declared in the seeded PlatformConfig without being enabled: Helm installs the engine during onboarding, and enabling it would have the operator install a second one alongside."),
+		DefaultValue: new("flux"),
+		Description:  new("GitOps engine this cluster runs, \"flux\" or \"argo-cd\". Declared in the seeded PlatformConfig without being enabled: Helm installs the engine during onboarding, and enabling it would have the operator install a second one alongside."),
 		Envs:         []string{"PLATFORM_BOOTSTRAP_GITOPS_ENGINE"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
