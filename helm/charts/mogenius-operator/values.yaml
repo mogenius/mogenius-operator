@@ -26,6 +26,13 @@ cluster:
 features:
   autoUpgrade:
     enabled: true
+  # -- manage the cluster's platform from a PlatformConfig resource
+  platformConfig:
+    # -- install the PlatformConfig CRDs, watch them, and create the components they
+    # -- declare (ingress, cert-manager, metrics, ...). Off by default: switching it
+    # -- on hands the platform stack of this cluster over to the operator. The
+    # -- mogenius-platform-bootstrap chart sets this for you.
+    enabled: false
   debugTools:
     # -- enable the debug tools container in the mogenius-operator pod
     enabled: false

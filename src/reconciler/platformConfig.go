@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
-	"mogenius-operator/src/utils"
 	"reflect"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -60,7 +59,33 @@ const (
 	gitOpsSourceDetected = "detected"
 )
 
-const argoCDDefaultProject = "mogenius"
+// argoCDDefaultProject is the AppProject mogenius creates alongside its own
+// Argo CD install. argoCDFallbackProject is what the platform uses instead when
+// the engine belongs to the user: "default" ships with every Argo CD, while
+// "mogenius" would only exist where mogenius installed the engine itself.
+const (
+	argoCDDefaultProject  = "mogenius"
+	argoCDFallbackProject = "default"
+)
+
+// argoProjectName is the AppProject the platform's Applications are created in.
+//
+// An explicit spec.gitOps.argocd.project is always honoured — it is the user's
+// declaration, and keeping it existing is then their business. Without one the
+// answer depends on who owns the engine, because the platform can only rely on
+// a project it created itself.
+func argoProjectName(gitOps *v1alpha1.GitOpsConfig) string {
+	if gitOps == nil || gitOps.ArgoCD == nil {
+		return argoCDFallbackProject
+	}
+	if gitOps.ArgoCD.Project != "" {
+		return gitOps.ArgoCD.Project
+	}
+	if gitOps.ArgoCD.Enabled {
+		return argoCDDefaultProject
+	}
+	return argoCDFallbackProject
+}
 
 func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *unstructured.Unstructured, op operation) []ReconcileResult {
 	var platformConfig v1alpha1.PlatformConfig
@@ -70,18 +95,21 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 
 	gitOpsStatus := buildGitOpsStatus(platformConfig.Spec, d.detectGitOpsStatus(ctx))
 
-	engine, engineNs, err := inferGitOpsEngine(platformConfig.Spec.GitOps)
+	// specEngine is the engine mogenius is asked to install; it is empty unless
+	// spec.gitOps enables one.
+	specEngine, specEngineNs, err := inferGitOpsEngine(platformConfig.Spec.GitOps)
 	if err != nil {
 		d.patchGitOpsStatus(ctx, obj.GetName(), platformConfig.Status.GitOpsStatus, gitOpsStatus)
 		return []ReconcileResult{{Err: err}}
 	}
 
-	// Installing platform components is still gated behind dev builds, but the
-	// GitOps status is reported on every cluster — including clusters where the
-	// engine is user-managed and the spec configures nothing at all.
-	if engine == "" || !utils.IsDevBuild() {
-		d.logger.Info("skipping reconciliation of GitOps components, reporting GitOps status only",
-			"name", obj.GetName(), "specEngine", engine, "engine", gitOpsStatus.Engine, "installed", gitOpsStatus.Installed)
+	engine, engineNs := deliveryEngine(specEngine, specEngineNs, gitOpsStatus)
+
+	// No engine anywhere: components ship as Applications/HelmReleases, so there
+	// is nothing to deliver them with. The status still gets reported.
+	if engine == "" {
+		d.logger.Info("skipping reconciliation of platform components, reporting GitOps status only",
+			"name", obj.GetName(), "specEngine", specEngine, "engine", gitOpsStatus.Engine, "installed", gitOpsStatus.Installed)
 		d.patchGitOpsStatus(ctx, obj.GetName(), platformConfig.Status.GitOpsStatus, gitOpsStatus)
 		return nil
 	}
@@ -99,25 +127,28 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		result *ReconcileResult
 	}
 
-	var gitopsResult componentResult
-	switch engine {
+	// Capacity: the eight non-engine components plus the engine, when mogenius
+	// owns it. The engine is only reconciled in that case — reconciling a
+	// user-managed engine would adopt a Helm release someone else installed and
+	// overwrite their values on the next sweep.
+	components := make([]componentResult, 0, 9)
+	switch specEngine {
 	case gitOpsEngineArgoCD:
-		gitopsResult = componentResult{name: componentArgoCD, result: d.reconcileArgoCD(ctx, platformConfig.Spec, installer, op)}
+		components = append(components, componentResult{name: componentArgoCD, result: d.reconcileArgoCD(ctx, platformConfig.Spec, installer, op)})
 	case gitOpsEngineFlux:
-		gitopsResult = componentResult{name: componentFluxCD, result: d.reconcileFluxCD(ctx, platformConfig.Spec, installer, op)}
+		components = append(components, componentResult{name: componentFluxCD, result: d.reconcileFluxCD(ctx, platformConfig.Spec, installer, op)})
 	}
 
-	components := []componentResult{
-		gitopsResult,
-		{componentExternalSecretsOperator, d.reconcileExternalSecretsOperator(ctx, platformConfig.Spec, installer, op)},
-		{componentCertManager, d.reconcileCertManager(ctx, platformConfig.Spec, installer, op)},
-		{componentTraefik, d.reconcileTraefik(ctx, platformConfig.Spec, installer, op)},
-		{componentExternalDNS, d.reconcileExternalDNS(ctx, platformConfig.Spec, installer, op)},
-		{componentKubePrometheusStack, d.reconcileKubePrometheusStack(ctx, platformConfig.Spec, installer, op)},
-		{componentLoki, d.reconcileLoki(ctx, platformConfig.Spec, installer, op)},
-		{componentAlloy, d.reconcileAlloy(ctx, platformConfig.Spec, installer, op)},
-		{componentRenovateOperator, d.reconcileRenovateOperator(ctx, platformConfig.Spec, installer, op)},
-	}
+	components = append(components,
+		componentResult{componentExternalSecretsOperator, d.reconcileExternalSecretsOperator(ctx, platformConfig.Spec, installer, op)},
+		componentResult{componentCertManager, d.reconcileCertManager(ctx, platformConfig.Spec, installer, op)},
+		componentResult{componentTraefik, d.reconcileTraefik(ctx, platformConfig.Spec, installer, op)},
+		componentResult{componentExternalDNS, d.reconcileExternalDNS(ctx, platformConfig.Spec, installer, op)},
+		componentResult{componentKubePrometheusStack, d.reconcileKubePrometheusStack(ctx, platformConfig.Spec, installer, op)},
+		componentResult{componentLoki, d.reconcileLoki(ctx, platformConfig.Spec, installer, op)},
+		componentResult{componentAlloy, d.reconcileAlloy(ctx, platformConfig.Spec, installer, op)},
+		componentResult{componentRenovateOperator, d.reconcileRenovateOperator(ctx, platformConfig.Spec, installer, op)},
+	)
 
 	// Index existing conditions so LastTransitionTime is preserved when status hasn't changed.
 	existingConditions := make(map[string]metav1.Condition, len(platformConfig.Status.Conditions))
@@ -245,7 +276,10 @@ func buildGitOpsStatus(spec v1alpha1.PlatformConfigSpec, detection gitOpsDetecti
 		ReleaseName:   helmReleaseName(chart, ""),
 	}
 	if engine == gitOpsEngineArgoCD {
-		status.DefaultProjectName = firstNonEmpty(project, argoCDDefaultProject)
+		// The same project getSpecificGitOpsConfig hands to the installer: the API
+		// places its own Applications by this value, so a name that only exists on
+		// a mogenius-installed engine would break them on a user-managed one.
+		status.DefaultProjectName = firstNonEmpty(project, argoProjectName(spec.GitOps))
 	}
 
 	if detected != nil {
@@ -341,6 +375,26 @@ func inferGitOpsEngine(gitOps *v1alpha1.GitOpsConfig) (engine, namespace string,
 		return gitOpsEngineFlux, helmNamespace(gitOps.FluxCD.Chart, fluxcdDefaultNamespace), nil
 	}
 	return "", "", nil
+}
+
+// deliveryEngine picks the engine the platform components are delivered
+// through. That is a different question from who installs the engine: during
+// onboarding Helm brings Argo CD or Flux and spec.gitOps leaves it disabled, so
+// without falling back to the detected engine those clusters would get no
+// components at all — the spec engine is empty and everything ships as an
+// Application or HelmRelease.
+//
+// An empty engine means there is nothing to deliver with.
+func deliveryEngine(specEngine, specEngineNamespace string, status *v1alpha1.GitOpsStatus) (engine, namespace string) {
+	if specEngine != "" {
+		return specEngine, specEngineNamespace
+	}
+	// Only a running engine counts. A declared-but-absent one has no namespace
+	// to create objects in, and they would be rejected outright.
+	if status != nil && status.Installed {
+		return status.Engine, status.Namespace
+	}
+	return "", ""
 }
 
 // extractPatchExtraObjects decodes the raw ExtraObjects from a PlatformPatch into

@@ -147,7 +147,34 @@ func TestBuildGitOpsStatusDisabledSpecWithoutDetection(t *testing.T) {
 	assert.Equal(t, gitOpsSourceSpec, status.Source)
 	assert.True(t, status.IsUserManaged)
 	assert.False(t, status.Installed)
-	assert.Equal(t, argoCDDefaultProject, status.DefaultProjectName)
+	// A disabled spec means the engine belongs to the user, so the reported
+	// project must be one that exists there. "mogenius" only exists where
+	// mogenius installed Argo CD and created it.
+	assert.Equal(t, argoCDFallbackProject, status.DefaultProjectName)
+}
+
+func TestArgoProjectName(t *testing.T) {
+	t.Parallel()
+
+	// Explicit wins in both directions -- it is the user's declaration.
+	assert.Equal(t, "custom", argoProjectName(&v1alpha1.GitOpsConfig{
+		ArgoCD: &v1alpha1.ArgoCDInstallConfig{Enabled: true, Project: "custom"},
+	}))
+	assert.Equal(t, "custom", argoProjectName(&v1alpha1.GitOpsConfig{
+		ArgoCD: &v1alpha1.ArgoCDInstallConfig{Enabled: false, Project: "custom"},
+	}))
+
+	// mogenius owns the engine, so it also creates the project it names.
+	assert.Equal(t, argoCDDefaultProject, argoProjectName(&v1alpha1.GitOpsConfig{
+		ArgoCD: &v1alpha1.ArgoCDInstallConfig{Enabled: true},
+	}))
+
+	// The engine is the user's: only Argo CD's built-in project can be assumed.
+	assert.Equal(t, argoCDFallbackProject, argoProjectName(&v1alpha1.GitOpsConfig{
+		ArgoCD: &v1alpha1.ArgoCDInstallConfig{Enabled: false},
+	}))
+	assert.Equal(t, argoCDFallbackProject, argoProjectName(nil))
+	assert.Equal(t, argoCDFallbackProject, argoProjectName(&v1alpha1.GitOpsConfig{}))
 }
 
 func TestBuildGitOpsStatusNothingFound(t *testing.T) {
@@ -250,4 +277,61 @@ func TestMostCommonControllerVersion(t *testing.T) {
 	}
 	assert.Equal(t, "v1.7.1", mostCommonControllerVersion(controllers))
 	assert.Empty(t, mostCommonControllerVersion(nil))
+}
+
+func TestDeliveryEngineSpecWins(t *testing.T) {
+	t.Parallel()
+
+	// mogenius installs the engine, so its own namespace is authoritative even
+	// when a different engine happens to be running as well.
+	engine, namespace := deliveryEngine(gitOpsEngineArgoCD, "argocd", &v1alpha1.GitOpsStatus{
+		Engine:    gitOpsEngineFlux,
+		Installed: true,
+		Namespace: "flux-system",
+	})
+
+	assert.Equal(t, gitOpsEngineArgoCD, engine)
+	assert.Equal(t, "argocd", namespace)
+}
+
+func TestDeliveryEngineFallsBackToDetected(t *testing.T) {
+	t.Parallel()
+
+	// The onboarding case: Helm installed the engine, spec.gitOps leaves it
+	// disabled. Components must still be delivered through it.
+	engine, namespace := deliveryEngine("", "", &v1alpha1.GitOpsStatus{
+		Engine:    gitOpsEngineFlux,
+		Installed: true,
+		Namespace: "flux-system",
+	})
+
+	assert.Equal(t, gitOpsEngineFlux, engine)
+	assert.Equal(t, "flux-system", namespace)
+}
+
+func TestDeliveryEngineIgnoresDeclaredButAbsentEngine(t *testing.T) {
+	t.Parallel()
+
+	// Declared without running: there is no namespace to create Applications
+	// in, so this must not be mistaken for a usable engine.
+	engine, namespace := deliveryEngine("", "", &v1alpha1.GitOpsStatus{
+		Engine:    gitOpsEngineArgoCD,
+		Installed: false,
+		Namespace: "argocd",
+	})
+
+	assert.Empty(t, engine)
+	assert.Empty(t, namespace)
+}
+
+func TestDeliveryEngineNoEngineAnywhere(t *testing.T) {
+	t.Parallel()
+
+	engine, namespace := deliveryEngine("", "", &v1alpha1.GitOpsStatus{})
+	assert.Empty(t, engine)
+	assert.Empty(t, namespace)
+
+	engine, namespace = deliveryEngine("", "", nil)
+	assert.Empty(t, engine)
+	assert.Empty(t, namespace)
 }

@@ -1,0 +1,35 @@
+# -- the repository holding platformconfig.yaml. Only the credential for it is
+# -- created here: the objects that sync it (Argo CD Application, Flux
+# -- GitRepository/Kustomization, FluxInstance) are created by the mogenius
+# -- platform once the operator reports the engine as running.
+# --
+# -- They cannot live in this chart. Helm resolves every manifest through the
+# -- RESTMapper before it creates anything, so a custom resource shipped in the
+# -- same release as the CRD defining it fails the install outright on a cluster
+# -- that does not have that CRD yet -- which is every cluster being onboarded.
+repository:
+  # -- name for the sync objects created in the cluster (Application, GitRepository, ...)
+  name: platform
+  # -- clone URL, e.g. https://github.com/acme/platform.git
+  url: ""
+  # -- token for a private repository. Written into a Secret in the engine's
+  # -- format. Leave empty for a public repository, or use existingSecret.
+  token: ""
+  # -- reference a repository credential Secret you created yourself, instead of
+  # -- passing a token. It must already be in the engine's expected format:
+  # -- for Argo CD labelled argocd.argoproj.io/secret-type=repository, for Flux
+  # -- a basic-auth Secret with username/password keys.
+  existingSecret:
+    # -- name of the existing Secret, in this release's namespace
+    name: ""
+
+# -- Argo CD as the GitOps engine. Values of the upstream argo-cd chart pass
+# -- through under this key. Mutually exclusive with flux.enabled.
+argoCd:
+  enabled: true
+
+# -- Flux as the GitOps engine, via the flux-operator chart. Values of that
+# -- chart pass through under this key. Mutually exclusive with argoCd.enabled.
+flux:
+  enabled: false
+

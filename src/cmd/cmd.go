@@ -261,6 +261,13 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_PLATFORM_CONFIG_ENABLED",
+		DefaultValue: new("false"),
+		Description:  new("Manage the cluster's platform from a PlatformConfig: install the platformconfigs/platformpatches CRDs, watch them, and create the declared components (ingress, cert-manager, metrics, ...). Off by default because switching it on hands the platform stack of an existing cluster over to the operator."),
+		Envs:         []string{"PLATFORM_CONFIG_ENABLED"},
+		Type:         new(config.ConfigVariableTypeBool),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_SSH_GATEWAY_ENABLED",
 		DefaultValue: new("true"),
 		Description:  new("Serve SSH sessions (kind=ssh port-forwards) from the embedded SSH gateway: interactive shell, sftp file access and port forwarding inside the pod. Set to false to switch the feature off for this cluster."),
