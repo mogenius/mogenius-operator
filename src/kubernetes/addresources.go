@@ -33,18 +33,9 @@ func GetValkeyPwd() (*string, error) {
 	return &foundPwd, nil
 }
 
-// InitOrUpdateCrds installs the mogenius CRDs. platformConfigEnabled carries
-// MO_PLATFORM_CONFIG_ENABLED: the PlatformConfig CRDs only go on when the
-// cluster opted into having its platform managed, because their presence is
-// what makes the operator start creating platform components.
-func InitOrUpdateCrds(platformConfigEnabled bool) {
+func InitOrUpdateCrds() {
 	crds := crds.GetCRDs()
 	for _, crd := range crds {
-		if (crd.Filename == "mogenius.com_platformconfigs.yaml" ||
-			crd.Filename == "mogenius.com_platformpatches.yaml") &&
-			!platformConfigEnabled && !utils.IsDevBuild() {
-			continue
-		}
 		// TODO: Remove the dev build gaurd when the UI config feature is ready.
 		if crd.Filename == "mogenius.com_uiconfigs.yaml" && !utils.IsDevBuild() {
 			continue
