@@ -27,11 +27,11 @@ func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alph
 		func(ctx context.Context) ([]any, error) {
 			extraObjects := []any{}
 
-			for _, issuer := range spec.CertManager.Issuers {
+			for _, issuer := range cm.Issuers {
 				extraObjects = append(extraObjects, buildIssuerObject(issuer))
 			}
 
-			for _, clusterIssuer := range spec.CertManager.ClusterIssuers {
+			for _, clusterIssuer := range cm.ClusterIssuers {
 				extraObjects = append(extraObjects, buildClusterIssuerObject(clusterIssuer))
 			}
 
