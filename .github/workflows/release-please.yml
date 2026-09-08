@@ -1,3 +1,15 @@
+# Cuts the release PR from the commit messages on main.
+#
+# Two things to know before writing one:
+#
+#   - A `!` after the type, or a `BREAKING CHANGE:` footer, makes the next
+#     release a major. Use it only when a released surface changes
+#     incompatibly -- removing something that was never in a tag is not a
+#     breaking change, and a stray `!` has already cost this repository a
+#     wrong 3.0.0 proposal.
+#   - A wrong version can be overridden with a `Release-As: x.y.z` footer on a
+#     commit that lands on main. It has to carry a diff: an empty commit is
+#     dropped by a squash merge, footer and all.
 name: Release Please
 
 on:
