@@ -14,7 +14,7 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 	if cfg == nil {
 		cfg = &v1alpha1.ArgoCDInstallConfig{}
 	}
-	namespace := helmNamespace(spec.GitOps.ArgoCD.Chart, argocdDefaultNamespace)
+	namespace := helmNamespace(cfg.Chart, argocdDefaultNamespace)
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{
 			enabled:          cfg.Enabled,

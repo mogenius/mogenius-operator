@@ -14,8 +14,8 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 		c = &v1alpha1.ExternalDNSConfig{}
 	}
 
-	providerSecretName := fmt.Sprintf("%s-external-dns", spec.ExternalDNS.Provider)
-	externalDnsNamespace := helmNamespace(spec.ExternalDNS.Chart, "external-dns")
+	providerSecretName := fmt.Sprintf("%s-external-dns", c.Provider)
+	externalDnsNamespace := helmNamespace(c.Chart, "external-dns")
 
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{
@@ -31,16 +31,16 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 		func(ctx context.Context) ([]any, error) {
 			extraObjects := []any{}
 
-			if spec.ExternalDNS.ExternalSecret.Vault == "" {
+			if c.ExternalSecret.Vault == "" {
 				if len(spec.ExternalSecretsOperator.Vaults) > 0 {
-					spec.ExternalDNS.ExternalSecret.Vault = spec.ExternalSecretsOperator.Vaults[0].Name
+					c.ExternalSecret.Vault = spec.ExternalSecretsOperator.Vaults[0].Name
 				} else {
 					return nil, fmt.Errorf("please provide a externalDns.externalSecret.vault or define a vault in spec.externalSecretsOperator")
 				}
 			}
 
 			if d.crdChecker.IsAvailable(utils.ExternalSecretResource) {
-				extraObjects = append(extraObjects, externalSecretResource(providerSecretName, externalDnsNamespace, spec.ExternalDNS.ExternalSecret, nil, nil))
+				extraObjects = append(extraObjects, externalSecretResource(providerSecretName, externalDnsNamespace, c.ExternalSecret, nil, nil))
 			}
 
 			return extraObjects, nil
@@ -48,9 +48,9 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 		func(ctx context.Context) (map[string]any, error) {
 			values := map[string]any{
 				"provider": map[string]any{
-					"name": spec.ExternalDNS.Provider,
+					"name": c.Provider,
 				},
-				"domainFilters": spec.ExternalDNS.DomainFilters,
+				"domainFilters": c.DomainFilters,
 			}
 
 			clusterName, err := d.config.TryGet("MO_CLUSTER_NAME")
@@ -59,11 +59,11 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 			}
 
 			secretKey := "token"
-			if spec.ExternalDNS.ExternalSecret.Key != "" {
-				secretKey = spec.ExternalDNS.ExternalSecret.Key
+			if c.ExternalSecret.Key != "" {
+				secretKey = c.ExternalSecret.Key
 			}
 
-			switch spec.ExternalDNS.Provider {
+			switch c.Provider {
 			case "cloudflare":
 				values["env"] = []map[string]any{
 					{

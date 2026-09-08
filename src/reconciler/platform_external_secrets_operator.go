@@ -29,7 +29,7 @@ func (d *reconcilerModule) reconcileExternalSecretsOperator(ctx context.Context,
 		func(ctx context.Context) ([]any, error) {
 			extraObjects := []any{}
 
-			for _, vault := range spec.ExternalSecretsOperator.Vaults {
+			for _, vault := range c.Vaults {
 				var provider map[string]any
 				if err := json.Unmarshal(vault.Provider.Raw, &provider); err != nil {
 					return nil, fmt.Errorf("parse provider for vault %q: %w", vault.Name, err)

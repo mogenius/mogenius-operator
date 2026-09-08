@@ -29,8 +29,8 @@ func (d *reconcilerModule) reconcileTraefik(ctx context.Context, spec v1alpha1.P
 		func(ctx context.Context) (map[string]any, error) {
 			values := map[string]any{}
 
-			if spec.Traefik.Service != nil {
-				values["service"] = spec.Traefik.Service
+			if t.Service != nil {
+				values["service"] = t.Service
 			}
 
 			if d.crdChecker.IsAvailable(utils.ServiceMonitorResource) {
