@@ -159,14 +159,20 @@ func (ai *aiManager) getAgent(name string) (*v1alpha1.Agent, error) {
 }
 
 // resolveAgentScope resolves the agent's scope to a sorted, deduplicated list
-// of namespaces. WorkspaceRef contributes the workspace's namespace resources,
-// Namespaces contributes verbatim entries; both are unioned. The wildcard
-// entry "*" expands to every namespace currently known to the store — the
-// ToolContext still gets an explicit allow-map, never an unrestricted one.
+// of namespaces. WorkspaceRef contributes the workspace's namespace resources.
+// When Scope is nil the agent has cluster-wide access: ["*"] is returned so
+// callers always get a non-empty slice. The single "*" element is the signal
+// for no namespace restriction; newToolContextFromAgent translates it to a nil
+// AllowedNamespaces map (meaning unrestricted) and prompt builders render it
+// as "all cluster namespaces".
 func (ai *aiManager) resolveAgentScope(agent *v1alpha1.Agent) []string {
+	if agent.Spec.Scope == nil || agent.Spec.Scope.WorkspaceRef == "" {
+		return []string{"*"}
+	}
+
 	namespaces := map[string]bool{}
 
-	if agent.Spec.Scope != nil && agent.Spec.Scope.WorkspaceRef != "" {
+	if agent.Spec.Scope.WorkspaceRef != "" {
 		ownNamespace, err := ai.config.TryGet("MO_OWN_NAMESPACE")
 		if err != nil {
 			ai.logger.Warn("resolveAgentScope: failed to get own namespace", "agent", agent.Name, "error", err)
@@ -196,7 +202,7 @@ func (ai *aiManager) resolveAgentScope(agent *v1alpha1.Agent) []string {
 // includes the compact manifest of the triggering resource so the model has
 // immediate context without needing an extra tool call.
 func buildAgentEventPrompt(agent *v1alpha1.Agent, namespaces []string, obj *unstructured.Unstructured, changeType string) string {
-	nsStr := strings.Join(namespaces, ", ")
+	nsStr := namespaceScopeLabel(namespaces)
 
 	var sb strings.Builder
 	sb.WriteString("Your scope for this run includes the following Kubernetes namespaces: ")
@@ -221,7 +227,7 @@ func buildAgentEventPrompt(agent *v1alpha1.Agent, namespaces []string, obj *unst
 // The agent's instruction (if any) is the primary task; namespace context is
 // prepended so the model knows its operational scope.
 func buildAgentRunPrompt(agent *v1alpha1.Agent, namespaces []string) string {
-	nsStr := strings.Join(namespaces, ", ")
+	nsStr := namespaceScopeLabel(namespaces)
 
 	var sb strings.Builder
 	sb.WriteString("Your scope for this run includes the following Kubernetes namespaces: ")
@@ -451,7 +457,7 @@ func (ai *aiManager) buildAgentTaskContext(task *AiTask) (*v1alpha1.Agent, *Tool
 	}
 	// Event tasks must still be inside the (possibly changed) scope.
 	if taskNamespace := task.ReferencingResource.Namespace; taskNamespace != "" {
-		inScope := slices.Contains(namespaces, taskNamespace)
+		inScope := slices.Contains(namespaces, "*") || slices.Contains(namespaces, taskNamespace)
 		if !inScope {
 			return nil, nil, fmt.Errorf("resource namespace %q is no longer in the scope of agent %q", taskNamespace, agent.Name)
 		}
@@ -753,6 +759,16 @@ func kindSelected(kinds []string, kind string) bool {
 		return true
 	}
 	return slices.Contains(kinds, kind)
+}
+
+// namespaceScopeLabel returns a human-readable namespace list for prompts.
+// The sentinel slice ["*"] produced by resolveAgentScope for cluster-wide
+// agents is rendered as "all cluster namespaces" instead of a bare "*".
+func namespaceScopeLabel(namespaces []string) string {
+	if len(namespaces) == 1 && namespaces[0] == "*" {
+		return "all cluster namespaces"
+	}
+	return strings.Join(namespaces, ", ")
 }
 
 // namespaceSelected reports whether the object's namespace is within the

@@ -281,11 +281,21 @@ func newToolContextFromUserGrant(user *structs.User, workspace string, isAdmin b
 // The namespace allow-map must be non-empty — callers must not run an agent
 // whose scope resolved to zero namespaces.
 func newToolContextFromAgent(agent *v1alpha1.Agent, resolvedNamespaces []string) *ToolContext {
-	allowed := make(map[string]bool, len(resolvedNamespaces))
-	for _, ns := range resolvedNamespaces {
-		if ns != "" {
-			allowed[ns] = true
+	// ["*"] is the sentinel returned by resolveAgentScope for cluster-wide
+	// agents (Scope == nil). nil AllowedNamespaces means no restriction.
+	var allowed map[string]bool
+	if len(resolvedNamespaces) != 1 || resolvedNamespaces[0] != "*" {
+		allowed = make(map[string]bool, len(resolvedNamespaces))
+		for _, ns := range resolvedNamespaces {
+			if ns != "" {
+				allowed[ns] = true
+			}
 		}
+	}
+
+	workspaceRef := ""
+	if agent.Spec.Scope != nil {
+		workspaceRef = agent.Spec.Scope.WorkspaceRef
 	}
 	return &ToolContext{
 		Role:                   "viewer",
@@ -297,7 +307,7 @@ func newToolContextFromAgent(agent *v1alpha1.Agent, resolvedNamespaces []string)
 			Email:     "agent:" + agent.Name + "@system",
 			Source:    "ai-agent",
 		},
-		Workspace: agent.Spec.Scope.WorkspaceRef,
+		Workspace: workspaceRef,
 	}
 }
 
