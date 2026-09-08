@@ -273,6 +273,26 @@ var AppProjectResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+// ArgoApplicationResource is Argo CD's Application. Its presence is not what
+// proves Argo CD runs -- see AppProjectResource and the engine detection -- but
+// it is the object the platform's repositories are synced through.
+var ArgoApplicationResource = ResourceDescriptor{
+	Kind:       "Application",
+	Plural:     "applications",
+	ApiVersion: "argoproj.io/v1alpha1",
+	Namespaced: true,
+}
+
+// FluxInstanceResource is the flux-operator's own resource. It is what deploys
+// the Flux controllers; the flux-operator chart ships none. Absent on clusters
+// whose Flux was installed without the operator.
+var FluxInstanceResource = ResourceDescriptor{
+	Kind:       "FluxInstance",
+	Plural:     "fluxinstances",
+	ApiVersion: "fluxcd.controlplane.io/v1",
+	Namespaced: true,
+}
+
 var KustomizationResource = ResourceDescriptor{
 	Kind:       "Kustomization",
 	Plural:     "kustomizations",

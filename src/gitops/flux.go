@@ -44,25 +44,25 @@ func (f *fluxInstaller) Install(component string, artifact GitOpsArtifact) error
 	if isOCIRepository(artifact.HelmChart.Repository) {
 		ociRepo := buildFluxOCIRepository(component, artifact.HelmChart.Repository, artifact.HelmChart.Version, f.namespace)
 		ociRepo.SetOwnerReferences(f.ownerRefs)
-		if err := applyUnstructured(f.clientProvider, fluxOCIRepositoryGVR, f.namespace, ociRepo); err != nil {
+		if err := Apply(f.clientProvider, fluxOCIRepositoryGVR, f.namespace, ociRepo); err != nil {
 			return fmt.Errorf("apply flux ocirepository %s: %w", component, err)
 		}
 
 		release := buildFluxOCIHelmRelease(component, artifact, f.namespace)
 		release.SetOwnerReferences(f.ownerRefs)
-		if err := applyUnstructured(f.clientProvider, fluxHelmReleaseGVR, f.namespace, release); err != nil {
+		if err := Apply(f.clientProvider, fluxHelmReleaseGVR, f.namespace, release); err != nil {
 			return fmt.Errorf("apply flux helmrelease %s: %w", component, err)
 		}
 	} else {
 		repo := buildFluxHelmRepository(component, artifact.HelmChart.Repository, f.namespace)
 		repo.SetOwnerReferences(f.ownerRefs)
-		if err := applyUnstructured(f.clientProvider, fluxHelmRepositoryGVR, f.namespace, repo); err != nil {
+		if err := Apply(f.clientProvider, fluxHelmRepositoryGVR, f.namespace, repo); err != nil {
 			return fmt.Errorf("apply flux helmrepository %s: %w", component, err)
 		}
 
 		release := buildFluxHelmRelease(component, artifact, artifact.Values, f.namespace)
 		release.SetOwnerReferences(f.ownerRefs)
-		if err := applyUnstructured(f.clientProvider, fluxHelmReleaseGVR, f.namespace, release); err != nil {
+		if err := Apply(f.clientProvider, fluxHelmReleaseGVR, f.namespace, release); err != nil {
 			return fmt.Errorf("apply flux helmrelease %s: %w", component, err)
 		}
 	}
@@ -70,13 +70,13 @@ func (f *fluxInstaller) Install(component string, artifact GitOpsArtifact) error
 	if len(artifact.ExtraObjects) > 0 {
 		moacRepo := buildFluxHelmRepository(component+"-resources", moacRepository, f.namespace)
 		moacRepo.SetOwnerReferences(f.ownerRefs)
-		if err := applyUnstructured(f.clientProvider, fluxHelmRepositoryGVR, f.namespace, moacRepo); err != nil {
+		if err := Apply(f.clientProvider, fluxHelmRepositoryGVR, f.namespace, moacRepo); err != nil {
 			return fmt.Errorf("apply flux moac helmrepository %s-resources: %w", component, err)
 		}
 
 		moacRelease := buildFluxMoacHelmRelease(component, artifact, f.namespace)
 		moacRelease.SetOwnerReferences(f.ownerRefs)
-		if err := applyUnstructured(f.clientProvider, fluxHelmReleaseGVR, f.namespace, moacRelease); err != nil {
+		if err := Apply(f.clientProvider, fluxHelmReleaseGVR, f.namespace, moacRelease); err != nil {
 			return fmt.Errorf("apply flux moac helmrelease %s-resources: %w", component, err)
 		}
 	}

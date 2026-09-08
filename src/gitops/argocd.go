@@ -26,14 +26,14 @@ type argocdInstaller struct {
 func (a *argocdInstaller) Install(component string, artifact GitOpsArtifact) error {
 	app := buildArgoApplication(component, artifact, a.namespace)
 	app.SetOwnerReferences(a.ownerRefs)
-	if err := applyUnstructured(a.clientProvider, argoApplicationGVR, a.namespace, app); err != nil {
+	if err := Apply(a.clientProvider, argoApplicationGVR, a.namespace, app); err != nil {
 		return fmt.Errorf("apply argocd application %s: %w", component, err)
 	}
 
 	if len(artifact.ExtraObjects) > 0 {
 		moacApp := buildArgoMoacApplication(component, artifact, a.namespace)
 		moacApp.SetOwnerReferences(a.ownerRefs)
-		if err := applyUnstructured(a.clientProvider, argoApplicationGVR, a.namespace, moacApp); err != nil {
+		if err := Apply(a.clientProvider, argoApplicationGVR, a.namespace, moacApp); err != nil {
 			return fmt.Errorf("apply argocd moac application %s-resources: %w", component, err)
 		}
 	}

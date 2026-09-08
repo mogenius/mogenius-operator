@@ -84,7 +84,12 @@ func defaultLabels(component string) map[string]string {
 }
 
 // applyUnstructured creates or updates a namespaced resource via the dynamic client.
-func applyUnstructured(cp k8sclient.K8sClientProvider, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) error {
+// Apply creates the object, or updates it in place when it already exists.
+//
+// Exported for the reconciler: objects that belong to an engine mogenius does
+// not own cannot ship as extra objects of a release it installed, because
+// there is no such release -- they have to be applied directly.
+func Apply(cp k8sclient.K8sClientProvider, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) error {
 	ctx := context.Background()
 	client := cp.DynamicClient().Resource(gvr).Namespace(namespace)
 
