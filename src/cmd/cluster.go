@@ -293,6 +293,17 @@ func startClusterSystems(logManagerModule logging.SlogManager, configModule *con
 		core.SeedDefaultAgents(logManagerModule.CreateLogger("agent-seeder"), configModule, systems.clientProvider, systems.workspaceManager)
 
 		core.EnsureDefaultWorkspaceDashboard(logManagerModule.CreateLogger("dashboard-seeder"), configModule)
+
+		core.EnsureDefaultPlatformConfig(
+			logManagerModule.CreateLogger("platform-config-seeder"),
+			systems.clientProvider,
+			core.PlatformBootstrap{
+				RepositoryURL: configModule.Get("MO_PLATFORM_BOOTSTRAP_REPOSITORY_URL"),
+				Branch:        configModule.Get("MO_PLATFORM_BOOTSTRAP_REPOSITORY_BRANCH"),
+				Path:          configModule.Get("MO_PLATFORM_BOOTSTRAP_REPOSITORY_PATH"),
+				Engine:        configModule.Get("MO_PLATFORM_BOOTSTRAP_GITOPS_ENGINE"),
+			},
+		)
 	})
 
 	systems.leaderElector.OnLeadingEnded(func() {

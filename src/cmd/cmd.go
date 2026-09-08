@@ -261,6 +261,30 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_PLATFORM_BOOTSTRAP_REPOSITORY_URL",
+		DefaultValue: new(""),
+		Description:  new("Clone URL of the repository holding platformconfig.yaml. Seeded into the PlatformConfig the operator creates, so the GitOps engine can be pointed at it before the config itself has been read from there. Empty means this cluster was not onboarded with a platform repository."),
+		Envs:         []string{"PLATFORM_BOOTSTRAP_REPOSITORY_URL"},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_PLATFORM_BOOTSTRAP_REPOSITORY_BRANCH",
+		DefaultValue: new("main"),
+		Description:  new("Branch the platform repository is tracked on."),
+		Envs:         []string{"PLATFORM_BOOTSTRAP_REPOSITORY_BRANCH"},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_PLATFORM_BOOTSTRAP_REPOSITORY_PATH",
+		DefaultValue: new("platform"),
+		Description:  new("Directory in the platform repository holding platformconfig.yaml. A directory, not a file: Argo CD's source.path and Flux's Kustomization.spec.path both address directories, so pointing at the repository root would sync every manifest next to it."),
+		Envs:         []string{"PLATFORM_BOOTSTRAP_REPOSITORY_PATH"},
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_PLATFORM_BOOTSTRAP_GITOPS_ENGINE",
+		DefaultValue: new("argo-cd"),
+		Description:  new("GitOps engine this cluster runs, \"argo-cd\" or \"flux\". Declared in the seeded PlatformConfig without being enabled: Helm installs the engine during onboarding, and enabling it would have the operator install a second one alongside."),
+		Envs:         []string{"PLATFORM_BOOTSTRAP_GITOPS_ENGINE"},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_SSH_GATEWAY_ENABLED",
 		DefaultValue: new("true"),
 		Description:  new("Serve SSH sessions (kind=ssh port-forwards) from the embedded SSH gateway: interactive shell, sftp file access and port forwarding inside the pod. Set to false to switch the feature off for this cluster."),

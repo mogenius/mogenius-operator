@@ -38,6 +38,9 @@ const (
 	componentAlloy                   = "alloy"
 	componentRenovateOperator        = "renovate-operator"
 	componentExternalSecretsOperator = "external-secrets-operator"
+	// Not a Helm chart like the others: the condition reports whether the
+	// objects that make the engine sync spec.gitOps.repositories are in place.
+	componentPlatformRepositories = "platform-repositories"
 )
 
 // GitOps engine identities as reported in status.gitOpsStatus.engine. These are
@@ -137,6 +140,16 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		components = append(components, componentResult{name: componentArgoCD, result: d.reconcileArgoCD(ctx, platformConfig.Spec, installer, op)})
 	case gitOpsEngineFlux:
 		components = append(components, componentResult{name: componentFluxCD, result: d.reconcileFluxCD(ctx, platformConfig.Spec, installer, op)})
+	}
+
+	// Repositories the platform syncs itself. Only when mogenius does not own
+	// the engine: when it does, reconcileArgoCD/reconcileFluxCD ship the same
+	// objects as extra objects of the release they install.
+	if specEngine == "" {
+		components = append(components, componentResult{
+			name:   componentPlatformRepositories,
+			result: d.reconcilePlatformRepositories(ctx, platformConfig.Spec, engine, engineNs),
+		})
 	}
 
 	components = append(components,
