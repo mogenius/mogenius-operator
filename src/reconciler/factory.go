@@ -66,14 +66,10 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 	factory.WithReconciler(utils.AiModelResource, factory.module.reconcileAiModels, NamespaceFilter(ownNamespace))
 	factory.WithReconciler(utils.McpServerResource, factory.module.reconcileMcpServers, NamespaceFilter(ownNamespace))
 
-	// Gated together with the platformconfigs CRD (see kubernetes.InitOrUpdateCrds):
-	// without the CRD there is nothing to watch, and with it the operator is
-	// expected to act on what it finds. Dev builds keep the feature on so the
-	// onboarding flow can be exercised without setting the flag.
-	platformConfigEnabled, _ := configModule.TryGetBool("MO_PLATFORM_CONFIG_ENABLED")
-	if platformConfigEnabled || utils.IsDevBuild() {
-		factory.WithReconciler(utils.PlatformConfigResource, factory.module.reconcilePlatformConfig)
-	}
+	// Cluster-scoped, hence no namespace filter. An empty spec only publishes the
+	// detected GitOps status, so watching this costs a cluster nothing until it
+	// declares components.
+	factory.WithReconciler(utils.PlatformConfigResource, factory.module.reconcilePlatformConfig)
 
 	return factory
 }
