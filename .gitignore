@@ -26,3 +26,5 @@ bin
 /patternlogs_*
 /patternlogs.jsonl
 Dockerfile.bak
+# Helm subchart archives; Chart.lock pins the versions and is committed.
+helm/charts/*/charts/*.tgz

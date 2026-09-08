@@ -42,6 +42,12 @@ func getDefaultConfig(source string, version string, component string) (componen
 	if source == "" {
 		source = "https://raw.githubusercontent.com/mogenius/platform-defaults/refs/heads"
 	}
+	// An empty version would build ".../refs/heads//traefik.yaml", so every
+	// component fetch would 404 and no component could be installed at all --
+	// a confusing failure for a field the UI does not even offer.
+	if version == "" {
+		version = "main"
+	}
 	url := fmt.Sprintf("%s/%s/%s.yaml", source, version, component)
 
 	body, err := fetchDefaultConfigCached(url)

@@ -109,12 +109,8 @@ func getSpecificGitOpsConfig(settings *v1alpha1.GitOpsConfig) (*gitops.ArgoCDSet
 	}
 
 	if settings.ArgoCD != nil {
-		project := "mogenius"
-		if settings.ArgoCD.Project != "" {
-			project = settings.ArgoCD.Project
-		}
 		return &gitops.ArgoCDSettings{
-			Project: project,
+			Project: argoProjectName(settings),
 		}, nil
 	}
 

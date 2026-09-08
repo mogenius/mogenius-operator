@@ -29,10 +29,7 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 		func(ctx context.Context) ([]any, error) {
 			extraObjects := []any{}
 
-			project := "mogenius"
-			if spec.GitOps.ArgoCD.Project != "" {
-				project = spec.GitOps.ArgoCD.Project
-			}
+			project := argoProjectName(spec.GitOps)
 
 			appProject := map[string]any{
 				"apiVersion": utils.AppProjectResource.ApiVersion,

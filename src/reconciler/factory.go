@@ -66,12 +66,12 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 	factory.WithReconciler(utils.AiModelResource, factory.module.reconcileAiModels, NamespaceFilter(ownNamespace))
 	factory.WithReconciler(utils.McpServerResource, factory.module.reconcileMcpServers, NamespaceFilter(ownNamespace))
 
-	// TODO: Remove gaurd when platform config is ready, and add other platform components as needed.
-	// Gated together with the platformconfigs CRD (see kubernetes.InitOrUpdateCrds).
-	// Reporting the detected GitOps engine in the status is safe on any cluster, so
-	// this guard can go once the CRD ships everywhere; installing platform
-	// components from the spec keeps its own guard inside reconcilePlatformConfig.
-	if utils.IsDevBuild() {
+	// Gated together with the platformconfigs CRD (see kubernetes.InitOrUpdateCrds):
+	// without the CRD there is nothing to watch, and with it the operator is
+	// expected to act on what it finds. Dev builds keep the feature on so the
+	// onboarding flow can be exercised without setting the flag.
+	platformConfigEnabled, _ := configModule.TryGetBool("MO_PLATFORM_CONFIG_ENABLED")
+	if platformConfigEnabled || utils.IsDevBuild() {
 		factory.WithReconciler(utils.PlatformConfigResource, factory.module.reconcilePlatformConfig)
 	}
 

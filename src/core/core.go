@@ -258,7 +258,8 @@ func (self *core) Initialize() error {
 		return fmt.Errorf("failed to create resource template configmap: %s", err)
 	}
 
-	mokubernetes.InitOrUpdateCrds()
+	platformConfigEnabled, _ := self.config.TryGetBool("MO_PLATFORM_CONFIG_ENABLED")
+	mokubernetes.InitOrUpdateCrds(platformConfigEnabled)
 
 	// Init Helm Config
 	go func() {

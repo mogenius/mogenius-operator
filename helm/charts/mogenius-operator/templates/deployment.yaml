@@ -82,6 +82,8 @@ spec:
             {{- end }}
             - name: MO_ENABLE_AUTO_UPGRADE
               value: {{ .Values.features.autoUpgrade.enabled | quote }}
+            - name: PLATFORM_CONFIG_ENABLED
+              value: {{ .Values.features.platformConfig.enabled | quote }}
           volumeMounts:
             - mountPath: /app/helm-data
               name: helm-data
