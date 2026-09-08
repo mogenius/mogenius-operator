@@ -7,7 +7,6 @@ import (
 
 	"mogenius-operator/src/crds"
 	"mogenius-operator/src/shutdown"
-	"mogenius-operator/src/utils"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -36,10 +35,6 @@ func GetValkeyPwd() (*string, error) {
 func InitOrUpdateCrds() {
 	crds := crds.GetCRDs()
 	for _, crd := range crds {
-		// TODO: Remove the dev build gaurd when the UI config feature is ready.
-		if crd.Filename == "mogenius.com_uiconfigs.yaml" && !utils.IsDevBuild() {
-			continue
-		}
 		err := CreateOrUpdateYamlString(crd.Content)
 		if err != nil && !apierrors.IsAlreadyExists(err) {
 			k8sLogger.Error("error updating/creating mogenius CRD", "filename", crd.Filename, "error", err)
