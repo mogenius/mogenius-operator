@@ -2501,6 +2501,28 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		// The credentials for a platform repository, materialized from a token
+		// the platform API pushes. Previously the job of the
+		// mogenius-platform-bootstrap Helm chart.
+		//
+		// The operator only writes the two Secrets; committing
+		// platformconfig.yaml stays the API's job. Idempotent, so rotating a
+		// token is the same call again.
+		//
+		// GitOpsCredentialsRequest.Token is redacted in the audit log by its
+		// field name (sensitiveAuditPayloadKeys in store), and the audit entry
+		// carries no object diff — a diff of a Secret is a diff of the token.
+		RegisterPatternHandler(
+			PatternHandle{self, "platform/upsert-gitops-credentials"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request GitOpsCredentialsRequest) (string, error) {
+				res, err := self.apiService.UpsertGitOpsCredentials(request)
+				return store.AddToAuditLog(datagram, self.logger, res, err, nil, nil)
+			},
+		)
+	}
+
+	{
 		type Request struct {
 			AgentName string `json:"agentName" validate:"required"`
 		}

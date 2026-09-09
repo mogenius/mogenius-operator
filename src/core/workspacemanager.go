@@ -49,6 +49,10 @@ type WorkspaceManager interface {
 	UpdateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (*v1alpha1.AiModel, error)
 	DeleteAiModel(name string) error
 
+	// UpsertGitOpsCredentials materializes the read/write credential Secrets
+	// for a platform repository from a token the platform API pushes.
+	UpsertGitOpsCredentials(request GitOpsCredentialsRequest) (string, error)
+
 	GetAllMcpServers() ([]v1alpha1.McpServer, error)
 	GetMcpServer(name string) (*v1alpha1.McpServer, error)
 	CreateMcpServer(name string, spec v1alpha1.McpServerSpec) (*v1alpha1.McpServer, error)
@@ -299,6 +303,15 @@ func (self *workspaceManager) DeleteAiModel(name string) error {
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
 	return self.mogeniusClientSet.MogeniusV1alpha1.DeleteAiModel(self.namespace, name)
+}
+
+// UpsertGitOpsCredentials places the write credential in the operator's own
+// namespace, which is where the platform API reads it; the read credential goes
+// to the engine's namespace, named by the request.
+func (self *workspaceManager) UpsertGitOpsCredentials(request GitOpsCredentialsRequest) (string, error) {
+	self.namespaceLock.RLock()
+	defer self.namespaceLock.RUnlock()
+	return UpsertGitOpsCredentials(context.Background(), self.clientProvider.K8sClientSet(), self.logger, self.namespace, request)
 }
 
 func (self *workspaceManager) GetAllMcpServers() ([]v1alpha1.McpServer, error) {

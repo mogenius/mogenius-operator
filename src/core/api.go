@@ -94,6 +94,8 @@ type Api interface {
 	UpdateAiModel(name string, spec v1alpha1.AiModelSpec, apiKey string) (string, error)
 	DeleteAiModel(name string) (string, error)
 
+	UpsertGitOpsCredentials(request GitOpsCredentialsRequest) (string, error)
+
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
 	GetResourceListByWhitelistPaginated(req ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error)
 	GetWorkspaceResourcesPaginated(workspaceName string, req WorkspaceResourcesPaginatedRequest) (WorkspaceResourcesPaginatedResponse, error)
@@ -464,6 +466,13 @@ func (self *api) RequestAiModelUsageReset(name string) (string, error) {
 		return "", err
 	}
 	return "AiModel usage reset requested", nil
+}
+
+// UpsertGitOpsCredentials materializes the read and write credential Secrets
+// for a platform repository. Idempotent: the same call with a new token rotates
+// both in place.
+func (self *api) UpsertGitOpsCredentials(request GitOpsCredentialsRequest) (string, error) {
+	return self.workspaceManager.UpsertGitOpsCredentials(request)
 }
 
 // GetAiModelResult is the wire shape for AiModel CRs, mirroring GetAgentResult.
