@@ -3,10 +3,10 @@ package gitops
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"mogenius-operator/src/k8sclient"
 	"strings"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -38,6 +38,7 @@ type fluxInstaller struct {
 	clientProvider k8sclient.K8sClientProvider
 	namespace      string
 	ownerRefs      []metav1.OwnerReference
+	logger         *slog.Logger
 }
 
 func (f *fluxInstaller) Install(component string, artifact GitOpsArtifact) error {
@@ -91,14 +92,14 @@ func (f *fluxInstaller) UnInstall(component string) error {
 	releaseClient := f.clientProvider.DynamicClient().Resource(fluxHelmReleaseGVR).Namespace(f.namespace)
 
 	for _, name := range []string{component, component + "-resources"} {
-		if err := releaseClient.Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
-			return fmt.Errorf("delete flux helmrelease %s: %w", name, err)
+		if err := deleteIfManaged(ctx, f.logger, releaseClient, "flux helmrelease", name); err != nil {
+			return err
 		}
-		if err := repoClient.Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
-			return fmt.Errorf("delete flux helmrepository %s: %w", name, err)
+		if err := deleteIfManaged(ctx, f.logger, repoClient, "flux helmrepository", name); err != nil {
+			return err
 		}
-		if err := ociRepoClient.Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
-			return fmt.Errorf("delete flux ocirepository %s: %w", name, err)
+		if err := deleteIfManaged(ctx, f.logger, ociRepoClient, "flux ocirepository", name); err != nil {
+			return err
 		}
 	}
 	return nil

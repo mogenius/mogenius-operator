@@ -2,12 +2,15 @@ package gitops
 
 import (
 	"context"
+	"fmt"
+	"log/slog"
 	"mogenius-operator/src/k8sclient"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 )
 
 const (
@@ -55,6 +58,13 @@ type GitOpsInstaller interface {
 	UnInstall(string) error
 }
 
+// ManagedByLabel and ManagedByValue mark every object this operator creates
+// through an installer. UnInstall requires them before it deletes anything.
+const (
+	ManagedByLabel = "app.kubernetes.io/managed-by"
+	ManagedByValue = "mogenius-operator"
+)
+
 // noopInstaller is returned when no engine is configured so that component
 // reconcilers can call Install/UnInstall without panicking.
 type noopInstaller struct{}
@@ -65,12 +75,14 @@ func (n *noopInstaller) UnInstall(_ string) error                 { return nil }
 // NewGitOpsInstaller returns an installer for the given engine type.
 // namespace is where the engine's own CRDs (Applications, HelmReleases, …) live.
 // ownerRefs are set on every resource created by the installer.
-func NewGitOpsInstaller(engine, namespace string, clientProvider k8sclient.K8sClientProvider, ownerRefs []metav1.OwnerReference) GitOpsInstaller {
+// logger reports what UnInstall decided not to delete, which is otherwise
+// invisible: a skipped delete looks exactly like a successful one.
+func NewGitOpsInstaller(engine, namespace string, clientProvider k8sclient.K8sClientProvider, ownerRefs []metav1.OwnerReference, logger *slog.Logger) GitOpsInstaller {
 	switch engine {
 	case EngineArgoCD:
-		return &argocdInstaller{clientProvider: clientProvider, namespace: namespace, ownerRefs: ownerRefs}
+		return &argocdInstaller{clientProvider: clientProvider, namespace: namespace, ownerRefs: ownerRefs, logger: logger}
 	case EngineFlux:
-		return &fluxInstaller{clientProvider: clientProvider, namespace: namespace, ownerRefs: ownerRefs}
+		return &fluxInstaller{clientProvider: clientProvider, namespace: namespace, ownerRefs: ownerRefs, logger: logger}
 	default:
 		return &noopInstaller{}
 	}
@@ -78,9 +90,45 @@ func NewGitOpsInstaller(engine, namespace string, clientProvider k8sclient.K8sCl
 
 func defaultLabels(component string) map[string]string {
 	return map[string]string{
-		"app.kubernetes.io/managed-by": "mogenius-operator",
-		"app.kubernetes.io/component":  component,
+		ManagedByLabel:                ManagedByValue,
+		"app.kubernetes.io/component": component,
 	}
+}
+
+// deleteIfManaged deletes one object, but only when it carries this operator's
+// managed-by label.
+//
+// Deleting by name alone made every disable a hazard. A component someone else
+// installed under the same name became collateral damage, and on a cluster
+// where mogenius never installed the component at all a single stray
+// enabled:false took out the user's own release — which is how a Traefik that
+// predated mogenius ended up deleted.
+//
+// A skipped delete is not an error: the spec asked for the component to be
+// gone, and as far as this operator is concerned it is. Only louder, because
+// the object staying behind is otherwise indistinguishable from a delete that
+// worked.
+func deleteIfManaged(ctx context.Context, logger *slog.Logger, client dynamic.ResourceInterface, kind string, name string) error {
+	object, err := client.Get(ctx, name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("read %s %s: %w", kind, name, err)
+	}
+
+	if managedBy := object.GetLabels()[ManagedByLabel]; managedBy != ManagedByValue {
+		if logger != nil {
+			logger.Warn("not deleting a resource this operator did not install",
+				"kind", kind, "name", name, "namespace", object.GetNamespace(), "managedBy", managedBy)
+		}
+		return nil
+	}
+
+	if err := client.Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
+		return fmt.Errorf("delete %s %s: %w", kind, name, err)
+	}
+	return nil
 }
 
 // applyUnstructured creates or updates a namespaced resource via the dynamic client.

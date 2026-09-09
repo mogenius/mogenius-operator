@@ -137,7 +137,7 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		Name:       platformConfig.Name,
 		UID:        platformConfig.UID,
 	}
-	installer := gitops.NewGitOpsInstaller(engine, engineNs, d.clientProvider, []metav1.OwnerReference{ownerRef})
+	installer := gitops.NewGitOpsInstaller(engine, engineNs, d.clientProvider, []metav1.OwnerReference{ownerRef}, d.logger)
 
 	type componentResult struct {
 		name   string
