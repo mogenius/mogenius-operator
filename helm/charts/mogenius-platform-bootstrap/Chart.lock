@@ -1,9 +1,0 @@
-dependencies:
-- name: argo-cd
-  repository: https://argoproj.github.io/argo-helm
-  version: 10.8.2
-- name: flux-operator
-  repository: oci://ghcr.io/controlplaneio-fluxcd/charts
-  version: 0.48.0
-digest: sha256:0dd12cb09177d0a9c71a035f276f486c2a0f3765d04040734fe8b943d84b7372
-generated: "2026-09-08T13:11:25.503404055+02:00"

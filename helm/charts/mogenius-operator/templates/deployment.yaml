@@ -82,18 +82,6 @@ spec:
             {{- end }}
             - name: MO_ENABLE_AUTO_UPGRADE
               value: {{ .Values.features.autoUpgrade.enabled | quote }}
-            {{- with .Values.platformBootstrap }}
-            {{- if .repository.url }}
-            - name: PLATFORM_BOOTSTRAP_REPOSITORY_URL
-              value: {{ .repository.url | quote }}
-            - name: PLATFORM_BOOTSTRAP_REPOSITORY_BRANCH
-              value: {{ .repository.branch | quote }}
-            - name: PLATFORM_BOOTSTRAP_REPOSITORY_PATH
-              value: {{ .repository.path | quote }}
-            - name: PLATFORM_BOOTSTRAP_GITOPS_ENGINE
-              value: {{ .gitOps.engine | quote }}
-            {{- end }}
-            {{- end }}
           volumeMounts:
             - mountPath: /app/helm-data
               name: helm-data
