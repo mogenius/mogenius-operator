@@ -1000,7 +1000,7 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	// See HelmReleaseUpgrade: take sole ownership on SSA conflicts (MOG-4393).
 	install.ForceConflicts = true
 	install.Labels = map[string]string{
-		"mogenius.com/installed-via": "mogenius-operator",
+		InstalledViaLabel: InstalledViaValue,
 		"mogenius.com/oci-chart":     "true",
 	}
 
@@ -1176,7 +1176,7 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 	// See HelmReleaseUpgrade: take sole ownership on SSA conflicts (MOG-4393).
 	install.ForceConflicts = true
 	install.Labels = map[string]string{
-		"mogenius.com/installed-via": "mogenius-operator",
+		InstalledViaLabel: InstalledViaValue,
 		"mogenius.com/oci-chart":     "false",
 	}
 

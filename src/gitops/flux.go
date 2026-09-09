@@ -68,18 +68,29 @@ func (f *fluxInstaller) Install(component string, artifact GitOpsArtifact) error
 		}
 	}
 
-	if len(artifact.ExtraObjects) > 0 {
-		moacRepo := buildFluxHelmRepository(component+"-resources", moacRepository, f.namespace)
-		moacRepo.SetOwnerReferences(f.ownerRefs)
-		if err := Apply(f.clientProvider, fluxHelmRepositoryGVR, f.namespace, moacRepo); err != nil {
-			return fmt.Errorf("apply flux moac helmrepository %s-resources: %w", component, err)
-		}
+	return f.ApplyExtras(component, artifact)
+}
 
-		moacRelease := buildFluxMoacHelmRelease(component, artifact, f.namespace)
-		moacRelease.SetOwnerReferences(f.ownerRefs)
-		if err := Apply(f.clientProvider, fluxHelmReleaseGVR, f.namespace, moacRelease); err != nil {
-			return fmt.Errorf("apply flux moac helmrelease %s-resources: %w", component, err)
-		}
+// ApplyExtras ships only the artifact's extra objects, without the component's
+// own chart. The engine itself needs this: mogenius installs it with the Helm
+// SDK rather than as a HelmRelease — a HelmRelease for flux-operator would have
+// helm-controller manage the release its own controllers come from — but the
+// objects that belong to it still travel the normal way.
+func (f *fluxInstaller) ApplyExtras(component string, artifact GitOpsArtifact) error {
+	if len(artifact.ExtraObjects) == 0 {
+		return nil
+	}
+
+	moacRepo := buildFluxHelmRepository(component+"-resources", moacRepository, f.namespace)
+	moacRepo.SetOwnerReferences(f.ownerRefs)
+	if err := Apply(f.clientProvider, fluxHelmRepositoryGVR, f.namespace, moacRepo); err != nil {
+		return fmt.Errorf("apply flux moac helmrepository %s-resources: %w", component, err)
+	}
+
+	moacRelease := buildFluxMoacHelmRelease(component, artifact, f.namespace)
+	moacRelease.SetOwnerReferences(f.ownerRefs)
+	if err := Apply(f.clientProvider, fluxHelmReleaseGVR, f.namespace, moacRelease); err != nil {
+		return fmt.Errorf("apply flux moac helmrelease %s-resources: %w", component, err)
 	}
 
 	return nil

@@ -18,10 +18,16 @@ import (
 type recordingInstaller struct {
 	installed   []string
 	uninstalled []string
+	extras      []string
 }
 
 func (r *recordingInstaller) Install(component string, _ gitops.GitOpsArtifact) error {
 	r.installed = append(r.installed, component)
+	return nil
+}
+
+func (r *recordingInstaller) ApplyExtras(component string, _ gitops.GitOpsArtifact) error {
+	r.extras = append(r.extras, component)
 	return nil
 }
 
@@ -114,22 +120,6 @@ func componentCases() []componentCase {
 			disabled:  v1alpha1.PlatformConfigSpec{ExternalSecretsOperator: &v1alpha1.ExternalSecretsOperatorConfig{Enabled: false}},
 			enabled:   v1alpha1.PlatformConfigSpec{ExternalSecretsOperator: &v1alpha1.ExternalSecretsOperatorConfig{Enabled: true}},
 		},
-		{
-			name:      "fluxcd",
-			component: componentFluxCD,
-			reconcile: (*reconcilerModule).reconcileFluxCD,
-			absent:    v1alpha1.PlatformConfigSpec{},
-			disabled:  v1alpha1.PlatformConfigSpec{GitOps: &v1alpha1.GitOpsConfig{FluxCD: &v1alpha1.FluxCDInstallConfig{Enabled: false}}},
-			enabled:   v1alpha1.PlatformConfigSpec{GitOps: &v1alpha1.GitOpsConfig{FluxCD: &v1alpha1.FluxCDInstallConfig{Enabled: true}}},
-		},
-		{
-			name:      "argocd",
-			component: componentArgoCD,
-			reconcile: (*reconcilerModule).reconcileArgoCD,
-			absent:    v1alpha1.PlatformConfigSpec{},
-			disabled:  v1alpha1.PlatformConfigSpec{GitOps: &v1alpha1.GitOpsConfig{ArgoCD: &v1alpha1.ArgoCDInstallConfig{Enabled: false}}},
-			enabled:   v1alpha1.PlatformConfigSpec{GitOps: &v1alpha1.GitOpsConfig{ArgoCD: &v1alpha1.ArgoCDInstallConfig{Enabled: true}}},
-		},
 	}
 }
 
@@ -203,4 +193,51 @@ func TestReconcilePlatformConfigIgnoresDelete(t *testing.T) {
 	results := testModule().reconcilePlatformConfig(context.Background(), obj, deleteOperation)
 
 	assert.Nil(t, results)
+}
+
+// The engine is the one component that is never removed implicitly. Disabling
+// it hands ownership back to the user rather than pulling the engine out from
+// under every component it delivers.
+func TestGitOpsEngineIsNeverUninstalled(t *testing.T) {
+	cases := []struct {
+		name      string
+		reconcile func(*reconcilerModule, context.Context, v1alpha1.PlatformConfigSpec, gitops.GitOpsInstaller, gitOpsDetection) *ReconcileResult
+		absent    v1alpha1.PlatformConfigSpec
+		disabled  v1alpha1.PlatformConfigSpec
+	}{
+		{
+			name:      "fluxcd",
+			reconcile: (*reconcilerModule).reconcileFluxCD,
+			absent:    v1alpha1.PlatformConfigSpec{},
+			disabled:  v1alpha1.PlatformConfigSpec{GitOps: &v1alpha1.GitOpsConfig{FluxCD: &v1alpha1.FluxCDInstallConfig{Enabled: false}}},
+		},
+		{
+			name:      "argocd",
+			reconcile: (*reconcilerModule).reconcileArgoCD,
+			absent:    v1alpha1.PlatformConfigSpec{},
+			disabled:  v1alpha1.PlatformConfigSpec{GitOps: &v1alpha1.GitOpsConfig{ArgoCD: &v1alpha1.ArgoCDInstallConfig{Enabled: false}}},
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name+"/absent", func(t *testing.T) {
+			installer := &recordingInstaller{}
+
+			result := tc.reconcile(testModule(), context.Background(), tc.absent, installer, gitOpsDetection{})
+
+			assert.Nil(t, result)
+			assert.Empty(t, installer.uninstalled)
+			assert.Empty(t, installer.extras)
+		})
+
+		t.Run(tc.name+"/disabled", func(t *testing.T) {
+			installer := &recordingInstaller{}
+
+			result := tc.reconcile(testModule(), context.Background(), tc.disabled, installer, gitOpsDetection{})
+
+			assert.Nil(t, result)
+			assert.Empty(t, installer.uninstalled, "a disabled engine must be left running, not uninstalled")
+			assert.Empty(t, installer.extras)
+		})
+	}
 }

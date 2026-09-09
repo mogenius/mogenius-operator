@@ -8,7 +8,7 @@ import (
 	"mogenius-operator/src/utils"
 )
 
-func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
+func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, detection gitOpsDetection) *ReconcileResult {
 	// Not declared: leave whatever is installed alone (see reconcileComponent).
 	// Unreachable through reconcilePlatformConfig, which only dispatches here
 	// for an engine the spec enables — but a nil spec.GitOps would panic.
@@ -16,9 +16,9 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 		return nil
 	}
 	cfg := spec.GitOps.FluxCD
-	namespace := helmNamespace(cfg.Chart, fluxcdDefaultNamespace)
-	return d.reconcileComponent(ctx, spec, installer, op,
-		componentSpec{
+	return d.reconcileGitOpsEngine(ctx, spec, installer, detection, engineSpec{
+		engine: gitOpsEngineFlux,
+		component: componentSpec{
 			enabled:          cfg.Enabled,
 			chart:            cfg.Chart,
 			patches:          cfg.Patches,
@@ -28,12 +28,18 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 			defaultName:      "flux-operator",
 			defaultNamespace: fluxcdDefaultNamespace,
 		},
-		func(ctx context.Context) ([]any, error) {
-			// The FluxInstance is what actually deploys the Flux controllers; the
-			// flux-operator chart alone installs none. Since extra objects ship via a
-			// moac HelmRelease that needs helm-controller to reconcile, the very first
-			// install requires the Flux controllers to be bootstrapped out-of-band.
-			extraObjects := []any{fluxInstanceObject(namespace)}
+		// The FluxInstance is what actually deploys the Flux controllers; the
+		// flux-operator chart alone installs none. It therefore cannot ship as
+		// an extra object, because those travel through a HelmRelease that
+		// needs the very helm-controller this resource brings up.
+		bootstrapObjects: func(namespace string) []engineBootstrapObject {
+			return []engineBootstrapObject{
+				{resource: utils.FluxInstanceResource, object: fluxInstanceObject(namespace)},
+			}
+		},
+		extraObjects: func(ctx context.Context) ([]any, error) {
+			namespace := helmNamespace(cfg.Chart, fluxcdDefaultNamespace)
+			extraObjects := []any{}
 
 			for _, repo := range spec.GitOps.Repositories {
 				name := repo.Name
@@ -80,7 +86,7 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 
 			return extraObjects, nil
 		},
-		func(ctx context.Context) (map[string]any, error) {
+		extraValues: func(ctx context.Context) (map[string]any, error) {
 			if d.crdChecker.IsAvailable(utils.ServiceMonitorResource) {
 				return map[string]any{
 					"serviceMonitor": map[string]any{
@@ -90,7 +96,7 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 			}
 			return nil, nil
 		},
-	)
+	})
 }
 
 func fluxInstanceObject(namespace string) map[string]any {
