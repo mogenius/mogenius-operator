@@ -8,8 +8,9 @@ import (
 
 func (d *reconcilerModule) reconcileKubePrometheusStack(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
 	c := spec.KubePrometheusStack
+	// Not declared: leave whatever is installed alone (see reconcileComponent).
 	if c == nil {
-		c = &v1alpha1.KubePrometheusStackConfig{}
+		return nil
 	}
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{

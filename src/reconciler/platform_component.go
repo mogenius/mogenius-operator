@@ -25,6 +25,14 @@ type componentSpec struct {
 // buildExtraObjects is an optional callback to produce component-specific extra
 // Kubernetes objects (e.g. ClusterIssuers for cert-manager). When nil, only
 // extra objects from the PlatformPatch are used.
+//
+// Only a component the spec actually declares reaches this function: its
+// caller returns early when the block is absent. That is the difference
+// between "not mentioned" and "turned off" — the first leaves an installed
+// release alone, only the second removes it. The PlatformConfig is synced from
+// git with prune enabled, so the resource disappears when the file is renamed
+// or its path breaks, and treating an absent block as enabled:false would tear
+// down cert-manager, Traefik, Prometheus and Loki over a rename.
 func (d *reconcilerModule) reconcileComponent(
 	ctx context.Context,
 	platformSpec v1alpha1.PlatformConfigSpec,
@@ -34,7 +42,14 @@ func (d *reconcilerModule) reconcileComponent(
 	buildExtraObjects func(ctx context.Context) ([]any, error),
 	buildExtraValues func(ctx context.Context) (map[string]any, error),
 ) *ReconcileResult {
-	if !cs.enabled || op == deleteOperation {
+	// The resource being gone is not an instruction to uninstall anything.
+	// reconcilePlatformConfig already returns before it gets here; this keeps
+	// the invariant local to the function that would do the damage.
+	if op == deleteOperation {
+		return nil
+	}
+
+	if !cs.enabled {
 		if err := installer.UnInstall(cs.name); err != nil {
 			return &ReconcileResult{Err: fmt.Errorf("failed to uninstall %s: %w", cs.name, err)}
 		}

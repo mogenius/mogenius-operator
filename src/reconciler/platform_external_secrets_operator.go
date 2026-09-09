@@ -11,8 +11,9 @@ import (
 
 func (d *reconcilerModule) reconcileExternalSecretsOperator(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
 	c := spec.ExternalSecretsOperator
+	// Not declared: leave whatever is installed alone (see reconcileComponent).
 	if c == nil {
-		c = &v1alpha1.ExternalSecretsOperatorConfig{}
+		return nil
 	}
 	defaultNs := "external-secrets-operator"
 	return d.reconcileComponent(ctx, spec, installer, op,

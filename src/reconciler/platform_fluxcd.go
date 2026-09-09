@@ -9,10 +9,13 @@ import (
 )
 
 func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
-	cfg := spec.GitOps.FluxCD
-	if cfg == nil {
-		cfg = &v1alpha1.FluxCDInstallConfig{}
+	// Not declared: leave whatever is installed alone (see reconcileComponent).
+	// Unreachable through reconcilePlatformConfig, which only dispatches here
+	// for an engine the spec enables — but a nil spec.GitOps would panic.
+	if spec.GitOps == nil || spec.GitOps.FluxCD == nil {
+		return nil
 	}
+	cfg := spec.GitOps.FluxCD
 	namespace := helmNamespace(cfg.Chart, fluxcdDefaultNamespace)
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{

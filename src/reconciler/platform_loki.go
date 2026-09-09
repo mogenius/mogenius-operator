@@ -8,8 +8,9 @@ import (
 
 func (d *reconcilerModule) reconcileLoki(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
 	c := spec.Loki
+	// Not declared: leave whatever is installed alone (see reconcileComponent).
 	if c == nil {
-		c = &v1alpha1.LokiConfig{}
+		return nil
 	}
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{
@@ -33,8 +34,9 @@ func (d *reconcilerModule) reconcileLoki(ctx context.Context, spec v1alpha1.Plat
 
 func (d *reconcilerModule) reconcileAlloy(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
 	c := spec.Alloy
+	// Not declared: leave whatever is installed alone (see reconcileComponent).
 	if c == nil {
-		c = &v1alpha1.AlloyConfig{}
+		return nil
 	}
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{

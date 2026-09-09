@@ -91,6 +91,20 @@ func argoProjectName(gitOps *v1alpha1.GitOpsConfig) string {
 }
 
 func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *unstructured.Unstructured, op operation) []ReconcileResult {
+	// A deleted PlatformConfig is not an instruction to tear the platform down.
+	// The resource is synced from git with prune enabled, so it disappears when
+	// platformconfig.yaml is renamed, its path breaks or a bad commit lands —
+	// and uninstalling every component over that would take cert-manager,
+	// Traefik, Prometheus and Loki with it. Removal is expressed as
+	// enabled:false in the spec, which the component reconcilers act on.
+	//
+	// There is also nothing left to patch a status onto, so returning here
+	// avoids a guaranteed-failing status update on a resource that is gone.
+	if op == deleteOperation {
+		d.logger.Info("PlatformConfig deleted, leaving installed components untouched", "name", obj.GetName())
+		return nil
+	}
+
 	var platformConfig v1alpha1.PlatformConfig
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &platformConfig); err != nil {
 		return []ReconcileResult{{Err: fmt.Errorf("failed to parse PlatformConfig: %w", err)}}
