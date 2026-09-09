@@ -189,18 +189,67 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		existingConditions[c.Type] = c
 	}
 
+	declared := declaredComponents(platformConfig.Spec)
+	// What the engine makes of the objects it was handed. Read once for all of
+	// them, and only where an engine can answer at all.
+	delivered := d.deliveryStates(ctx, engine, engineNs)
+
 	conditions := make([]metav1.Condition, 0, len(components))
 	results := make([]ReconcileResult, 0)
 	now := metav1.Now()
 
 	for _, c := range components {
+		declaration := declared[c.name]
+
+		// Not in the spec, so not this operator's to report on. Reporting Ready
+		// here made a status where every component looked installed on a
+		// cluster that declared none of them.
+		if !declaration.declared {
+			if c.result != nil {
+				results = append(results, *c.result)
+			}
+			continue
+		}
+
 		condStatus := metav1.ConditionTrue
 		reason := "Ready"
 		message := "ready"
-		if c.result != nil && c.result.Err != nil {
+
+		switch {
+		case c.result != nil && c.result.Err != nil:
 			condStatus = metav1.ConditionFalse
 			reason = "ReconcileFailed"
 			message = c.result.Err.Error()
+
+		case !declaration.enabled:
+			reason = "Disabled"
+			message = "disabled in the spec"
+
+		default:
+			// The engine's own verdict. Writing the HelmRelease or Application
+			// succeeds long before the release it describes is installed, so
+			// without this a chart that fails on its values schema leaves the
+			// component reported as ready while nothing runs.
+			if state, ok := deliveredStateFor(c.name, delivered, gitOpsStatus); ok {
+				switch {
+				case state.ready:
+					if state.message != "" {
+						message = state.message
+					}
+				case state.message != "":
+					condStatus = metav1.ConditionFalse
+					reason = "DeliveryFailed"
+					message = state.message
+				default:
+					condStatus = metav1.ConditionUnknown
+					reason = "Pending"
+					message = "waiting for the GitOps engine to apply it"
+				}
+			} else if delivered != nil {
+				condStatus = metav1.ConditionUnknown
+				reason = "Pending"
+				message = "applied, the GitOps engine has not reported on it yet"
+			}
 		}
 
 		lastTransition := now
@@ -211,6 +260,7 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		if c.result != nil {
 			results = append(results, *c.result)
 		}
+
 		conditions = append(conditions, metav1.Condition{
 			Type:               c.name,
 			Status:             condStatus,
