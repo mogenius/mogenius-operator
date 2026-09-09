@@ -74,3 +74,15 @@ func (c *crdChecker) checkAPI(resource utils.ResourceDescriptor) bool {
 	}
 	return false
 }
+
+// forget drops a cached absence so the next IsAvailable asks the API server
+// again. Needed right after installing a chart that registers CRDs: absence is
+// cached for absentTTL, and without this the operator would keep skipping the
+// custom resources it just created the definitions for.
+func (c *crdChecker) forget(resource utils.ResourceDescriptor) {
+	key := resource.ApiVersion + "/" + resource.Kind
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.absentAt, key)
+}
