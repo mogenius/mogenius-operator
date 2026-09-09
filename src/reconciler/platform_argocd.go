@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
+func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, detection gitOpsDetection) *ReconcileResult {
 	// Not declared: leave whatever is installed alone (see reconcileComponent).
 	// Unreachable through reconcilePlatformConfig, which only dispatches here
 	// for an engine the spec enables — but a nil spec.GitOps would panic.
@@ -17,9 +17,9 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 		return nil
 	}
 	cfg := spec.GitOps.ArgoCD
-	namespace := helmNamespace(cfg.Chart, argocdDefaultNamespace)
-	return d.reconcileComponent(ctx, spec, installer, op,
-		componentSpec{
+	return d.reconcileGitOpsEngine(ctx, spec, installer, detection, engineSpec{
+		engine: gitOpsEngineArgoCD,
+		component: componentSpec{
 			enabled:          cfg.Enabled,
 			chart:            cfg.Chart,
 			patches:          cfg.Patches,
@@ -29,25 +29,31 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 			defaultName:      "argocd",
 			defaultNamespace: argocdDefaultNamespace,
 		},
-		func(ctx context.Context) ([]any, error) {
-			extraObjects := []any{}
-
+		// The AppProject has to exist before anything is placed in it — and
+		// every Application the platform creates is, including the one that
+		// would otherwise have carried this object.
+		bootstrapObjects: func(namespace string) []engineBootstrapObject {
+			return []engineBootstrapObject{{
+				resource: utils.AppProjectResource,
+				object: map[string]any{
+					"apiVersion": utils.AppProjectResource.ApiVersion,
+					"kind":       utils.AppProjectResource.Kind,
+					"metadata": map[string]any{
+						"name":      argoProjectName(spec.GitOps),
+						"namespace": namespace,
+					},
+					"spec": map[string]any{
+						"clusterResourceWhitelist": []map[string]any{{"group": "*", "kind": "*"}},
+						"destinations":             []map[string]any{{"namespace": "*", "server": "*"}},
+						"sourceRepos":              []string{"*"},
+					},
+				},
+			}}
+		},
+		extraObjects: func(ctx context.Context) ([]any, error) {
+			namespace := helmNamespace(cfg.Chart, argocdDefaultNamespace)
 			project := argoProjectName(spec.GitOps)
-
-			appProject := map[string]any{
-				"apiVersion": utils.AppProjectResource.ApiVersion,
-				"kind":       utils.AppProjectResource.Kind,
-				"metadata": map[string]any{
-					"name":      project,
-					"namespace": namespace,
-				},
-				"spec": map[string]any{
-					"clusterResourceWhitelist": []map[string]any{{"group": "*", "kind": "*"}},
-					"destinations":             []map[string]any{{"namespace": "*", "server": "*"}},
-					"sourceRepos":              []string{"*"},
-				},
-			}
-			extraObjects = append(extraObjects, appProject)
+			extraObjects := []any{}
 
 			for _, repo := range spec.GitOps.Repositories {
 				name := repo.Name
@@ -100,7 +106,7 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 
 			return extraObjects, nil
 		},
-		func(ctx context.Context) (map[string]any, error) {
+		extraValues: func(ctx context.Context) (map[string]any, error) {
 			if d.crdChecker.IsAvailable(utils.ServiceMonitorResource) {
 				metricsBlock := map[string]any{
 					"enabled": true,
@@ -117,7 +123,7 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 			}
 			return nil, nil
 		},
-	)
+	})
 }
 
 func argoApplicationObject(name string, repo v1alpha1.GitOpsRepositoryConfig, namespace, project string) map[string]any {

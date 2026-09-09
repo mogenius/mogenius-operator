@@ -31,12 +31,23 @@ func (a *argocdInstaller) Install(component string, artifact GitOpsArtifact) err
 		return fmt.Errorf("apply argocd application %s: %w", component, err)
 	}
 
-	if len(artifact.ExtraObjects) > 0 {
-		moacApp := buildArgoMoacApplication(component, artifact, a.namespace)
-		moacApp.SetOwnerReferences(a.ownerRefs)
-		if err := Apply(a.clientProvider, argoApplicationGVR, a.namespace, moacApp); err != nil {
-			return fmt.Errorf("apply argocd moac application %s-resources: %w", component, err)
-		}
+	return a.ApplyExtras(component, artifact)
+}
+
+// ApplyExtras ships only the artifact's extra objects, without the component's
+// own chart. The engine itself needs this: mogenius installs it with the Helm
+// SDK rather than as an Application, so Argo CD never syncs the release its own
+// controllers come from, while the objects that belong to it still travel the
+// normal way.
+func (a *argocdInstaller) ApplyExtras(component string, artifact GitOpsArtifact) error {
+	if len(artifact.ExtraObjects) == 0 {
+		return nil
+	}
+
+	moacApp := buildArgoMoacApplication(component, artifact, a.namespace)
+	moacApp.SetOwnerReferences(a.ownerRefs)
+	if err := Apply(a.clientProvider, argoApplicationGVR, a.namespace, moacApp); err != nil {
+		return fmt.Errorf("apply argocd moac application %s-resources: %w", component, err)
 	}
 
 	return nil

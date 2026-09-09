@@ -110,7 +110,8 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		return []ReconcileResult{{Err: fmt.Errorf("failed to parse PlatformConfig: %w", err)}}
 	}
 
-	gitOpsStatus := buildGitOpsStatus(platformConfig.Spec, d.detectGitOpsStatus(ctx))
+	detection := d.detectGitOpsStatus(ctx)
+	gitOpsStatus := buildGitOpsStatus(platformConfig.Spec, detection)
 
 	// specEngine is the engine mogenius is asked to install; it is empty unless
 	// spec.gitOps enables one.
@@ -144,16 +145,16 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		result *ReconcileResult
 	}
 
-	// Capacity: the eight non-engine components plus the engine, when mogenius
-	// owns it. The engine is only reconciled in that case — reconciling a
-	// user-managed engine would adopt a Helm release someone else installed and
-	// overwrite their values on the next sweep.
+	// Capacity: the eight non-engine components plus the engine, when the spec
+	// asks mogenius to install one. It goes first and blocks until the engine
+	// answers, because everything after it is delivered as a custom resource
+	// that engine has to pick up.
 	components := make([]componentResult, 0, 9)
 	switch specEngine {
 	case gitOpsEngineArgoCD:
-		components = append(components, componentResult{name: componentArgoCD, result: d.reconcileArgoCD(ctx, platformConfig.Spec, installer, op)})
+		components = append(components, componentResult{name: componentArgoCD, result: d.reconcileArgoCD(ctx, platformConfig.Spec, installer, detection)})
 	case gitOpsEngineFlux:
-		components = append(components, componentResult{name: componentFluxCD, result: d.reconcileFluxCD(ctx, platformConfig.Spec, installer, op)})
+		components = append(components, componentResult{name: componentFluxCD, result: d.reconcileFluxCD(ctx, platformConfig.Spec, installer, detection)})
 	}
 
 	// Repositories the platform syncs itself. Only when mogenius does not own

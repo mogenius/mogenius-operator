@@ -55,6 +55,9 @@ type HelmChartReference struct {
 
 type GitOpsInstaller interface {
 	Install(string, GitOpsArtifact) error
+	// ApplyExtras ships an artifact's extra objects without its chart, for a
+	// component whose release mogenius installs with the Helm SDK instead.
+	ApplyExtras(string, GitOpsArtifact) error
 	UnInstall(string) error
 }
 
@@ -69,8 +72,9 @@ const (
 // reconcilers can call Install/UnInstall without panicking.
 type noopInstaller struct{}
 
-func (n *noopInstaller) Install(_ string, _ GitOpsArtifact) error { return nil }
-func (n *noopInstaller) UnInstall(_ string) error                 { return nil }
+func (n *noopInstaller) Install(_ string, _ GitOpsArtifact) error     { return nil }
+func (n *noopInstaller) ApplyExtras(_ string, _ GitOpsArtifact) error { return nil }
+func (n *noopInstaller) UnInstall(_ string) error                     { return nil }
 
 // NewGitOpsInstaller returns an installer for the given engine type.
 // namespace is where the engine's own CRDs (Applications, HelmReleases, …) live.

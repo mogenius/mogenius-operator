@@ -56,9 +56,34 @@ func (d *reconcilerModule) reconcileComponent(
 		return nil
 	}
 
+	artifact, result := d.buildComponentArtifact(ctx, platformSpec, cs, buildExtraObjects, buildExtraValues)
+	if result != nil {
+		return result
+	}
+
+	if err := installer.Install(cs.name, artifact); err != nil {
+		return &ReconcileResult{Err: fmt.Errorf("failed to install %s: %w", cs.name, err)}
+	}
+
+	return nil
+}
+
+// buildComponentArtifact resolves a component's chart, values and extra objects
+// into the artifact an installer ships. Shared with the engine path, which
+// needs the same resolution but installs the chart itself with the Helm SDK.
+//
+// A non-nil ReconcileResult is the failure; the artifact is only valid when it
+// is nil.
+func (d *reconcilerModule) buildComponentArtifact(
+	ctx context.Context,
+	platformSpec v1alpha1.PlatformConfigSpec,
+	cs componentSpec,
+	buildExtraObjects func(ctx context.Context) ([]any, error),
+	buildExtraValues func(ctx context.Context) (map[string]any, error),
+) (gitops.GitOpsArtifact, *ReconcileResult) {
 	defaultComponentConfig, err := getDefaultConfig(platformSpec.PlatformSource, platformSpec.PlatformVersion, cs.name)
 	if err != nil {
-		return &ReconcileResult{Err: fmt.Errorf("fetch default config for %s: %w", cs.name, err)}
+		return gitops.GitOpsArtifact{}, &ReconcileResult{Err: fmt.Errorf("fetch default config for %s: %w", cs.name, err)}
 	}
 
 	chart := gitops.HelmChartReference{
@@ -73,7 +98,7 @@ func (d *reconcilerModule) reconcileComponent(
 		for _, patchRef := range cs.patches {
 			patch, err := d.fetchPlatformPatch(ctx, patchRef)
 			if err != nil && !apierrors.IsNotFound(err) {
-				return &ReconcileResult{Err: fmt.Errorf("fetch platform patch for %s: %w", cs.name, err)}
+				return gitops.GitOpsArtifact{}, &ReconcileResult{Err: fmt.Errorf("fetch platform patch for %s: %w", cs.name, err)}
 			}
 			patches = append(patches, *patch)
 		}
@@ -81,41 +106,35 @@ func (d *reconcilerModule) reconcileComponent(
 
 	componentValues, err := buildExtraValues(ctx)
 	if err != nil {
-		return &ReconcileResult{Err: fmt.Errorf("failed to create component values for %s: %w", cs.name, err)}
+		return gitops.GitOpsArtifact{}, &ReconcileResult{Err: fmt.Errorf("failed to create component values for %s: %w", cs.name, err)}
 	}
 
 	mergedValues, err := mergeHelmValues(defaultComponentConfig, componentValues, patches)
 	if err != nil {
-		return &ReconcileResult{Err: fmt.Errorf("merge helm values for %s: %w", cs.name, err)}
+		return gitops.GitOpsArtifact{}, &ReconcileResult{Err: fmt.Errorf("merge helm values for %s: %w", cs.name, err)}
 	}
 
 	extraObjects, err := buildExtraObjects(ctx)
 	if err != nil {
-		return &ReconcileResult{Err: fmt.Errorf("build extra objects for %s: %w", cs.name, err)}
+		return gitops.GitOpsArtifact{}, &ReconcileResult{Err: fmt.Errorf("build extra objects for %s: %w", cs.name, err)}
 	}
 
 	extraPatchObjects, err := extractPatchExtraObjects(patches)
 	if err != nil {
-		return &ReconcileResult{Err: fmt.Errorf("extract extra objects for %s: %w", cs.name, err)}
+		return gitops.GitOpsArtifact{}, &ReconcileResult{Err: fmt.Errorf("extract extra objects for %s: %w", cs.name, err)}
 	}
 	extraObjects = append(extraObjects, extraPatchObjects...)
 
 	argoConfig, fluxConfig := getSpecificGitOpsConfig(platformSpec.GitOps)
 
-	artifact := gitops.GitOpsArtifact{
+	return gitops.GitOpsArtifact{
 		Namespace:    helmNamespace(cs.chart, cs.defaultNamespace),
 		HelmChart:    chart,
 		Values:       mergedValues,
 		ExtraObjects: extraObjects,
 		ArgoCD:       argoConfig,
 		FluxCD:       fluxConfig,
-	}
-
-	if err := installer.Install(cs.name, artifact); err != nil {
-		return &ReconcileResult{Err: fmt.Errorf("failed to install %s: %w", cs.name, err)}
-	}
-
-	return nil
+	}, nil
 }
 
 func getSpecificGitOpsConfig(settings *v1alpha1.GitOpsConfig) (*gitops.ArgoCDSettings, *gitops.FluxCDSettings) {
