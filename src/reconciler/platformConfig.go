@@ -113,11 +113,16 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	detection := d.detectGitOpsStatus(ctx)
 	gitOpsStatus := buildGitOpsStatus(platformConfig.Spec, detection)
 
+	// Who owns the spec, read off the object itself. Resolved here so every
+	// path below reports it, including the ones that return early.
+	configSource := detectConfigSource(obj.GetLabels(), obj.GetAnnotations(), gitOpsStatus.Namespace)
+	d.resolveSyncedRevision(ctx, gitOpsStatus.Engine, configSource)
+
 	// specEngine is the engine mogenius is asked to install; it is empty unless
 	// spec.gitOps enables one.
 	specEngine, specEngineNs, err := inferGitOpsEngine(platformConfig.Spec.GitOps)
 	if err != nil {
-		d.patchGitOpsStatus(ctx, obj.GetName(), platformConfig.Status.GitOpsStatus, gitOpsStatus)
+		d.patchPlatformStatus(ctx, obj.GetName(), platformConfig.Status, gitOpsStatus, configSource)
 		return []ReconcileResult{{Err: err}}
 	}
 
@@ -128,7 +133,7 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	if engine == "" {
 		d.logger.Info("skipping reconciliation of platform components, reporting GitOps status only",
 			"name", obj.GetName(), "specEngine", specEngine, "engine", gitOpsStatus.Engine, "installed", gitOpsStatus.Installed)
-		d.patchGitOpsStatus(ctx, obj.GetName(), platformConfig.Status.GitOpsStatus, gitOpsStatus)
+		d.patchPlatformStatus(ctx, obj.GetName(), platformConfig.Status, gitOpsStatus, configSource)
 		return nil
 	}
 
@@ -217,8 +222,10 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	}
 
 	// Only patch when status/message actually changed.
-	if !conditionsEqual(platformConfig.Status.Conditions, conditions) || !gitOpsStatusEqual(platformConfig.Status.GitOpsStatus, gitOpsStatus) {
-		if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), conditions, gitOpsStatus); err != nil {
+	if !conditionsEqual(platformConfig.Status.Conditions, conditions) ||
+		!gitOpsStatusEqual(platformConfig.Status.GitOpsStatus, gitOpsStatus) ||
+		!configSourceEqual(platformConfig.Status.ConfigSource, configSource) {
+		if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), conditions, gitOpsStatus, configSource); err != nil {
 			d.logger.Warn("failed to update PlatformConfig status", "name", obj.GetName(), "error", err)
 		}
 	}
@@ -226,13 +233,20 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	return results
 }
 
-// patchGitOpsStatus writes the GitOps status when it differs from what the
-// object already reports. Failures are logged, never propagated.
-func (d *reconcilerModule) patchGitOpsStatus(ctx context.Context, name string, current, desired *v1alpha1.GitOpsStatus) {
-	if gitOpsStatusEqual(current, desired) {
+// patchPlatformStatus writes the GitOps status and the config source when
+// either differs from what the object already reports. Failures are logged,
+// never propagated: the status is a report, not a precondition.
+func (d *reconcilerModule) patchPlatformStatus(
+	ctx context.Context,
+	name string,
+	current v1alpha1.PlatformConfigStatus,
+	desiredGitOps *v1alpha1.GitOpsStatus,
+	desiredSource *v1alpha1.PlatformConfigSource,
+) {
+	if gitOpsStatusEqual(current.GitOpsStatus, desiredGitOps) && configSourceEqual(current.ConfigSource, desiredSource) {
 		return
 	}
-	if err := d.updatePlatformConfigStatus(ctx, name, nil, desired); err != nil {
+	if err := d.updatePlatformConfigStatus(ctx, name, nil, desiredGitOps, desiredSource); err != nil {
 		d.logger.Warn("failed to update PlatformConfig status", "name", name, "error", err)
 	}
 }
@@ -252,13 +266,22 @@ func conditionsEqual(current, desired []metav1.Condition) bool {
 	return true
 }
 
-func (d *reconcilerModule) updatePlatformConfigStatus(ctx context.Context, name string, conditions []metav1.Condition, gitOpsStatus *v1alpha1.GitOpsStatus) error {
+func (d *reconcilerModule) updatePlatformConfigStatus(
+	ctx context.Context,
+	name string,
+	conditions []metav1.Condition,
+	gitOpsStatus *v1alpha1.GitOpsStatus,
+	configSource *v1alpha1.PlatformConfigSource,
+) error {
 	status := map[string]any{}
 	if conditions != nil {
 		status["conditions"] = conditions
 	}
 	if gitOpsStatus != nil {
 		status["gitOpsStatus"] = gitOpsStatus
+	}
+	if configSource != nil {
+		status["configSource"] = configSource
 	}
 	patchBytes, err := json.Marshal(map[string]any{"status": status})
 	if err != nil {
