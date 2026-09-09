@@ -80,7 +80,6 @@ test-unit: generate
 # Execute Helm chart unit tests (requires the helm-unittest plugin)
 test-helm:
     helm unittest -f 'unittests/*_test.yaml' helm/charts/mogenius-operator
-    helm unittest -f 'unittests/*_test.yaml' helm/charts/mogenius-platform-bootstrap
 
 # Execute integration tests
 test-integration: generate

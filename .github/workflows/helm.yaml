@@ -28,16 +28,6 @@ jobs:
     with:
       path: ./helm/charts/mogenius-operator
 
-  lint-bootstrap:
-    uses: mogenius/github-actions/.github/workflows/helm-lint.yml@c3e043d602a88fea39b680b67480b4a90d8d31d2 # v1.8.0
-    with:
-      path: ./helm/charts/mogenius-platform-bootstrap
-
-  tests-bootstrap:
-    uses: mogenius/github-actions/.github/workflows/helm-unittest.yml@c3e043d602a88fea39b680b67480b4a90d8d31d2 # v1.8.0
-    with:
-      path: ./helm/charts/mogenius-platform-bootstrap
-
   template:
     uses: mogenius/github-actions/.github/workflows/helm-template.yml@c3e043d602a88fea39b680b67480b4a90d8d31d2 # v1.8.0
     with:

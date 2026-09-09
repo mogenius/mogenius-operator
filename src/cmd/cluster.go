@@ -294,16 +294,7 @@ func startClusterSystems(logManagerModule logging.SlogManager, configModule *con
 
 		core.EnsureDefaultWorkspaceDashboard(logManagerModule.CreateLogger("dashboard-seeder"), configModule)
 
-		core.EnsureDefaultPlatformConfig(
-			logManagerModule.CreateLogger("platform-config-seeder"),
-			systems.clientProvider,
-			core.PlatformBootstrap{
-				RepositoryURL: configModule.Get("MO_PLATFORM_BOOTSTRAP_REPOSITORY_URL"),
-				Branch:        configModule.Get("MO_PLATFORM_BOOTSTRAP_REPOSITORY_BRANCH"),
-				Path:          configModule.Get("MO_PLATFORM_BOOTSTRAP_REPOSITORY_PATH"),
-				Engine:        configModule.Get("MO_PLATFORM_BOOTSTRAP_GITOPS_ENGINE"),
-			},
-		)
+		core.EnsureDefaultPlatformConfig(logManagerModule.CreateLogger("platform-config-seeder"), systems.clientProvider)
 	})
 
 	systems.leaderElector.OnLeadingEnded(func() {
