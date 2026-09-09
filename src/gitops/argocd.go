@@ -3,9 +3,9 @@ package gitops
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"mogenius-operator/src/k8sclient"
 
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
@@ -21,6 +21,7 @@ type argocdInstaller struct {
 	clientProvider k8sclient.K8sClientProvider
 	namespace      string
 	ownerRefs      []metav1.OwnerReference
+	logger         *slog.Logger
 }
 
 func (a *argocdInstaller) Install(component string, artifact GitOpsArtifact) error {
@@ -46,8 +47,8 @@ func (a *argocdInstaller) UnInstall(component string) error {
 	client := a.clientProvider.DynamicClient().Resource(argoApplicationGVR).Namespace(a.namespace)
 
 	for _, name := range []string{component, component + "-resources"} {
-		if err := client.Delete(ctx, name, metav1.DeleteOptions{}); err != nil && !apierrors.IsNotFound(err) {
-			return fmt.Errorf("delete argocd application %s: %w", name, err)
+		if err := deleteIfManaged(ctx, a.logger, client, "argocd application", name); err != nil {
+			return err
 		}
 	}
 	return nil
