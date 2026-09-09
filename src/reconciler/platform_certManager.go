@@ -10,8 +10,9 @@ import (
 
 func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
 	cm := spec.CertManager
+	// Not declared: leave whatever is installed alone (see reconcileComponent).
 	if cm == nil {
-		cm = &v1alpha1.CertManagerConfig{}
+		return nil
 	}
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{

@@ -10,10 +10,13 @@ import (
 )
 
 func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
-	cfg := spec.GitOps.ArgoCD
-	if cfg == nil {
-		cfg = &v1alpha1.ArgoCDInstallConfig{}
+	// Not declared: leave whatever is installed alone (see reconcileComponent).
+	// Unreachable through reconcilePlatformConfig, which only dispatches here
+	// for an engine the spec enables — but a nil spec.GitOps would panic.
+	if spec.GitOps == nil || spec.GitOps.ArgoCD == nil {
+		return nil
 	}
+	cfg := spec.GitOps.ArgoCD
 	namespace := helmNamespace(cfg.Chart, argocdDefaultNamespace)
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{

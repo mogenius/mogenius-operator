@@ -10,8 +10,9 @@ import (
 
 func (d *reconcilerModule) reconcileRenovateOperator(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
 	c := spec.RenovateOperator
+	// Not declared: leave whatever is installed alone (see reconcileComponent).
 	if c == nil {
-		c = &v1alpha1.RenovateOperatorConfig{}
+		return nil
 	}
 	namespace := helmNamespace(c.Chart, "renovate-operator")
 	return d.reconcileComponent(ctx, spec, installer, op,

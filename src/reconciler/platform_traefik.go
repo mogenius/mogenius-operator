@@ -9,8 +9,9 @@ import (
 
 func (d *reconcilerModule) reconcileTraefik(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
 	t := spec.Traefik
+	// Not declared: leave whatever is installed alone (see reconcileComponent).
 	if t == nil {
-		t = &v1alpha1.TraefikConfig{}
+		return nil
 	}
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{

@@ -10,8 +10,9 @@ import (
 
 func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
 	c := spec.ExternalDNS
+	// Not declared: leave whatever is installed alone (see reconcileComponent).
 	if c == nil {
-		c = &v1alpha1.ExternalDNSConfig{}
+		return nil
 	}
 
 	providerSecretName := fmt.Sprintf("%s-external-dns", c.Provider)
