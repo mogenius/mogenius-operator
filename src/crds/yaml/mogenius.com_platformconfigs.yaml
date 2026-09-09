@@ -602,6 +602,28 @@ spec:
                   - type
                   type: object
                 type: array
+              configSource:
+                description: ConfigSource reports who owns this resource's spec.
+                properties:
+                  revision:
+                    description: |-
+                      Revision the engine last applied from the repository, when it reports
+                      one — Flux's lastAppliedRevision, Argo CD's synced revision. Empty while
+                      Source is "cluster".
+                    type: string
+                  source:
+                    description: Source is "cluster" or "git".
+                    enum:
+                    - cluster
+                    - git
+                    type: string
+                  syncedBy:
+                    description: |-
+                      SyncedBy names the object that applied this resource, for pointing a user
+                      at the right place when a sync goes wrong: the Flux Kustomization or the
+                      Argo CD Application, as "namespace/name".
+                    type: string
+                type: object
               gitOpsStatus:
                 description: |-
                   GitOpsStatus reports whether, where and which GitOps engine runs on this

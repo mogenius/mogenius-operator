@@ -255,6 +255,41 @@ type HelmChartReference struct {
 type PlatformConfigStatus struct {
 	Conditions   []metav1.Condition `json:"conditions,omitempty"`
 	GitOpsStatus *GitOpsStatus      `json:"gitOpsStatus,omitempty"`
+	// ConfigSource reports who owns this resource's spec.
+	// +optional
+	ConfigSource *PlatformConfigSource `json:"configSource,omitempty"`
+}
+
+// PlatformConfigSource says where the spec in the cluster came from.
+//
+// The mogenius API switches on this: while it reads "cluster" the API edits the
+// resource directly, and once it reads "git" it commits platformconfig.yaml
+// instead, because a direct write would be reverted by the engine's next sync.
+//
+// It only turns to "git" on evidence that an engine actually applied this
+// object — never on a repository merely being configured. A repository that is
+// set up but not syncing (wrong path, bad credential, controllers still coming
+// up) therefore leaves the platform editable rather than locking the user out
+// of their own configuration.
+//
+// As with GitOpsStatus, no field carries `omitempty`: the status is written as
+// a JSON merge patch, where an omitted key keeps its previous value, and a
+// stale revision would outlive the sync that produced it.
+type PlatformConfigSource struct {
+	// Source is "cluster" or "git".
+	// +kubebuilder:validation:Enum=cluster;git
+	// +optional
+	Source string `json:"source"`
+	// Revision the engine last applied from the repository, when it reports
+	// one — Flux's lastAppliedRevision, Argo CD's synced revision. Empty while
+	// Source is "cluster".
+	// +optional
+	Revision string `json:"revision"`
+	// SyncedBy names the object that applied this resource, for pointing a user
+	// at the right place when a sync goes wrong: the Flux Kustomization or the
+	// Argo CD Application, as "namespace/name".
+	// +optional
+	SyncedBy string `json:"syncedBy"`
 }
 
 // GitOpsStatus reports whether, where and which GitOps engine runs on this
