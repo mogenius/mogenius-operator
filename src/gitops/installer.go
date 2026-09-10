@@ -142,9 +142,20 @@ func deleteIfManaged(ctx context.Context, logger *slog.Logger, client dynamic.Re
 // not own cannot ship as extra objects of a release it installed, because
 // there is no such release -- they have to be applied directly.
 func Apply(cp k8sclient.K8sClientProvider, gvr schema.GroupVersionResource, namespace string, obj *unstructured.Unstructured) error {
-	ctx := context.Background()
-	client := cp.DynamicClient().Resource(gvr).Namespace(namespace)
+	return applyWith(context.Background(), cp.DynamicClient().Resource(gvr).Namespace(namespace), obj)
+}
 
+// applyWith creates the object, or replaces it when it exists — carrying over
+// what other controllers put on it.
+//
+// The carry-over is not politeness. helm-controller parks its uninstall
+// finalizer on every HelmRelease it reconciles, and an update that replaces
+// metadata wholesale strips it on every sweep; a HelmRelease deleted in one of
+// those windows vanishes from etcd without helm-controller ever running the
+// uninstall, and the release's workload keeps running with nothing left that
+// manages it. Our own keys win on conflict — the operator is the owner of what
+// it applies — but keys and finalizers it did not write survive.
+func applyWith(ctx context.Context, client dynamic.ResourceInterface, obj *unstructured.Unstructured) error {
 	_, err := client.Create(ctx, obj, metav1.CreateOptions{})
 	if err == nil {
 		return nil
@@ -158,6 +169,24 @@ func Apply(cp k8sclient.K8sClientProvider, gvr schema.GroupVersionResource, name
 		return err
 	}
 	obj.SetResourceVersion(existing.GetResourceVersion())
+	obj.SetFinalizers(existing.GetFinalizers())
+	obj.SetLabels(mergePreferringOurs(existing.GetLabels(), obj.GetLabels()))
+	obj.SetAnnotations(mergePreferringOurs(existing.GetAnnotations(), obj.GetAnnotations()))
 	_, err = client.Update(ctx, obj, metav1.UpdateOptions{})
 	return err
+}
+
+// mergePreferringOurs keeps every key of theirs that ours does not set.
+func mergePreferringOurs(theirs, ours map[string]string) map[string]string {
+	if len(theirs) == 0 {
+		return ours
+	}
+	merged := make(map[string]string, len(theirs)+len(ours))
+	for key, value := range theirs {
+		merged[key] = value
+	}
+	for key, value := range ours {
+		merged[key] = value
+	}
+	return merged
 }

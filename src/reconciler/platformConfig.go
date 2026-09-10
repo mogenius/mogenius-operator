@@ -8,6 +8,7 @@ import (
 	"mogenius-operator/src/gitops"
 	"reflect"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -104,6 +105,26 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		d.logger.Info("PlatformConfig deleted, leaving installed components untouched", "name", obj.GetName())
 		return nil
 	}
+
+	// The event object can be minutes old by the time it is processed: a sweep
+	// works through chart pulls and controller waits, and events queue up
+	// behind it. Acting on a queued copy re-creates components the current
+	// spec already disabled — a HelmRelease that flaps into existence right
+	// after its uninstall — so the sweep starts from what the cluster says now.
+	// Gone entirely is handled like the delete event above: not an instruction.
+	fresh, err := d.clientProvider.DynamicClient().
+		Resource(platformConfigGVR).
+		Get(ctx, obj.GetName(), metav1.GetOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			d.logger.Info("PlatformConfig gone before its reconcile ran, leaving installed components untouched", "name", obj.GetName())
+			return nil
+		}
+		// Stale input is the one thing this must not act on, so a read failure
+		// fails the sweep and the retry works from a fresh object.
+		return []ReconcileResult{{Err: fmt.Errorf("re-read PlatformConfig %s: %w", obj.GetName(), err)}}
+	}
+	obj = fresh
 
 	var platformConfig v1alpha1.PlatformConfig
 	if err := runtime.DefaultUnstructuredConverter.FromUnstructured(obj.Object, &platformConfig); err != nil {
