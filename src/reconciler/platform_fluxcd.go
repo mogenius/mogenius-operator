@@ -69,8 +69,13 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 					}
 				}
 
+				// The same credential decision the user-managed path makes: a
+				// private repository is unreadable without it, and the Secret
+				// sits right next to the source. This path shipped without it
+				// once -- the engine ran, cloned nothing, and the only symptom
+				// was "authentication required" on the GitRepository.
 				extraObjects = append(extraObjects,
-					fluxGitRepositoryObject(name, repo, namespace),
+					fluxGitRepositoryObject(name, repo, namespace, d.fluxRepositorySecretName(ctx, name, repo, namespace)),
 					fluxKustomizationObject(name, repo, namespace),
 				)
 
@@ -146,7 +151,11 @@ func fluxKustomizationObject(name string, repo v1alpha1.GitOpsRepositoryConfig, 
 	}
 }
 
-func fluxGitRepositoryObject(name string, repo v1alpha1.GitOpsRepositoryConfig, namespace string) map[string]any {
+// fluxGitRepositoryObject builds the source. secretName is the credential the
+// source binds with, empty for none -- the caller decides, because deciding
+// takes a cluster lookup (fluxRepositorySecretName) and this stays a pure
+// builder.
+func fluxGitRepositoryObject(name string, repo v1alpha1.GitOpsRepositoryConfig, namespace string, secretName string) map[string]any {
 	revision := repo.Revision
 	if revision == "" {
 		revision = "main"
@@ -158,8 +167,8 @@ func fluxGitRepositoryObject(name string, repo v1alpha1.GitOpsRepositoryConfig, 
 			"branch": revision,
 		},
 	}
-	if repo.ExternalSecret != nil {
-		spec["secretRef"] = map[string]any{"name": name}
+	if secretName != "" {
+		spec["secretRef"] = map[string]any{"name": secretName}
 	}
 	return map[string]any{
 		"apiVersion": "source.toolkit.fluxcd.io/v1",
