@@ -19,7 +19,7 @@ func (d *reconcilerModule) reconcileLoki(ctx context.Context, spec v1alpha1.Plat
 			patches:          c.Patches,
 			name:             componentLoki,
 			defaultChart:     "loki",
-			defaultRepo:      "https://grafana.github.io/helm-charts",
+			defaultRepo:      "https://grafana-community.github.io/helm-charts",
 			defaultName:      "loki",
 			defaultNamespace: "monitoring",
 		},
