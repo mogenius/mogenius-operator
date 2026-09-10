@@ -68,7 +68,7 @@ func (f *fluxInstaller) Install(component string, artifact GitOpsArtifact) error
 		}
 	}
 
-	return f.ApplyExtras(component, artifact)
+	return f.applyExtras(component, artifact, true)
 }
 
 // ApplyExtras ships only the artifact's extra objects, without the component's
@@ -76,7 +76,17 @@ func (f *fluxInstaller) Install(component string, artifact GitOpsArtifact) error
 // SDK rather than as a HelmRelease — a HelmRelease for flux-operator would have
 // helm-controller manage the release its own controllers come from — but the
 // objects that belong to it still travel the normal way.
+//
+// Without a dependsOn on the component, and that is the point: there is no
+// HelmRelease named after the engine to depend on, and a dependency on an
+// object that will never exist parks the extras release in "Fulfilling
+// prerequisites" forever — with the repository sync objects inside it, so the
+// engine runs and syncs nothing.
 func (f *fluxInstaller) ApplyExtras(component string, artifact GitOpsArtifact) error {
+	return f.applyExtras(component, artifact, false)
+}
+
+func (f *fluxInstaller) applyExtras(component string, artifact GitOpsArtifact, dependsOnComponent bool) error {
 	if len(artifact.ExtraObjects) == 0 {
 		return nil
 	}
@@ -87,7 +97,7 @@ func (f *fluxInstaller) ApplyExtras(component string, artifact GitOpsArtifact) e
 		return fmt.Errorf("apply flux moac helmrepository %s-resources: %w", component, err)
 	}
 
-	moacRelease := buildFluxMoacHelmRelease(component, artifact, f.namespace)
+	moacRelease := buildFluxMoacHelmRelease(component, artifact, f.namespace, dependsOnComponent)
 	moacRelease.SetOwnerReferences(f.ownerRefs)
 	if err := Apply(f.clientProvider, fluxHelmReleaseGVR, f.namespace, moacRelease); err != nil {
 		return fmt.Errorf("apply flux moac helmrelease %s-resources: %w", component, err)
@@ -245,8 +255,54 @@ func buildFluxOCIHelmRelease(component string, artifact GitOpsArtifact, namespac
 	}
 }
 
-func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespace string) *unstructured.Unstructured {
+// buildFluxMoacHelmRelease wraps an artifact's extra objects in a HelmRelease.
+//
+// dependsOnComponent orders it after the component's own HelmRelease — right
+// for a component the installer ships as one, wrong for the engine, whose
+// chart goes in through the Helm SDK and therefore has no HelmRelease to wait
+// for. Apply replaces the whole spec, so switching this off also removes a
+// dependency a previous version wrote.
+func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespace string, dependsOnComponent bool) *unstructured.Unstructured {
 	name := component + "-resources"
+	spec := map[string]any{
+		"interval":        "10m",
+		"releaseName":     artifact.HelmChart.Name + "-resources",
+		"targetNamespace": artifact.Namespace,
+		"chart": map[string]any{
+			"spec": map[string]any{
+				"chart":   moacChart,
+				"version": moacVersion,
+				"sourceRef": map[string]any{
+					"kind":      "HelmRepository",
+					"name":      name,
+					"namespace": namespace,
+				},
+			},
+		},
+		"install": map[string]any{
+			"createNamespace": true,
+			"strategy": map[string]any{
+				"name": "RetryOnFailure",
+			},
+		},
+		"upgrade": map[string]any{
+			"strategy": map[string]any{
+				"name": "RetryOnFailure",
+			},
+		},
+		"values": map[string]any{
+			"rawResources": artifact.ExtraObjects,
+		},
+	}
+	if dependsOnComponent {
+		spec["dependsOn"] = []any{
+			map[string]any{
+				"name":      component,
+				"namespace": namespace,
+			},
+		}
+	}
+
 	return &unstructured.Unstructured{
 		Object: map[string]any{
 			"apiVersion": "helm.toolkit.fluxcd.io/v2",
@@ -256,42 +312,7 @@ func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespa
 				"namespace": namespace,
 				"labels":    defaultLabels(component),
 			},
-			"spec": map[string]any{
-				"interval":        "10m",
-				"releaseName":     artifact.HelmChart.Name + "-resources",
-				"targetNamespace": artifact.Namespace,
-				"dependsOn": []any{
-					map[string]any{
-						"name":      component,
-						"namespace": namespace,
-					},
-				},
-				"chart": map[string]any{
-					"spec": map[string]any{
-						"chart":   moacChart,
-						"version": moacVersion,
-						"sourceRef": map[string]any{
-							"kind":      "HelmRepository",
-							"name":      name,
-							"namespace": namespace,
-						},
-					},
-				},
-				"install": map[string]any{
-					"createNamespace": true,
-					"strategy": map[string]any{
-						"name": "RetryOnFailure",
-					},
-				},
-				"upgrade": map[string]any{
-					"strategy": map[string]any{
-						"name": "RetryOnFailure",
-					},
-				},
-				"values": map[string]any{
-					"rawResources": artifact.ExtraObjects,
-				},
-			},
+			"spec": spec,
 		},
 	}
 }
