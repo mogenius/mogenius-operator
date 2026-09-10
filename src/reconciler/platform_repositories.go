@@ -74,15 +74,7 @@ func (d *reconcilerModule) reconcilePlatformRepositories(
 			}
 
 		case gitOpsEngineFlux:
-			source := fluxGitRepositoryObject(name, repo, namespace)
-			// Flux is pointed at its credential by name, and a secretRef naming
-			// a Secret that is not there fails the source outright -- so it is
-			// only set once the Secret exists. A public repository needs none.
-			if repo.ExternalSecret == nil && d.platformRepositorySecretExists(ctx, namespace, name+repositorySecretSuffix) {
-				if spec, ok := source["spec"].(map[string]any); ok {
-					spec["secretRef"] = map[string]any{"name": name + repositorySecretSuffix}
-				}
-			}
+			source := fluxGitRepositoryObject(name, repo, namespace, d.fluxRepositorySecretName(ctx, name, repo, namespace))
 			if err := d.applyPlatformObject(utils.GitRepositoryResource, namespace, source); err != nil {
 				return &ReconcileResult{Err: fmt.Errorf("apply git repository %q: %w", name, err)}
 			}
@@ -122,6 +114,32 @@ func (d *reconcilerModule) applyPlatformObject(resource utils.ResourceDescriptor
 		namespace,
 		obj,
 	)
+}
+
+// fluxRepositorySecretName is the credential a repository's GitRepository binds
+// with: the ExternalSecret's target when one is declared, otherwise the
+// conventional <name>-repository Secret -- and only when that Secret actually
+// exists. Flux is pointed at a credential by name, and a secretRef naming a
+// Secret that is not there fails the source outright; a public repository
+// needs none.
+//
+// Shared by both delivery paths on purpose. The engine-extras path once made
+// this decision differently from the user-managed path (namely: not at all),
+// and a private repository then failed with "authentication required" while
+// its credential sat unused in the same namespace.
+func (d *reconcilerModule) fluxRepositorySecretName(
+	ctx context.Context,
+	name string,
+	repo v1alpha1.GitOpsRepositoryConfig,
+	namespace string,
+) string {
+	if repo.ExternalSecret != nil {
+		return name
+	}
+	if d.platformRepositorySecretExists(ctx, namespace, name+repositorySecretSuffix) {
+		return name + repositorySecretSuffix
+	}
+	return ""
 }
 
 func (d *reconcilerModule) platformRepositorySecretExists(ctx context.Context, namespace, name string) bool {
