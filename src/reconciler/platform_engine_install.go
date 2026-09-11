@@ -126,7 +126,7 @@ func (d *reconcilerModule) reconcileGitOpsEngine(
 			return &ReconcileResult{Err: fmt.Errorf(
 				"%s installed but %s did not register within %s", cs.name, bootstrap.resource.Kind, engineCRDTimeout)}
 		}
-		if err := d.applyPlatformObject(bootstrap.resource, namespace, bootstrap.object); err != nil {
+		if err := d.applyPlatformObject(ctx, bootstrap.resource, namespace, bootstrap.object); err != nil {
 			return &ReconcileResult{Err: fmt.Errorf("apply %s for %s: %w", bootstrap.resource.Kind, cs.name, err)}
 		}
 	}
