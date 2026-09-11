@@ -38,8 +38,14 @@ func declaredComponents(spec v1alpha1.PlatformConfigSpec) map[string]componentDe
 		if spec.GitOps.ArgoCD != nil {
 			declared[componentArgoCD] = componentDeclaration{declared: true, enabled: spec.GitOps.ArgoCD.Enabled}
 		}
-		if len(spec.GitOps.Repositories) > 0 {
-			declared[componentPlatformRepositories] = componentDeclaration{declared: true, enabled: true}
+		for _, repo := range spec.GitOps.Repositories {
+			// Only the platform's own repositories: an application entry gets
+			// no sync objects, so reporting it here would be a claim about
+			// work this operator never does.
+			if repo.IsPlatformRepository() {
+				declared[componentPlatformRepositories] = componentDeclaration{declared: true, enabled: true}
+				break
+			}
 		}
 	}
 	if spec.CertManager != nil {

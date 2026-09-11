@@ -324,6 +324,15 @@ spec:
                           type: string
                         revision:
                           type: string
+                        type:
+                          description: |-
+                            Type says what the repository holds: "platform" (the default when
+                            absent — every config written before the field existed means exactly
+                            that) or "application".
+                          enum:
+                          - platform
+                          - application
+                          type: string
                         url:
                           type: string
                         write:

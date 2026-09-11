@@ -64,9 +64,25 @@ type GitOpsConfig struct {
 	Repositories []GitOpsRepositoryConfig `json:"repositories,omitempty"`
 }
 
+// The two kinds of repository a PlatformConfig can declare.
+const (
+	// RepositoryTypePlatform holds the platform config itself; the operator
+	// turns the entry into the engine's sync objects.
+	RepositoryTypePlatform = "platform"
+	// RepositoryTypeApplication holds application workloads. Declared for the
+	// mogenius platform to read; this operator creates no sync objects for it.
+	RepositoryTypeApplication = "application"
+)
+
 type GitOpsRepositoryConfig struct {
-	Name           string          `json:"name"`
-	URL            string          `json:"url"`
+	Name string `json:"name"`
+	URL  string `json:"url"`
+	// Type says what the repository holds: "platform" (the default when
+	// absent — every config written before the field existed means exactly
+	// that) or "application".
+	// +kubebuilder:validation:Enum=platform;application
+	// +optional
+	Type           string          `json:"type,omitempty"`
 	Path           string          `json:"path,omitempty"`
 	Revision       string          `json:"revision,omitempty"`
 	ExternalSecret *ExternalSecret `json:"externalSecret,omitempty"`
@@ -75,6 +91,13 @@ type GitOpsRepositoryConfig struct {
 	// nothing in the cluster on its own.
 	// +optional
 	Write *GitOpsWriteConfig `json:"write,omitempty"`
+}
+
+// IsPlatformRepository answers whether the operator owns this entry's sync
+// objects. Absent type reads as platform: every config written before the
+// field existed declared exactly that.
+func (r GitOpsRepositoryConfig) IsPlatformRepository() bool {
+	return r.Type == "" || r.Type == RepositoryTypePlatform
 }
 
 // GitOpsWriteConfig overrides how the platform commits to a GitOps repository.

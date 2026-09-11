@@ -49,6 +49,29 @@ func TestDeclaredComponentsSeparatesDisabledFromAbsent(t *testing.T) {
 	assert.False(t, declared[componentLoki].declared)
 }
 
+func TestDeclaredComponentsIgnoresApplicationRepositories(t *testing.T) {
+	// An application entry is declared for the mogenius platform, not for this
+	// operator -- no sync objects, so no condition claiming any.
+	onlyApplications := declaredComponents(v1alpha1.PlatformConfigSpec{
+		GitOps: &v1alpha1.GitOpsConfig{
+			Repositories: []v1alpha1.GitOpsRepositoryConfig{
+				{Name: "apps", URL: "https://example.com/apps.git", Type: v1alpha1.RepositoryTypeApplication},
+			},
+		},
+	})
+	assert.False(t, onlyApplications[componentPlatformRepositories].declared)
+
+	mixed := declaredComponents(v1alpha1.PlatformConfigSpec{
+		GitOps: &v1alpha1.GitOpsConfig{
+			Repositories: []v1alpha1.GitOpsRepositoryConfig{
+				{Name: "apps", URL: "https://example.com/apps.git", Type: v1alpha1.RepositoryTypeApplication},
+				{Name: "platform", URL: "https://example.com/p.git"},
+			},
+		},
+	})
+	assert.True(t, mixed[componentPlatformRepositories].declared, "the untyped entry is a platform repository")
+}
+
 func TestDeclaredComponentsReportsRepositoriesOnlyWhenDeclared(t *testing.T) {
 	without := declaredComponents(v1alpha1.PlatformConfigSpec{GitOps: &v1alpha1.GitOpsConfig{}})
 	assert.False(t, without[componentPlatformRepositories].declared)

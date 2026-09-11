@@ -42,6 +42,11 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 			extraObjects := []any{}
 
 			for _, repo := range spec.GitOps.Repositories {
+				// Application repositories are declared for the mogenius
+				// platform, not for this operator: no sync objects.
+				if !repo.IsPlatformRepository() {
+					continue
+				}
 				name := repo.Name
 				if name == "" {
 					name = repositorySecretName(repo.URL)
