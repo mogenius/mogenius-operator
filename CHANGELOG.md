@@ -1,5 +1,112 @@
 # Changelog
 
+## [2.30.0](https://github.com/mogenius/mogenius-operator/compare/v2.29.0...v2.30.0) (2026-09-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **platform:** make Flux the default GitOps engine
+* **uiconfig:** install the UIConfig CRD on every cluster
+* **platform:** manage the PlatformConfig on every cluster
+
+### Features
+
+* add GroupGrant rule CRD with socket patterns and spec-carrying cluster events ([327228a](https://github.com/mogenius/mogenius-operator/commit/327228a6ad5db41661b88cdd20fc62d9e36fdea9))
+* add oci helm cart upgrade path ([019c082](https://github.com/mogenius/mogenius-operator/commit/019c0821363b3bb1dbe8c2c9e6ca68f0655820b2))
+* **ai:** remove the GitHub PAT chat integration (MOG-4499) ([0eaecc4](https://github.com/mogenius/mogenius-operator/commit/0eaecc45fe312c19362402dc55ac36ef5b1f51f3))
+* allow helm repo unlinking ([226b685](https://github.com/mogenius/mogenius-operator/commit/226b685f2f9b72e939ee0e3c3da416361ef662dd))
+* **chart:** create the platform write credential during bootstrap ([87df0f0](https://github.com/mogenius/mogenius-operator/commit/87df0f08956285e7270d70211212c46b5274ffb6))
+* **core:** create the gitops repository credentials in the operator ([4e7c3e8](https://github.com/mogenius/mogenius-operator/commit/4e7c3e881e00b28a0ba68503833d3aa7c4736547))
+* **gitops:** accept Argo CD Applications in the reconcile commands ([af442c7](https://github.com/mogenius/mogenius-operator/commit/af442c7493cf87b03a5d84023cbe6ec1aeaff851))
+* **platform:** deliver components through a user-managed GitOps engine ([b0cb3b8](https://github.com/mogenius/mogenius-operator/commit/b0cb3b84c2ec03ffecbcb26e8b44755ac922ea73))
+* **platform:** install the GitOps engine with the Helm SDK ([f469af6](https://github.com/mogenius/mogenius-operator/commit/f469af6031055ccad765bf4f737311a2e02e6081))
+* **platform:** make Flux the default GitOps engine ([35e0162](https://github.com/mogenius/mogenius-operator/commit/35e016242cb17966906881c07caaba6ce7903691))
+* **platform:** manage the PlatformConfig on every cluster ([dcf4753](https://github.com/mogenius/mogenius-operator/commit/dcf4753b7fbd2df22fd242d04e5f9d1c200b24ff))
+* **platform:** remove the platform bootstrap chart ([5501b19](https://github.com/mogenius/mogenius-operator/commit/5501b19bc591c324c1e99c6cc391ba44794982d5))
+* **platform:** report whether the spec comes from git ([608cdd9](https://github.com/mogenius/mogenius-operator/commit/608cdd9ea9fac138f432b7c5631d0da4dbdc2a4d))
+* **platform:** sync the PlatformConfig repository from the resource itself ([befabcc](https://github.com/mogenius/mogenius-operator/commit/befabccb9be8385bbbf7a1e0d776dce99bcffa11))
+* **platform:** type platform config repositories ([d175715](https://github.com/mogenius/mogenius-operator/commit/d175715f82529bfa2a94a23cc9cdc6314e3f2f07))
+* show set values for oci helm releases ([c9b727e](https://github.com/mogenius/mogenius-operator/commit/c9b727e71101398fb7be3245c5cf659a1bca61d3))
+* SSH, scp and port forwarding without sshd ([cdf8c6f](https://github.com/mogenius/mogenius-operator/commit/cdf8c6f44884606c8fcf20de6a3550f7b1a7be71))
+* **storage:** expose helper pod status in storage/v2/info ([ba4f6a3](https://github.com/mogenius/mogenius-operator/commit/ba4f6a33653ca005db8595e8156baf4730bde768))
+* **storage:** files/v2/search pattern and createdAt in storage/v2/info ([4417b0d](https://github.com/mogenius/mogenius-operator/commit/4417b0d89cd3da9c69dab3de40439cd4ed69896e))
+* **storage:** generic PVC exec substrate and storage/files v2 patterns ([05a72d4](https://github.com/mogenius/mogenius-operator/commit/05a72d40310efa6b6fee85e92416e215f4fc87ea))
+* **storage:** helper mounter pod for unmounted PVCs ([e4f45d2](https://github.com/mogenius/mogenius-operator/commit/e4f45d24d27f268173cfc40d0b34a0538ceb6b07))
+* **storage:** sniff file content type for info and download ([c3fe38c](https://github.com/mogenius/mogenius-operator/commit/c3fe38cc59650d804b55b65798f62fe9743d483a))
+* **uiconfig:** install the UIConfig CRD on every cluster ([ae38cf2](https://github.com/mogenius/mogenius-operator/commit/ae38cf292f34a856561263dc6068a68250699aca))
+
+
+### Bug Fixes
+
+* **agent:** fail the agent if compaction fails ([78267e6](https://github.com/mogenius/mogenius-operator/commit/78267e6c57a7994bb3392d27cdb83a6bbe2d0fbc))
+* **agent:** improve agent label when reasoning is finished ([8c9a2b4](https://github.com/mogenius/mogenius-operator/commit/8c9a2b4fe302bd6e6b23bf082416ef928be7601e))
+* **agent:** improve budget tests and error handling ([b04bde9](https://github.com/mogenius/mogenius-operator/commit/b04bde90eb6e279c856e35537243184168ac71d7))
+* **agent:** improve message if agent hit its context limits ([fa41889](https://github.com/mogenius/mogenius-operator/commit/fa4188950bb189252236a05acc00f1d337fe6deb))
+* agents can only be scoped on a single workspace and listed by workspace ([a8fbce7](https://github.com/mogenius/mogenius-operator/commit/a8fbce76504795e39844d91bd756e41ba91b53db))
+* **agents:** adding warning if ai response lenght isnt readable ([714b859](https://github.com/mogenius/mogenius-operator/commit/714b859bb8f662425400df47e06cbfc3d7312158))
+* **argocd:** read the install config off the PlatformConfig when the legacy ConfigMap is absent ([c034f08](https://github.com/mogenius/mogenius-operator/commit/c034f08fd2694b7ae56b92d958ba5b7217fac666))
+* container started might not yet be set ([1a1bf0d](https://github.com/mogenius/mogenius-operator/commit/1a1bf0d2d680c492339320701caacca269decbb7))
+* correctly read agent scope if it is cluster wide ([3ecf8e9](https://github.com/mogenius/mogenius-operator/commit/3ecf8e97a2cc554c7df9c782af7f1b1c71593373))
+* **deps:** pin snoopy back to v0.4.13 ([ab4af1e](https://github.com/mogenius/mogenius-operator/commit/ab4af1ec2a7a494c24be9697fb412d53b3766e2c))
+* **deps:** update kubernetes monorepo to v0.37.0 ([#1197](https://github.com/mogenius/mogenius-operator/issues/1197)) ([4d2d4d5](https://github.com/mogenius/mogenius-operator/commit/4d2d4d5fd46fca2e83015a7f8913d12abad62d31))
+* **deps:** update module github.com/alicebob/miniredis/v2 to v2.39.0 ([9530604](https://github.com/mogenius/mogenius-operator/commit/95306048c9846601404bba5f9c107e87b9b3a9bd))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.68.0 ([f422eb8](https://github.com/mogenius/mogenius-operator/commit/f422eb83a8d66318060dfe87fb415a5a925f8dfb))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.71.0 ([be124ed](https://github.com/mogenius/mogenius-operator/commit/be124ede57e73514e67582adcf009d222335dfbe))
+* **deps:** update module github.com/bitnami/sealed-secrets to v0.39.1 ([#1194](https://github.com/mogenius/mogenius-operator/issues/1194)) ([2cfd838](https://github.com/mogenius/mogenius-operator/commit/2cfd83895e83873534d9f3c2790a208964056e35))
+* **deps:** update module github.com/go-playground/validator/v10 to v10.30.4 ([#1219](https://github.com/mogenius/mogenius-operator/issues/1219)) ([31dbf4f](https://github.com/mogenius/mogenius-operator/commit/31dbf4fd96fdc4bbdc299e62b385624e4029312d))
+* **deps:** update module github.com/kimmachinegun/automemlimit to v1 ([cb782a2](https://github.com/mogenius/mogenius-operator/commit/cb782a2426bf77a057ea4558216125024c5efa3e))
+* **deps:** update module github.com/ollama/ollama to v0.33.2 ([adafe21](https://github.com/mogenius/mogenius-operator/commit/adafe21c08c13259d7e7e939ba3c8427759c455e))
+* **deps:** update module github.com/ollama/ollama to v0.33.3 ([b74e07d](https://github.com/mogenius/mogenius-operator/commit/b74e07d13a4988ae722fc98ef0baa5337a35becb))
+* **deps:** update module github.com/ollama/ollama to v0.34.0 ([77bd2cd](https://github.com/mogenius/mogenius-operator/commit/77bd2cda6c7470842e52d1ac8a720424712f605d))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.54.0 ([#1200](https://github.com/mogenius/mogenius-operator/issues/1200)) ([2f6497a](https://github.com/mogenius/mogenius-operator/commit/2f6497a9fb148217446c07fc8616ddfeb4a2eeed))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.56.0 ([#1207](https://github.com/mogenius/mogenius-operator/issues/1207)) ([52e4597](https://github.com/mogenius/mogenius-operator/commit/52e4597787eb5acfb91420fcc79ac5cd6aba268a))
+* **deps:** update module golang.org/x/crypto to v0.56.0 ([#1210](https://github.com/mogenius/mogenius-operator/issues/1210)) ([07e1951](https://github.com/mogenius/mogenius-operator/commit/07e19513dfa1aa05a02717da4fdc6facf7c0d4c2))
+* **deps:** update module golang.org/x/crypto to v0.57.0 ([#1246](https://github.com/mogenius/mogenius-operator/issues/1246)) ([7976d9b](https://github.com/mogenius/mogenius-operator/commit/7976d9b89fb6969fde4cf458c9972d785837e886))
+* **deps:** update module golang.org/x/term to v0.46.0 ([#1245](https://github.com/mogenius/mogenius-operator/issues/1245)) ([e850fae](https://github.com/mogenius/mogenius-operator/commit/e850fae2243ca94eccf0a707d9cec28bdf1bd9bd))
+* **deps:** update module helm.sh/helm/v4 to v4.3.0 ([3a95afc](https://github.com/mogenius/mogenius-operator/commit/3a95afc2a9525e2e874bfd86fa4e3cd4f2990e9d))
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.25.0 ([d392a89](https://github.com/mogenius/mogenius-operator/commit/d392a894b833918f9a70cfa6477da07034ddf03e))
+* do not collect metrics if node does not have an adress ([32e1176](https://github.com/mogenius/mogenius-operator/commit/32e1176dbdbc1fa00b9e1565f91f44e5d8e586f5))
+* **flux:** annotate the generated HelmChart on reconcile-with-source ([26af765](https://github.com/mogenius/mogenius-operator/commit/26af7652d1022f8cf74a18f0a1f86044de7d38aa))
+* **gitops:** apply engine extras without a dependsOn on the engine ([34b1f2f](https://github.com/mogenius/mogenius-operator/commit/34b1f2f0043af6349ddb7f8bc94b290659829d9e))
+* **gitops:** bind the repository credential on the engine-extras path ([7f4eb1a](https://github.com/mogenius/mogenius-operator/commit/7f4eb1ad4ff76ee40fa083c1837ca74f5071db4e))
+* **gitops:** carry the existing status through the replace-style apply ([3cb2f38](https://github.com/mogenius/mogenius-operator/commit/3cb2f382301726ed5c509b7978f213d8356fbeb9))
+* **gitops:** only uninstall what this operator installed ([26dc9c9](https://github.com/mogenius/mogenius-operator/commit/26dc9c98d570cf00b5ac3d9f63643d45f1314bf3))
+* **gitops:** preserve foreign metadata on apply and reconcile fresh objects ([1ece3ef](https://github.com/mogenius/mogenius-operator/commit/1ece3ef928324c854360751064b80f4c772f3e6b))
+* **gitops:** report an engine as installed only when its controllers run ([48421c1](https://github.com/mogenius/mogenius-operator/commit/48421c11a783f9eb2be4e1c85ab11a56b3cfe487))
+* **helm:** cap release history at the Helm default ([8012811](https://github.com/mogenius/mogenius-operator/commit/801281121f679e749b26b6b445c37afbe5afd511))
+* honor nil guards for platform config specs ([cfdf5ff](https://github.com/mogenius/mogenius-operator/commit/cfdf5ff0ad0df5cb76d2d7e31ba02535667971c0))
+* if chat call failed mark the step as failed ([fbc12bb](https://github.com/mogenius/mogenius-operator/commit/fbc12bbd2ca5b36eb6e2d1c6e4d4ea249560ff1f))
+* improve validation for workspace ref ([46f6c3e](https://github.com/mogenius/mogenius-operator/commit/46f6c3e7fad4ac02f3c1d7f5f0c296271b8b4416))
+* improve validation for workspace ref ([cccc183](https://github.com/mogenius/mogenius-operator/commit/cccc183f0df811974c47f9dc7353f69682f0b6b5))
+* loki chart has been moved ([4acdd5f](https://github.com/mogenius/mogenius-operator/commit/4acdd5fdf6073246f2314a5f52dbb8ceedfc3b19))
+* **platform:** never overwrite gitops objects the operator does not own ([3deeb4a](https://github.com/mogenius/mogenius-operator/commit/3deeb4ab6b8017c5ccfaf85fdf4004ed34d4ffe3))
+* **platform:** report what the engine says, not that the object was written ([5f9b329](https://github.com/mogenius/mogenius-operator/commit/5f9b329442e86eb3b241a21d588b139e64b7910d))
+* **platform:** treat an absent component block as untouched ([d67413f](https://github.com/mogenius/mogenius-operator/commit/d67413f2f5cc988c404dbd9a24517594a9755948))
+* remove inlining to reduce cpu load ([6886f6b](https://github.com/mogenius/mogenius-operator/commit/6886f6b50aba32df38f0174c45f0426e147f1e52))
+* renovate for busybox incode stuff ([f8251a2](https://github.com/mogenius/mogenius-operator/commit/f8251a202d8b101b146b721b3ce1ef4cffe1873d))
+* set max ai response lenght to 8000 chars ([e9b95d4](https://github.com/mogenius/mogenius-operator/commit/e9b95d4371fed8003091a189bd4b391d12c847b3))
+* **storage:** handle file uploads on every API connection ([720f0ba](https://github.com/mogenius/mogenius-operator/commit/720f0baab565c58772cd45bffe3c8a337c595577))
+* **storage:** ignore terminating pods for mount state and exec targets ([d549099](https://github.com/mogenius/mogenius-operator/commit/d5490998e50efc0482c8b5633f8ba8728a458edb))
+* **storage:** ignore terminating pods in mountedBy and browsable ([4fbcc7f](https://github.com/mogenius/mogenius-operator/commit/4fbcc7fc1fb3094e538881499d40ea2c3d2d23e6))
+* **storage:** no spurious finalizer error when deleting PVCs ([9aee70b](https://github.com/mogenius/mogenius-operator/commit/9aee70b6ac5415675e6dbd1032c04505d272e92d))
+* **storage:** portable df (-P -k) and position-independent parsing ([42f727c](https://github.com/mogenius/mogenius-operator/commit/42f727ccb266618671c3a5105d08d07094e16781))
+* **storage:** reap helper pods of terminating PVCs ([e6e347b](https://github.com/mogenius/mogenius-operator/commit/e6e347bb7f0633fcb950d70d41bc335028b1c2d1))
+* **storage:** share one event broadcaster and stop sleeping in the PV delete handler ([0628177](https://github.com/mogenius/mogenius-operator/commit/062817755c6dcf0f7d1698928963adaae4fb1f1d))
+* **valkey:** let the server assign stream sequence numbers ([454cf57](https://github.com/mogenius/mogenius-operator/commit/454cf57cc1371a49e3b6c61fbebf3cbac3d6af35))
+* **watcher:** stop mutating informer-cached objects in event handlers ([32eb6c0](https://github.com/mogenius/mogenius-operator/commit/32eb6c00ffa5acaf8c9597b53e47a44065d9a832))
+* workspace selector mismatch for agents ([86abcd4](https://github.com/mogenius/mogenius-operator/commit/86abcd4d9db60bf6388aa7e396855f8ada01bb63))
+* **xterm:** stop leaking the reader goroutine and connection of unread streams ([a804519](https://github.com/mogenius/mogenius-operator/commit/a8045194df15d34f018804350237b79c8456bcf5))
+
+
+### Performance Improvements
+
+* **watcher:** stop watching Leases and events.k8s.io Events ([e420cd2](https://github.com/mogenius/mogenius-operator/commit/e420cd2e15b549bfcf8a7de0b72f193a5b5a64a5))
+
+
+### Miscellaneous Chores
+
+* **release:** release as 2.30.0, not 3.0.0 ([26fd0eb](https://github.com/mogenius/mogenius-operator/commit/26fd0eb162ef037c0ca8917e819c980baefcfc61))
+
 ## [2.29.0](https://github.com/mogenius/mogenius-operator/compare/v2.28.0...v2.29.0) (2026-08-21)
 
 
