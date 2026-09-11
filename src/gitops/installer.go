@@ -172,6 +172,19 @@ func applyWith(ctx context.Context, client dynamic.ResourceInterface, obj *unstr
 	obj.SetFinalizers(existing.GetFinalizers())
 	obj.SetLabels(mergePreferringOurs(existing.GetLabels(), obj.GetLabels()))
 	obj.SetAnnotations(mergePreferringOurs(existing.GetAnnotations(), obj.GetAnnotations()))
+
+	// The status carries over for the same reason. Argo CD's Application CRD
+	// has no status subresource, so replacing the object without one erases
+	// the health and sync state the application controller wrote — and the
+	// reconcile that did the erasing reads the status right back to report on
+	// the component, pinning every condition at "waiting for the GitOps
+	// engine to apply it" while the component runs fine. On CRDs that do have
+	// the subresource (all of Flux's), a status in the update body is ignored,
+	// so carrying it is never wrong.
+	if status, found, err := unstructured.NestedFieldCopy(existing.Object, "status"); err == nil && found {
+		obj.Object["status"] = status
+	}
+
 	_, err = client.Update(ctx, obj, metav1.UpdateOptions{})
 	return err
 }

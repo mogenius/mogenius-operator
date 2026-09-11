@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
 // The renovate-zombie incident: helm-controller parks its uninstall finalizer
@@ -63,4 +64,25 @@ func TestMergePreferringOurs(t *testing.T) {
 	assert.Nil(t, mergePreferringOurs(nil, nil))
 	assert.Equal(t, map[string]string{"a": "1"}, mergePreferringOurs(nil, map[string]string{"a": "1"}))
 	assert.Equal(t, map[string]string{"a": "1", "b": "2"}, mergePreferringOurs(map[string]string{"a": "x", "b": "2"}, map[string]string{"a": "1"}))
+}
+
+// Argo CD's Application CRD has no status subresource, so a replace that omits
+// status erases the health and sync state the application controller wrote.
+// The sweep that erased it then read the empty status right back and reported
+// the component as "waiting for the GitOps engine to apply it" forever, while
+// the component ran fine — caught live on 2026-09-11.
+func TestApplyKeepsExistingStatusOnUpdate(t *testing.T) {
+	existing := helmRelease("traefik", defaultLabels("traefik"))
+	require.NoError(t, unstructured.SetNestedField(existing.Object, "Synced", "status", "sync", "status"))
+	client := testClient(t, existing).Resource(testHelmReleaseGVR).Namespace("flux-system")
+
+	update := helmRelease("traefik", defaultLabels("traefik"))
+	require.NoError(t, applyWith(context.Background(), client, update))
+
+	applied, err := client.Get(context.Background(), "traefik", metav1.GetOptions{})
+	require.NoError(t, err)
+	sync, found, err := unstructured.NestedString(applied.Object, "status", "sync", "status")
+	require.NoError(t, err)
+	assert.True(t, found, "the controller-written status must survive the operator's replace")
+	assert.Equal(t, "Synced", sync)
 }
