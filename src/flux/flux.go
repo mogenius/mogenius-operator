@@ -30,7 +30,22 @@ const (
 
 	kindHelmRelease = "HelmRelease"
 	kindHelmChart   = "HelmChart"
+
+	// Argo CD's refresh annotation, accepted by the reconcile commands
+	// alongside the Flux kinds: the platform's "sync now" runs through the
+	// same socket command whichever engine the PlatformConfig installed.
+	// Unlike src/argocd — which drives the server API of an Argo installed
+	// through the legacy GitOps flow and needs its ConfigMap and account
+	// token — the annotation works against any Argo, including one this
+	// operator installed, with nothing but the dynamic client.
+	kindArgoApplication     = "Application"
+	ARGO_REFRESH_ANNOTATION = "argocd.argoproj.io/refresh"
+	argoRefreshNormal       = "normal"
 )
+
+// argoApplicationGVR must match the platform's DefaultResourceDescriptor
+// (argoproj.io/v1alpha1).
+var argoApplicationGVR = schema.GroupVersionResource{Group: "argoproj.io", Version: "v1alpha1", Resource: "applications"}
 
 type Flux interface {
 	FluxReconcile(data FluxResourceRequest) (bool, error)
@@ -237,6 +252,9 @@ func annotationPatch(annotations map[string]string) map[string]any {
 // FluxReconcile triggers a reconciliation of the resource by setting the
 // reconcile.fluxcd.io/requestedAt annotation.
 func (self *flux) FluxReconcile(data FluxResourceRequest) (bool, error) {
+	if strings.EqualFold(data.Kind, kindArgoApplication) {
+		return self.argoApplicationRefresh(data)
+	}
 	gvr, err := resolveKindGVR(data.Kind)
 	if err != nil {
 		return false, err
@@ -255,6 +273,11 @@ func (self *flux) FluxReconcile(data FluxResourceRequest) (bool, error) {
 // token. Resources without a source reference (e.g. GitRepository) are
 // reconciled directly.
 func (self *flux) FluxReconcileWithSource(data FluxResourceRequest) (bool, error) {
+	// An Argo refresh re-reads the source before comparing, so "with source"
+	// and the plain reconcile are the same operation there.
+	if strings.EqualFold(data.Kind, kindArgoApplication) {
+		return self.argoApplicationRefresh(data)
+	}
 	gvr, err := resolveKindGVR(data.Kind)
 	if err != nil {
 		return false, err
@@ -301,6 +324,24 @@ func (self *flux) FluxReconcileWithSource(data FluxResourceRequest) (bool, error
 
 	err = self.mergePatch(gvr, data.Namespace, data.Name, annotationPatch(map[string]string{
 		FLUX_REQUESTED_AT_ANNOTATION: token,
+	}))
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// argoApplicationRefresh asks Argo CD to re-read the Application's source and
+// re-compare, by setting the argocd.argoproj.io/refresh annotation (the
+// application controller removes it once the refresh ran). Every Application
+// the operator creates carries an automated sync policy, so a refresh that
+// finds the cluster out of sync also applies the change — the closest Argo
+// equivalent to Flux's reconcile-with-source. A "hard" refresh is deliberately
+// not offered: it drops the manifest cache and is Argo's escape hatch for
+// cache corruption, not a sync trigger.
+func (self *flux) argoApplicationRefresh(data FluxResourceRequest) (bool, error) {
+	err := self.mergePatch(argoApplicationGVR, data.Namespace, data.Name, annotationPatch(map[string]string{
+		ARGO_REFRESH_ANNOTATION: argoRefreshNormal,
 	}))
 	if err != nil {
 		return false, err

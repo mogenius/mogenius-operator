@@ -34,6 +34,9 @@ func TestResolveKindGVR(t *testing.T) {
 	}
 }
 
+// Application must stay out of fluxKindGVRs: the reconcile commands handle it
+// through the Argo refresh annotation before the allowlist is consulted, and
+// resolving it here would stamp a Flux annotation on an Argo object.
 func TestResolveKindGVRRejectsUnsupportedKinds(t *testing.T) {
 	for _, kind := range []string{"", "Deployment", "Application", "HelmChart", "FluxInstance"} {
 		if _, err := resolveKindGVR(kind); err == nil {
