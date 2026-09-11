@@ -47,7 +47,7 @@ func (d *reconcilerModule) reconcilePlatformRepositories(
 		// ships none. Absent on a cluster whose Flux was set up by hand, where
 		// the controllers exist already and this CRD does not.
 		if d.crdChecker.IsAvailable(utils.FluxInstanceResource) {
-			if err := d.applyPlatformObject(utils.FluxInstanceResource, namespace, fluxInstanceObject(namespace)); err != nil {
+			if err := d.applyPlatformObject(ctx, utils.FluxInstanceResource, namespace, fluxInstanceObject(namespace)); err != nil {
 				return &ReconcileResult{Err: fmt.Errorf("apply flux instance: %w", err)}
 			}
 		}
@@ -74,16 +74,16 @@ func (d *reconcilerModule) reconcilePlatformRepositories(
 			// No credential reference: Argo CD discovers repository credentials
 			// by label, so the Secret stands on its own.
 			object := argoApplicationObject(name, repo, namespace, argoProjectName(spec.GitOps))
-			if err := d.applyPlatformObject(utils.ArgoApplicationResource, namespace, object); err != nil {
+			if err := d.applyPlatformObject(ctx, utils.ArgoApplicationResource, namespace, object); err != nil {
 				return &ReconcileResult{Err: fmt.Errorf("apply application %q: %w", name, err)}
 			}
 
 		case gitOpsEngineFlux:
 			source := fluxGitRepositoryObject(name, repo, namespace, d.fluxRepositorySecretName(ctx, name, repo, namespace))
-			if err := d.applyPlatformObject(utils.GitRepositoryResource, namespace, source); err != nil {
+			if err := d.applyPlatformObject(ctx, utils.GitRepositoryResource, namespace, source); err != nil {
 				return &ReconcileResult{Err: fmt.Errorf("apply git repository %q: %w", name, err)}
 			}
-			if err := d.applyPlatformObject(utils.KustomizationResource, namespace, fluxKustomizationObject(name, repo, namespace)); err != nil {
+			if err := d.applyPlatformObject(ctx, utils.KustomizationResource, namespace, fluxKustomizationObject(name, repo, namespace)); err != nil {
 				return &ReconcileResult{Err: fmt.Errorf("apply kustomization %q: %w", name, err)}
 			}
 		}
@@ -96,7 +96,16 @@ func (d *reconcilerModule) reconcilePlatformRepositories(
 // platform's. No owner reference: these objects are what sync the PlatformConfig
 // in, so tying their lifetime to it would have the object delete itself the
 // moment the resource it delivers is removed.
-func (d *reconcilerModule) applyPlatformObject(resource utils.ResourceDescriptor, namespace string, object map[string]any) error {
+//
+// An object of the same name that the operator did not create is never
+// written. gitops.Apply replaces the spec wholesale, so writing someone
+// else's object destroys whatever their spec carried — on a cluster whose
+// Flux came through the flux-operator, overwriting the user's FluxInstance
+// dropped its spec.sync, and the engine garbage-collected the root
+// Kustomization and with it every application it managed. Handing an object
+// over to the platform is explicit: label it
+// app.kubernetes.io/managed-by=mogenius-operator.
+func (d *reconcilerModule) applyPlatformObject(ctx context.Context, resource utils.ResourceDescriptor, namespace string, object map[string]any) error {
 	if !d.crdChecker.IsAvailable(resource) {
 		// The engine's CRDs are not registered yet. A later sweep finds them.
 		d.logger.Info("skipping platform repository object, CRD not available yet",
@@ -113,12 +122,58 @@ func (d *reconcilerModule) applyPlatformObject(resource utils.ResourceDescriptor
 	labels["app.kubernetes.io/component"] = "platform-config"
 	obj.SetLabels(labels)
 
-	return gitops.Apply(
-		d.clientProvider,
-		kubernetes.CreateGroupVersionResource(resource.ApiVersion, resource.Plural),
-		namespace,
-		obj,
-	)
+	gvr := kubernetes.CreateGroupVersionResource(resource.ApiVersion, resource.Plural)
+	existing, err := d.clientProvider.DynamicClient().Resource(gvr).Namespace(namespace).Get(ctx, obj.GetName(), metav1.GetOptions{})
+	switch {
+	case apierrors.IsNotFound(err):
+		existing = nil
+	case err != nil:
+		// Not evidence of absence. Writing blind past a failed ownership check
+		// is exactly the overwrite this guard exists to prevent.
+		return fmt.Errorf("check ownership of %s %s/%s: %w", resource.Kind, namespace, obj.GetName(), err)
+	}
+
+	if platformObjectForeign(existing) {
+		d.logger.Warn("skipping platform object: it already exists and was not created by mogenius",
+			"kind", resource.Kind, "namespace", namespace, "name", obj.GetName(),
+			"hint", "label it app.kubernetes.io/managed-by=mogenius-operator to hand it over to the platform")
+		return nil
+	}
+
+	if resource.Kind == utils.FluxInstanceResource.Kind && existing != nil {
+		preserveFluxInstanceSync(existing, obj)
+	}
+
+	return gitops.Apply(d.clientProvider, gvr, namespace, obj)
+}
+
+// platformObjectForeign reports whether an existing object belongs to someone
+// other than the platform reconciler. Absence is not foreign — a missing
+// object is free to create.
+func platformObjectForeign(existing *unstructured.Unstructured) bool {
+	if existing == nil {
+		return false
+	}
+	return existing.GetLabels()["app.kubernetes.io/managed-by"] != "mogenius-operator"
+}
+
+// preserveFluxInstanceSync carries an existing spec.sync over onto the desired
+// object when the template declares none. A FluxInstance's sync is what points
+// the whole cluster at its Git repository; applying the bare template over an
+// instance that carried one removes it, and the flux-operator then
+// garbage-collects the root Kustomization — which prunes everything it ever
+// deployed. The ownership guard keeps foreign instances out of reach; this
+// keeps a sync someone added to an operator-owned instance alive too.
+func preserveFluxInstanceSync(existing, desired *unstructured.Unstructured) {
+	if _, found, _ := unstructured.NestedMap(desired.Object, "spec", "sync"); found {
+		return
+	}
+	sync, found, err := unstructured.NestedMap(existing.Object, "spec", "sync")
+	if err != nil || !found {
+		return
+	}
+	// Errors only on malformed field paths, which "spec", "sync" is not.
+	_ = unstructured.SetNestedMap(desired.Object, sync, "spec", "sync")
 }
 
 // fluxRepositorySecretName is the credential a repository's GitRepository binds
