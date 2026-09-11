@@ -54,6 +54,11 @@ func (d *reconcilerModule) reconcilePlatformRepositories(
 	}
 
 	for _, repo := range spec.GitOps.Repositories {
+		// Application repositories are declared for the mogenius platform, not
+		// for this operator: no sync objects.
+		if !repo.IsPlatformRepository() {
+			continue
+		}
 		name := repo.Name
 		if name == "" {
 			name = repositorySecretName(repo.URL)
