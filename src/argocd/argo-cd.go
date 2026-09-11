@@ -9,6 +9,7 @@ import (
 	"log"
 	"log/slog"
 	cfg "mogenius-operator/src/config"
+	"mogenius-operator/src/gitops"
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/logging"
@@ -581,7 +582,19 @@ func (self *argocd) initArgoCdConfig() error {
 	// Check if argo-cd-config ConfigMap exists in the MO_OWN_NAMESPACE
 	argoCdConfigUnstructured, err := store.GetResource(self.valkeyClient, utils.ConfigMapResource.ApiVersion, utils.ConfigMapResource.Kind, self.config.Get("MO_OWN_NAMESPACE"), ARGO_CD_CONFIGMAP_NAME, self.logger)
 	if err != nil {
-		return err
+		// The ConfigMap is written only by the legacy GitOps install flow. An
+		// Argo CD installed through the PlatformConfig records the same facts
+		// in the PlatformConfig status instead, so without this fallback every
+		// argocd command — creating the user token above all — failed on such
+		// clusters with "argo-cd-config not found" while Argo ran fine.
+		config, fallbackErr := self.argoCdConfigFromPlatformConfig()
+		if fallbackErr != nil {
+			// The original error names the primary contract; the fallback's
+			// only adds why the second chance did not apply either.
+			return fmt.Errorf("%w (and no PlatformConfig reports an installed Argo CD: %s)", err, fallbackErr.Error())
+		}
+		self.argoCdConfig = config
+		return nil
 	}
 	var argoCdConfig corev1.ConfigMap
 	err = runtime.DefaultUnstructuredConverter.FromUnstructured(argoCdConfigUnstructured.Object, &argoCdConfig)
@@ -590,6 +603,40 @@ func (self *argocd) initArgoCdConfig() error {
 	}
 	self.argoCdConfig = &argoCdConfig
 	return nil
+}
+
+// argoCdConfigFromPlatformConfig reads the Argo CD address out of the
+// PlatformConfig status the reconciler maintains.
+func (self *argocd) argoCdConfigFromPlatformConfig() (*corev1.ConfigMap, error) {
+	list, err := self.clientProvider.DynamicClient().
+		Resource(kubernetes.CreateGroupVersionResource(utils.PlatformConfigResource.ApiVersion, utils.PlatformConfigResource.Plural)).
+		List(context.Background(), metav1.ListOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("list PlatformConfigs: %w", err)
+	}
+	return argoCdConfigFromPlatformConfigList(list.Items)
+}
+
+// argoCdConfigFromPlatformConfigList synthesizes the legacy install config out
+// of the first PlatformConfig whose status reports a running Argo CD. Only the
+// two keys the argocd commands actually read are filled: namespaceName and
+// releaseName (initArgoServerUrl matches the server deployment's instance
+// label against the latter).
+func argoCdConfigFromPlatformConfigList(items []unstructured.Unstructured) (*corev1.ConfigMap, error) {
+	for i := range items {
+		engine, _, _ := unstructured.NestedString(items[i].Object, "status", "gitOpsStatus", "engine")
+		installed, _, _ := unstructured.NestedBool(items[i].Object, "status", "gitOpsStatus", "installed")
+		namespace, _, _ := unstructured.NestedString(items[i].Object, "status", "gitOpsStatus", "namespace")
+		releaseName, _, _ := unstructured.NestedString(items[i].Object, "status", "gitOpsStatus", "releaseName")
+		if engine != gitops.EngineArgoCD || !installed || namespace == "" {
+			continue
+		}
+		return &corev1.ConfigMap{Data: map[string]string{
+			"namespaceName": namespace,
+			"releaseName":   releaseName,
+		}}, nil
+	}
+	return nil, fmt.Errorf("none of %d PlatformConfigs reports an installed Argo CD", len(items))
 }
 
 func (self *argocd) getArgoCdSecret() (*corev1.Secret, error) {
