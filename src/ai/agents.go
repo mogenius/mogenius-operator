@@ -43,9 +43,6 @@ const agentCacheTTL = 30 * time.Second
 // exist — empty allow-maps would disable namespace checks entirely), a
 // parseable cron expression and a well-formed change trigger.
 func ValidateAgentSpec(spec v1alpha1.AgentSpec) error {
-	if spec.Scope != nil && spec.Scope.WorkspaceRef == "" {
-		return fmt.Errorf("agent scope must reference a workspace")
-	}
 	if spec.Triggers.Cron != "" {
 		if _, err := cron.ParseStandard(spec.Triggers.Cron); err != nil {
 			return fmt.Errorf("invalid cron expression %q: %w", spec.Triggers.Cron, err)
