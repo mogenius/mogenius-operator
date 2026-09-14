@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"mogenius-operator/src/crds"
 	"mogenius-operator/src/shutdown"
@@ -44,6 +45,77 @@ func InitOrUpdateCrds() {
 
 		k8sLogger.Info("created/updated mogenius CRD 🚀", "filename", crd.Filename)
 	}
+
+	// A freshly created CRD is only served once the API server reports it
+	// Established, typically well under a second later. Everything after this
+	// point assumes the mogenius types are servable — watches, reconcilers, the
+	// PlatformConfig seeder — so the short wait happens here, once, instead of
+	// each consumer discovering NotFound on a type that exists. Non-fatal: the
+	// consumers still handle NotFound, this only takes the race out of the
+	// common path.
+	for _, crd := range crds {
+		name, err := crdNameFromYaml(crd.Content)
+		if err != nil {
+			k8sLogger.Warn("could not determine CRD name for establishment wait", "filename", crd.Filename, "error", err)
+			continue
+		}
+		if err := waitForCrdEstablished(name, 30*time.Second); err != nil {
+			k8sLogger.Warn("CRD not established yet, continuing anyway", "crd", name, "error", err)
+		}
+	}
+}
+
+// crdNameFromYaml reads the metadata.name out of a CRD manifest — the same
+// decode the apply above does, repeated because the apply does not return it.
+func crdNameFromYaml(yamlContent string) (string, error) {
+	resource := &unstructured.Unstructured{}
+	decUnstructured := yaml.NewDecodingSerializer(unstructured.UnstructuredJSONScheme)
+	if _, _, err := decUnstructured.Decode([]byte(yamlContent), nil, resource); err != nil {
+		return "", err
+	}
+	return resource.GetName(), nil
+}
+
+// waitForCrdEstablished polls the CRD until its Established condition is True,
+// or the timeout passes.
+func waitForCrdEstablished(name string, timeout time.Duration) error {
+	crdResource := clientProvider.DynamicClient().Resource(schema.GroupVersionResource{
+		Group:    "apiextensions.k8s.io",
+		Version:  "v1",
+		Resource: "customresourcedefinitions",
+	})
+
+	deadline := time.Now().Add(timeout)
+	for {
+		crd, err := crdResource.Get(context.Background(), name, metav1.GetOptions{})
+		if err == nil && crdIsEstablished(crd) {
+			return nil
+		}
+
+		if time.Now().After(deadline) {
+			if err != nil {
+				return fmt.Errorf("read CRD %s: %w", name, err)
+			}
+			return fmt.Errorf("CRD %s not established within %s", name, timeout)
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+}
+
+// crdIsEstablished reports whether the CRD carries the Established=True
+// condition, meaning the API server serves the type.
+func crdIsEstablished(crd *unstructured.Unstructured) bool {
+	conditions, _, _ := unstructured.NestedSlice(crd.Object, "status", "conditions")
+	for _, entry := range conditions {
+		condition, ok := entry.(map[string]any)
+		if !ok {
+			continue
+		}
+		if condition["type"] == "Established" && condition["status"] == "True" {
+			return true
+		}
+	}
+	return false
 }
 
 func CreateYamlString(yamlContent string) error {
