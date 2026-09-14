@@ -19,12 +19,12 @@ jobs:
   # random split across the two halved the cache hit rate and made test and lint
   # compile the same dependency tree twice.
   test:
-    uses: mogenius/github-actions/.github/workflows/go-test.yml@7c530a2d4c350c30a06706a7d5f1d6a52034ad01 # v1.8.1
+    uses: mogenius/github-actions/.github/workflows/go-test.yml@dae0d13cce40dcab691090d85d57d94abb312047 # v1.8.3
     with:
       path: src
       runner: arc-runner-set-amd64
   lint:
-    uses: mogenius/github-actions/.github/workflows/golangci-lint.yml@7c530a2d4c350c30a06706a7d5f1d6a52034ad01 # v1.8.1
+    uses: mogenius/github-actions/.github/workflows/golangci-lint.yml@dae0d13cce40dcab691090d85d57d94abb312047 # v1.8.3
     with:
       args: --config=.golangci.yml ./src
       runner: arc-runner-set-amd64
