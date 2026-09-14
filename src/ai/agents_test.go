@@ -39,9 +39,9 @@ func TestValidateAgentSpec(t *testing.T) {
 			wantErr: "",
 		},
 		{
-			name:    "blank workspace ref",
+			name:    "blank workspace ref is valid (treated as cluster scope)",
 			mutate:  func(spec *v1alpha1.AgentSpec) { spec.Scope.WorkspaceRef = "" },
-			wantErr: "workspace",
+			wantErr: "",
 		},
 		{
 			name:    "invalid cron",
