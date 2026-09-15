@@ -1520,8 +1520,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "list/all-resource-descriptors"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request Void) ([]utils.ResourceDescriptor, error) {
-			return kubernetes.GetAvailableResources()
+		func(datagram structs.Datagram, request Void) ([]utils.ResourceKind, error) {
+			return kubernetes.GetAvailableResourceKinds()
 		},
 	)
 

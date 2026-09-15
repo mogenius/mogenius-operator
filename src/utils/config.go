@@ -25,6 +25,18 @@ type ResourceDescriptor struct {
 	Namespaced bool   `json:"namespaced"`
 }
 
+// ResourceKind is a ResourceDescriptor plus the discovery metadata a client
+// needs to let a human pick a resource type. ShortNames lives here and not on
+// ResourceDescriptor itself because a slice field would make that struct
+// non-comparable, and the watcher and reconciler key their caches by it.
+type ResourceKind struct {
+	ResourceDescriptor
+	// Abbreviations the API server accepts for this resource, as kubectl
+	// reports them: "svc" for Service, "deploy" for Deployment. Empty for
+	// resources that declare none.
+	ShortNames []string `json:"shortNames"`
+}
+
 type WorkloadSingleRequest struct {
 	ResourceDescriptor
 	Namespace    string `json:"namespace"`
