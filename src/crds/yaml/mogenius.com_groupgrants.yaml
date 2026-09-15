@@ -69,13 +69,16 @@ spec:
                   (free-form, chosen by the customer at their identity provider)
                 type: string
               role:
+                default: viewer
                 description: |-
                   FALLBACK role, only used when the login claim carries no role for the
                   group. IdPs that pair groups with roles (e.g. Entra enterprise app
                   role assignments, delivered as "<group>:<role>") override this — the
-                  claim role always wins.
+                  claim role always wins. Optional: a rule saved without a role defaults
+                  to "viewer" (the lowest level), so token-only IdPs that deliver bare
+                  group IDs (e.g. Entra groupMembershipClaims) work without it.
 
-                  - "viewer"
+                  - "viewer" (default)
                   - "editor"
                   - "admin"
                 type: string

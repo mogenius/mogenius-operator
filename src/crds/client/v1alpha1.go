@@ -164,6 +164,9 @@ func (self *MogeniusV1alpha1) GetGroupGrant(namespace string, name string) (*mov
 }
 
 func (self *MogeniusV1alpha1) CreateGroupGrant(namespace string, name string, spec mov1alpha1.GroupGrantSpec) (*mov1alpha1.GroupGrant, error) {
+	// same defaults the CRD schema applies for kubectl/GitOps authors — keeps
+	// the socket API (UI/CLI) path from depending on the installed CRD version
+	spec.ApplyDefaults()
 	res := &mov1alpha1.GroupGrant{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "GroupGrant",

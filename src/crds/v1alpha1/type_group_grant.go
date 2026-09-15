@@ -65,12 +65,31 @@ type GroupGrantSpec struct {
 	// FALLBACK role, only used when the login claim carries no role for the
 	// group. IdPs that pair groups with roles (e.g. Entra enterprise app
 	// role assignments, delivered as "<group>:<role>") override this — the
-	// claim role always wins.
+	// claim role always wins. Optional: a rule saved without a role defaults
+	// to "viewer" (the lowest level), so token-only IdPs that deliver bare
+	// group IDs (e.g. Entra groupMembershipClaims) work without it.
 	//
-	// - "viewer"
+	// - "viewer" (default)
 	// - "editor"
 	// - "admin"
+	// +kubebuilder:default=viewer
 	Role string `json:"role,omitempty"`
+}
+
+// GroupGrantDefaultRole is the role a GroupGrant falls back to when the rule
+// is saved without one — the lowest level, so a forgotten role never grants
+// more than read access.
+const GroupGrantDefaultRole = "viewer"
+
+// ApplyDefaults fills the spec's optional fields the way the CRD schema
+// defaults them at admission: a rule with a claim value but no role becomes a
+// viewer rule. Used on the operator's own write path so every entry point
+// (kubectl/GitOps via the schema default, UI/CLI via the socket API) yields the
+// same stored object.
+func (self *GroupGrantSpec) ApplyDefaults() {
+	if self.ClaimValue != "" && self.Role == "" {
+		self.Role = GroupGrantDefaultRole
+	}
 }
 
 func NewGroupGrantSpec(claimValue string, targetType string, targetName string, role string) GroupGrantSpec {
