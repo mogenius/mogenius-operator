@@ -10,7 +10,6 @@ import (
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 
-	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/metrics"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
@@ -109,6 +108,10 @@ type genericReconciler struct {
 	active   atomic.Bool
 	caches   map[utils.ResourceDescriptor]*objectCache
 
+	// chainCancels holds the cancel functions returned by watcher.Chain so
+	// Stop can unregister the reconciler's callbacks from the shared watcher.
+	chainCancels []func()
+
 	// reconcileSlots is a semaphore: send to acquire, receive to release.
 	reconcileSlots chan struct{}
 
@@ -128,13 +131,13 @@ type genericReconciler struct {
 
 func newReconciler(
 	logger *slog.Logger,
-	clientProvider k8sclient.K8sClientProvider,
+	watcherModule watcher.WatcherModule,
 	interval time.Duration,
 	configs []ResourceConfig,
 ) *genericReconciler {
 	r := &genericReconciler{
 		logger:         logger,
-		watcher:        watcher.NewWatcher(logger.With("scope", "watcher"), clientProvider),
+		watcher:        watcherModule,
 		configs:        configs,
 		interval:       interval,
 		caches:         make(map[utils.ResourceDescriptor]*objectCache, len(configs)),
@@ -194,8 +197,10 @@ func (r *genericReconciler) startWatchers(ctx context.Context) {
 		cache := r.caches[cfg.Resource]
 		cache.clear()
 
-		err := r.watcher.Watch(
-			cfg.Resource,
+		// Register at WatchWeightReconcile so the store watcher's lower-weight
+		// callbacks (Valkey write at WatchWeightStore) always fire first.
+		// The cancel func is stored for cleanup in Stop.
+		cancel, _ := r.watcher.Watch(cfg.Resource, watcher.WatchWeightReconcile,
 			func(_ utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 				if !matchesFilters(cfg, obj) {
 					return
@@ -225,9 +230,7 @@ func (r *genericReconciler) startWatchers(ctx context.Context) {
 				r.callHandler(ctx, cfg, obj, deleteOperation)
 			},
 		)
-		if err != nil {
-			r.logger.Error("failed to watch resource", "resource", cfg.Resource, "error", err)
-		}
+		r.chainCancels = append(r.chainCancels, cancel)
 	}
 
 	if r.interval > 0 {
@@ -263,7 +266,10 @@ func (r *genericReconciler) Stop() {
 	r.startMu.Lock()
 	r.startMu.Unlock() //nolint:staticcheck // barrier against a concurrent startWatchers, not a guarded section
 
-	r.watcher.UnwatchAll()
+	for _, cancel := range r.chainCancels {
+		cancel()
+	}
+	r.chainCancels = nil
 	r.wg.Wait()
 	for resource, cache := range r.caches {
 		cache.clear()

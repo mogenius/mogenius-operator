@@ -118,7 +118,7 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 	for i, res := range resources {
 		wm.OnSynced(res, func() { settle(i) })
 
-		err := wm.Watch(res, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
+		_, err := wm.Watch(res, watcher.WatchWeightStore, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			handleCRDAddition(wm, aiManager, eventClient, resource)
 			aiManager.ProcessObject(obj, "add", res)
@@ -156,19 +156,17 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 			aiManager.ProcessObject(obj, "delete", res)
 		})
 		if err != nil {
-			if !strings.Contains(err.Error(), "resource is already being watched") {
-				// Keep going instead of aborting the loop: one resource that
-				// cannot be watched (missing RBAC, a CRD served by a broken
-				// conversion webhook, ...) used to leave every later resource
-				// unwatched and its readiness slot unsettled, so the store never
-				// went ready. Its slot is settled here so the remaining kinds can
-				// still take the store to ready.
-				k8sLogger.Error("failed to initialize watchhandler for resource", "ApiVersion", res.ApiVersion, "kind", res.Kind, "error", err)
-				if firstWatchErr == nil {
-					firstWatchErr = err
-				}
-				settle(i)
+			// Keep going instead of aborting the loop: one resource that
+			// cannot be watched (missing RBAC, a CRD served by a broken
+			// conversion webhook, ...) used to leave every later resource
+			// unwatched and its readiness slot unsettled, so the store never
+			// went ready. Its slot is settled here so the remaining kinds can
+			// still take the store to ready.
+			k8sLogger.Error("failed to initialize watchhandler for resource", "ApiVersion", res.ApiVersion, "kind", res.Kind, "error", err)
+			if firstWatchErr == nil {
+				firstWatchErr = err
 			}
+			settle(i)
 		} else {
 			k8sLogger.Info("🚀 Watching resource", "kind", res.Kind, "plural", res.Plural)
 		}
