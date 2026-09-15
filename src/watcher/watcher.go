@@ -45,6 +45,15 @@ type WatcherModule interface {
 	ListWatchedResources() []utils.ResourceDescriptor
 	UnwatchAll()
 
+	// Chain registers additional callbacks for a resource that fire synchronously
+	// AFTER the primary Watch callbacks return. This guarantees ordering: whatever
+	// the primary callbacks do (e.g. write to Valkey) completes before the chained
+	// callbacks run. Safe to call before or after Watch — if called before Watch
+	// the callbacks are queued; if called after, existing objects are replayed via
+	// the chained onAdd to populate any local caches. Returns a cancel func that
+	// removes the registration.
+	Chain(resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) func()
+
 	// OnObjectCreated registers a callback that fires when a specific object (by kind/namespace/name) is added.
 	// Requires that the resource kind is already being watched via Watch.
 	OnObjectCreated(kind, namespace, name string, cb func(*unstructured.Unstructured))
@@ -69,6 +78,14 @@ type WatcherModule interface {
 	// out-of-band ones (helm CLI, other controllers) - not just operator-driven
 	// mutations.
 	WatchHelmReleaseSecrets(onChange func()) error
+}
+
+// chainEntry holds a set of callbacks registered via Chain.
+type chainEntry struct {
+	id       int
+	onAdd    WatcherOnAdd
+	onUpdate WatcherOnUpdate
+	onDelete WatcherOnDelete
 }
 
 type WatcherOnAdd func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured)
@@ -96,6 +113,11 @@ type watcher struct {
 	activeHandlers map[utils.ResourceDescriptor]resourceContext
 	clientProvider k8sclient.K8sClientProvider
 	logger         *slog.Logger
+
+	// chainedMu protects chainedHandlers across concurrent Chain / event-handler calls.
+	chainedMu      sync.RWMutex
+	chainedHandlers map[utils.ResourceDescriptor][]*chainEntry
+	chainedNextID  int
 
 	// Shared informer machinery. The previous code built a brand-new
 	// DynamicSharedInformerFactory per Watch() call - so "Shared" in the
@@ -160,6 +182,7 @@ func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider)
 	self.objectSubsUpdate = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
 	self.objectSubsDelete = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
 	self.syncedCallbacks = make(map[utils.ResourceDescriptor][]func())
+	self.chainedHandlers = make(map[utils.ResourceDescriptor][]*chainEntry)
 
 	return self
 }
@@ -402,6 +425,11 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 			if onAdd != nil {
 				onAdd(resource, unstructuredObj)
 			}
+			self.fireChained(resource, func(h *chainEntry) {
+				if h.onAdd != nil {
+					h.onAdd(resource, unstructuredObj)
+				}
+			})
 			self.fireObjectSubs(self.objectSubsAdd, unstructuredObj)
 		},
 		UpdateFunc: func(oldObj, newObj any) {
@@ -427,6 +455,11 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 			if onUpdate != nil {
 				onUpdate(resource, oldUnstructuredObj, newUnstructuredObj)
 			}
+			self.fireChained(resource, func(h *chainEntry) {
+				if h.onUpdate != nil {
+					h.onUpdate(resource, oldUnstructuredObj, newUnstructuredObj)
+				}
+			})
 			// Named-object subscribers (e.g. AI filter ConfigMap reload)
 			// do NOT want resync phantoms - this was the original reason
 			// the RV check existed. Apply it only here, not to onUpdate.
@@ -444,6 +477,11 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 			if onDelete != nil {
 				onDelete(resource, unstructuredObj)
 			}
+			self.fireChained(resource, func(h *chainEntry) {
+				if h.onDelete != nil {
+					h.onDelete(resource, unstructuredObj)
+				}
+			})
 			self.fireObjectSubs(self.objectSubsDelete, unstructuredObj)
 		},
 	})
@@ -506,6 +544,52 @@ func (self *watcher) setWatcherState(resource utils.ResourceDescriptor, state Wa
 		delete(self.syncedCallbacks, resource)
 		for _, cb := range cbs {
 			go cb()
+		}
+	}
+}
+
+// Chain registers callbacks that fire after the primary Watch callbacks for this
+// resource. If the resource is not yet watched, the callbacks queue until Watch
+// starts the informer. If it is already fully synced, existing objects are
+// replayed through onAdd so callers can populate their local caches. Returns a
+// cancel func that removes the registration.
+func (self *watcher) Chain(resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) func() {
+	self.chainedMu.Lock()
+	if self.chainedHandlers == nil {
+		self.chainedHandlers = make(map[utils.ResourceDescriptor][]*chainEntry)
+	}
+	id := self.chainedNextID
+	self.chainedNextID++
+	entry := &chainEntry{id: id, onAdd: onAdd, onUpdate: onUpdate, onDelete: onDelete}
+	self.chainedHandlers[resource] = append(self.chainedHandlers[resource], entry)
+
+	// Replay existing objects if the informer is already synced so the caller's
+	// local cache gets populated without waiting for the next event.
+	var replay []any
+	self.handlerMapLock.RLock()
+	if ctx, ok := self.activeHandlers[resource]; ok && ctx.state == Watching && ctx.informer != nil {
+		replay = ctx.informer.GetStore().List()
+	}
+	self.handlerMapLock.RUnlock()
+	self.chainedMu.Unlock()
+
+	if onAdd != nil {
+		for _, obj := range replay {
+			if u, ok := obj.(*unstructured.Unstructured); ok {
+				onAdd(resource, u)
+			}
+		}
+	}
+
+	return func() {
+		self.chainedMu.Lock()
+		defer self.chainedMu.Unlock()
+		handlers := self.chainedHandlers[resource]
+		for i, h := range handlers {
+			if h.id == id {
+				self.chainedHandlers[resource] = append(handlers[:i], handlers[i+1:]...)
+				return
+			}
 		}
 	}
 }
@@ -598,6 +682,16 @@ func (self *watcher) OnObjectDeleted(kind, namespace, name string, cb func(*unst
 	self.objectSubsMu.Lock()
 	self.objectSubsDelete[key] = append(self.objectSubsDelete[key], cb)
 	self.objectSubsMu.Unlock()
+}
+
+// fireChained fires all chained handlers for the given resource under a read lock.
+func (self *watcher) fireChained(resource utils.ResourceDescriptor, fn func(*chainEntry)) {
+	self.chainedMu.RLock()
+	chained := append([]*chainEntry(nil), self.chainedHandlers[resource]...)
+	self.chainedMu.RUnlock()
+	for _, h := range chained {
+		fn(h)
+	}
 }
 
 // fireObjectSubs fires any per-object subscriptions registered for this object's kind/namespace/name.

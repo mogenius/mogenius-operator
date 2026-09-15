@@ -7,6 +7,7 @@ import (
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
+	"mogenius-operator/src/watcher"
 	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -28,16 +29,17 @@ type reconcilerModule struct {
 }
 
 type reconcilerFactory struct {
-	module   *reconcilerModule
-	interval time.Duration
-	configs  []ResourceConfig
+	module        *reconcilerModule
+	watcherModule watcher.WatcherModule
+	interval      time.Duration
+	configs       []ResourceConfig
 }
 
 type ReconcilerFactory interface {
 	Build() Reconciler
 }
 
-func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider, configModule config.ConfigModule, valkeyClient valkeyclient.ValkeyClient, aiManager ai.AiManager) ReconcilerFactory {
+func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider, configModule config.ConfigModule, valkeyClient valkeyclient.ValkeyClient, aiManager ai.AiManager, watcherModule watcher.WatcherModule) ReconcilerFactory {
 	factory := &reconcilerFactory{
 		module: &reconcilerModule{
 			logger:         logger,
@@ -47,6 +49,7 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 			crdChecker:     newCRDChecker(clientProvider),
 			aiManager:      aiManager,
 		},
+		watcherModule: watcherModule,
 		// Background full-sweep interval. Watcher informers already do a
 		// 30-minute resync (utils.ResourceResyncTime) which redelivers every
 		// object as an update event, so this sweep is a safety net rather
@@ -86,7 +89,7 @@ func (f *reconcilerFactory) WithReconciler(resource utils.ResourceDescriptor, re
 }
 
 func (f *reconcilerFactory) Build() Reconciler {
-	reconciler := newReconciler(f.module.logger, f.module.clientProvider, f.interval, f.configs)
+	reconciler := newReconciler(f.module.logger, f.watcherModule, f.interval, f.configs)
 	f.module.requeue = reconciler.requeue
 	return reconciler
 }
