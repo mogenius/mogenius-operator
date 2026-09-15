@@ -33,10 +33,25 @@ import (
 const helmReleaseSecretType = "helm.sh/release.v1"
 const secretWatchFieldSelector = "type!=" + helmReleaseSecretType
 
+// Watch weight constants. Handlers with a lower weight fire before those with a
+// higher weight, regardless of the order in which Watch was called. Use
+// WatchWeightStore for primary write-through callbacks (e.g. Valkey) and
+// WatchWeightReconcile for downstream logic that needs the store up to date.
+const (
+	WatchWeightStore     = 0
+	WatchWeightReconcile = 10
+)
+
 // A generic kubernetes resource watcher
 type WatcherModule interface {
-	// Register a watcher for the given resource
-	Watch(resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error
+	// Watch registers callbacks for the given resource at the given weight.
+	// Multiple callers may Watch the same resource; on each event all
+	// registered callbacks are called in ascending weight order — lower weight
+	// fires first. If the informer is already fully synced when Watch is called,
+	// existing objects are replayed through onAdd so the caller can populate its
+	// local cache. Returns a cancel func that removes this registration and an
+	// error if the informer cannot be started for a new resource.
+	Watch(resource utils.ResourceDescriptor, weight int, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) (func(), error)
 	// Stop the watcher for the given resource
 	Unwatch(resource utils.ResourceDescriptor) error
 	// Query the status of the resource
@@ -71,6 +86,15 @@ type WatcherModule interface {
 	WatchHelmReleaseSecrets(onChange func()) error
 }
 
+// weightedHandler holds a set of callbacks at a given weight.
+type weightedHandler struct {
+	id       int
+	weight   int
+	onAdd    WatcherOnAdd
+	onUpdate WatcherOnUpdate
+	onDelete WatcherOnDelete
+}
+
 type WatcherOnAdd func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured)
 type WatcherOnUpdate func(resource utils.ResourceDescriptor, oldObj *unstructured.Unstructured, newObj *unstructured.Unstructured)
 type WatcherOnDelete func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured)
@@ -96,6 +120,13 @@ type watcher struct {
 	activeHandlers map[utils.ResourceDescriptor]resourceContext
 	clientProvider k8sclient.K8sClientProvider
 	logger         *slog.Logger
+
+	// handlersMu protects the per-resource weighted handler lists used by the
+	// event fan-out. Separate from handlerMapLock to avoid deadlocks between
+	// the Watch registration path and the event delivery path.
+	handlersMu  sync.RWMutex
+	handlers    map[utils.ResourceDescriptor][]*weightedHandler
+	handlerSeq  int
 
 	// Shared informer machinery. The previous code built a brand-new
 	// DynamicSharedInformerFactory per Watch() call - so "Shared" in the
@@ -160,6 +191,7 @@ func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider)
 	self.objectSubsUpdate = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
 	self.objectSubsDelete = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
 	self.syncedCallbacks = make(map[utils.ResourceDescriptor][]func())
+	self.handlers = make(map[utils.ResourceDescriptor][]*weightedHandler)
 
 	return self
 }
@@ -171,34 +203,79 @@ type resourceContext struct {
 	cancelCtx context.CancelFunc
 }
 
-func (self *watcher) Watch(resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
-	assert.Assert(self.logger != nil)
-	self.handlerMapLock.Lock()
-	defer self.handlerMapLock.Unlock()
+// insertWeighted inserts entry into handlers maintaining ascending weight order.
+// Handlers with equal weight retain insertion order (stable within a weight).
+func insertWeighted(handlers []*weightedHandler, entry *weightedHandler) []*weightedHandler {
+	handlers = append(handlers, entry)
+	for i := len(handlers) - 1; i > 0 && handlers[i].weight < handlers[i-1].weight; i-- {
+		handlers[i], handlers[i-1] = handlers[i-1], handlers[i]
+	}
+	return handlers
+}
 
-	for r := range self.activeHandlers {
-		if resource == r {
-			return fmt.Errorf("resource is already being watched")
+func (self *watcher) Watch(resource utils.ResourceDescriptor, weight int, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) (func(), error) {
+	assert.Assert(self.logger != nil)
+
+	// Add to the weighted handler list under handlersMu before checking
+	// activeHandlers, so the informer's fan-out sees this entry from the
+	// moment the first event fires.
+	self.handlersMu.Lock()
+	if self.handlers == nil {
+		self.handlers = make(map[utils.ResourceDescriptor][]*weightedHandler)
+	}
+	id := self.handlerSeq
+	self.handlerSeq++
+	entry := &weightedHandler{id: id, weight: weight, onAdd: onAdd, onUpdate: onUpdate, onDelete: onDelete}
+	self.handlers[resource] = insertWeighted(self.handlers[resource], entry)
+
+	// If the informer is already synced, replay existing objects so the caller
+	// can populate its local cache without waiting for the next real event.
+	var replay []any
+	self.handlerMapLock.RLock()
+	existing, alreadyWatching := self.activeHandlers[resource]
+	if alreadyWatching && existing.state == Watching && existing.informer != nil {
+		replay = existing.informer.GetStore().List()
+	}
+	self.handlerMapLock.RUnlock()
+	self.handlersMu.Unlock()
+
+	if !alreadyWatching {
+		self.handlerMapLock.Lock()
+		// Re-check under write lock — another goroutine may have started it.
+		if _, exists := self.activeHandlers[resource]; !exists {
+			ctx, cancel := context.WithCancel(context.Background())
+			self.activeHandlers[resource] = resourceContext{
+				state:     WatcherInitializing,
+				cancelCtx: cancel,
+			}
+			go self.watchWithRetry(ctx, resource)
+		}
+		self.handlerMapLock.Unlock()
+	}
+
+	// Replay outside all locks.
+	if onAdd != nil {
+		for _, obj := range replay {
+			if u, ok := obj.(*unstructured.Unstructured); ok {
+				onAdd(resource, u)
+			}
 		}
 	}
 
-	// Initialize the resource context early
-	ctx, cancel := context.WithCancel(context.Background())
-	resourceCtx := resourceContext{
-		state:     WatcherInitializing,
-		informer:  nil,    // Will be set when watcher starts
-		handler:   nil,    // Will be set when watcher starts
-		cancelCtx: cancel, // Store cancel function for cleanup
-	}
-	self.activeHandlers[resource] = resourceCtx
-
-	// Start the watcher with retry logic in a goroutine
-	go self.watchWithRetry(ctx, resource, onAdd, onUpdate, onDelete)
-
-	return nil
+	return func() {
+		self.handlersMu.Lock()
+		defer self.handlersMu.Unlock()
+		hs := self.handlers[resource]
+		for i, h := range hs {
+			if h.id == id {
+				self.handlers[resource] = append(hs[:i], hs[i+1:]...)
+				return
+			}
+		}
+	}, nil
 }
 
-func (self *watcher) watchWithRetry(ctx context.Context, resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) {
+func (self *watcher) watchWithRetry(ctx context.Context, resource utils.ResourceDescriptor) {
 	// Backoff strategy: start at 1s, double up to 2min ("fast retry").
 	// After fastRetryAttempts of fast retries without success, switch to
 	// "slow lane" of one attempt per slowRetryInterval. We never give up
@@ -227,7 +304,7 @@ func (self *watcher) watchWithRetry(ctx context.Context, resource utils.Resource
 
 		watcherDone := make(chan error, 1)
 		go func() {
-			err := self.startSingleWatcher(ctx, resource, onAdd, onUpdate, onDelete)
+			err := self.startSingleWatcher(ctx, resource)
 			watcherDone <- err
 		}()
 
@@ -363,7 +440,7 @@ func (self *watcher) factoryForGVR(gvr schema.GroupVersionResource) dynamicinfor
 	return self.factory
 }
 
-func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.ResourceDescriptor, onAdd WatcherOnAdd, onUpdate WatcherOnUpdate, onDelete WatcherOnDelete) error {
+func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.ResourceDescriptor) error {
 	// IMPORTANT: ForResource + SetTransform + factory.Start MUST be
 	// atomic under handlerMapLock. factory.Start iterates over every
 	// informer currently registered on the factory, starts the ones not
@@ -399,8 +476,13 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 				self.logger.Warn("failed to deserialize", "type", fmt.Sprintf("%T", obj))
 				return
 			}
-			if onAdd != nil {
-				onAdd(resource, unstructuredObj)
+			self.handlersMu.RLock()
+			hs := append([]*weightedHandler(nil), self.handlers[resource]...)
+			self.handlersMu.RUnlock()
+			for _, h := range hs {
+				if h.onAdd != nil {
+					h.onAdd(resource, unstructuredObj)
+				}
 			}
 			self.fireObjectSubs(self.objectSubsAdd, unstructuredObj)
 		},
@@ -415,21 +497,20 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 				self.logger.Warn("failed to deserialize new object", "type", fmt.Sprintf("%T", newObj))
 				return
 			}
-			// Always invoke the generic onUpdate callback, even on resync
-			// (same resourceVersion) - watcheractions.setStoreIfNeeded
-			// needs the resync write to refresh the Valkey TTL, otherwise
-			// static resources (Workspaces, Deployments, Secrets, ...)
-			// vanish from the store once the initial TTL expires and never
-			// reappear. The callback itself filters out resync events for
-			// the downstream notifications (sendEventServerEvent +
-			// aiManager.ProcessObject) so those don't fire on phantom
-			// updates.
-			if onUpdate != nil {
-				onUpdate(resource, oldUnstructuredObj, newUnstructuredObj)
+			// Always invoke all onUpdate callbacks, even on resync (same
+			// resourceVersion) - the store-write handler needs the resync to
+			// refresh the Valkey TTL; each callback filters phantom events
+			// for its own downstream work (event server, AI, reconcilers).
+			self.handlersMu.RLock()
+			hs := append([]*weightedHandler(nil), self.handlers[resource]...)
+			self.handlersMu.RUnlock()
+			for _, h := range hs {
+				if h.onUpdate != nil {
+					h.onUpdate(resource, oldUnstructuredObj, newUnstructuredObj)
+				}
 			}
 			// Named-object subscribers (e.g. AI filter ConfigMap reload)
-			// do NOT want resync phantoms - this was the original reason
-			// the RV check existed. Apply it only here, not to onUpdate.
+			// do NOT want resync phantoms.
 			if oldUnstructuredObj.GetResourceVersion() == newUnstructuredObj.GetResourceVersion() {
 				return
 			}
@@ -441,8 +522,13 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 				self.logger.Warn("failed to deserialize", "type", fmt.Sprintf("%T", obj))
 				return
 			}
-			if onDelete != nil {
-				onDelete(resource, unstructuredObj)
+			self.handlersMu.RLock()
+			hs := append([]*weightedHandler(nil), self.handlers[resource]...)
+			self.handlersMu.RUnlock()
+			for _, h := range hs {
+				if h.onDelete != nil {
+					h.onDelete(resource, unstructuredObj)
+				}
 			}
 			self.fireObjectSubs(self.objectSubsDelete, unstructuredObj)
 		},
@@ -551,6 +637,10 @@ func (m *watcher) Unwatch(resource utils.ResourceDescriptor) error {
 		}
 	}
 	delete(m.activeHandlers, resource)
+
+	m.handlersMu.Lock()
+	delete(m.handlers, resource)
+	m.handlersMu.Unlock()
 
 	return nil
 }
