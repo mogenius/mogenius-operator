@@ -75,7 +75,6 @@ Volume mount for the external key-value store CA certificate.
     - |
       echo "waiting for valkey at $VALKEY_HOST:$VALKEY_PORT..."
       TIMEOUT=60
-      ELAPSED=0
       AUTH=""
       [ -n "$VALKEY_PASSWORD" ] && AUTH="-a $VALKEY_PASSWORD --no-auth-warning"
       [ -n "$VALKEY_USERNAME" ] && AUTH="$AUTH --user $VALKEY_USERNAME"
@@ -85,14 +84,19 @@ Volume mount for the external key-value store CA certificate.
         [ -n "$VALKEY_CA_CERT_FILE" ] && TLS="$TLS --cacert $VALKEY_CA_CERT_FILE"
         [ "$VALKEY_TLS_INSECURE" = "true" ] && TLS="$TLS --insecure"
       fi
-      until valkey-cli -h "$VALKEY_HOST" -p "$VALKEY_PORT" $AUTH $TLS ping 2>/dev/null | grep -q PONG; do
-        if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+      # Each probe is bounded and the cap is wall-clock time. On a node whose
+      # network blackholes the service, an unbounded valkey-cli hangs in the
+      # kernel's connect retries (~80s each) — a loop that only counted its own
+      # sleeps stretched this 60s cap to ~40 minutes, and helm upgrades died on
+      # the DaemonSet rollout wait long before that.
+      START=$(date +%s)
+      until timeout 3 valkey-cli -h "$VALKEY_HOST" -p "$VALKEY_PORT" $AUTH $TLS ping 2>/dev/null | grep -q PONG; do
+        if [ $(( $(date +%s) - START )) -ge "$TIMEOUT" ]; then
           echo "valkey not reachable after ${TIMEOUT}s — starting anyway, main container will retry with backoff"
           exit 0
         fi
         echo "valkey not ready, retrying in 2s..."
         sleep 2
-        ELAPSED=$((ELAPSED + 2))
       done
       echo "valkey is ready"
   {{- if eq (include "externalKvs.caEnabled" .) "true" }}
