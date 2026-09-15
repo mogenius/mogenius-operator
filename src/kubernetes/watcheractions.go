@@ -630,6 +630,10 @@ func TriggerUnstructuredResource(apiVersion string, plural string, namespace str
 type availableResourceCacheEntry struct {
 	timestamp          time.Time
 	availableResources []utils.ResourceDescriptor
+	// Same resources as availableResources, carrying the short names from
+	// discovery. Built once per refresh instead of projected per call: both
+	// shapes are read on hot paths, and the duplicate costs a few dozen KB.
+	availableKinds []utils.ResourceKind
 }
 
 var (
@@ -639,10 +643,34 @@ var (
 )
 
 func GetAvailableResources() ([]utils.ResourceDescriptor, error) {
+	entry, err := availableResourceCacheRead()
+	if err != nil {
+		return nil, err
+	}
+	return entry.availableResources, nil
+}
+
+// GetAvailableResourceKinds returns the same resources as GetAvailableResources
+// with the short names the API server accepts for each one (svc, deploy, crd,
+// …) attached, so clients that let a human pick a kind can offer kubectl's
+// abbreviations. CRDs are covered too - their short names come from the CRD
+// spec and are only knowable through discovery.
+func GetAvailableResourceKinds() ([]utils.ResourceKind, error) {
+	entry, err := availableResourceCacheRead()
+	if err != nil {
+		return nil, err
+	}
+	return entry.availableKinds, nil
+}
+
+// availableResourceCacheRead returns the cached discovery result, refreshing it
+// when the TTL expired. The returned entry only carries slice headers, so
+// callers read a consistent snapshot without holding the lock.
+func availableResourceCacheRead() (availableResourceCacheEntry, error) {
 	// Fast path: concurrent reads while cache is valid
 	resourceCacheMutex.RLock()
 	if time.Since(resourceCache.timestamp) < resourceCacheTTL {
-		result := resourceCache.availableResources
+		result := resourceCache
 		resourceCacheMutex.RUnlock()
 		return result, nil
 	}
@@ -654,7 +682,7 @@ func GetAvailableResources() ([]utils.ResourceDescriptor, error) {
 
 	// Double-check: another goroutine may have refreshed the cache while we waited
 	if time.Since(resourceCache.timestamp) < resourceCacheTTL {
-		return resourceCache.availableResources, nil
+		return resourceCache, nil
 	}
 
 	// Fetch resources from server
@@ -665,11 +693,12 @@ func GetAvailableResources() ([]utils.ResourceDescriptor, error) {
 			k8sLogger.Error("Failed to discover group resources", "error", err)
 		} else {
 			k8sLogger.Error("Error discovering resources", "error", err)
-			return nil, err
+			return availableResourceCacheEntry{}, err
 		}
 	}
 
 	var availableResources []utils.ResourceDescriptor
+	var availableKinds []utils.ResourceKind
 	for _, resourceList := range resources {
 		for _, resource := range resourceList.APIResources {
 			if !slices.Contains(resource.Verbs, "list") || !slices.Contains(resource.Verbs, "watch") {
@@ -678,19 +707,25 @@ func GetAvailableResources() ([]utils.ResourceDescriptor, error) {
 			if isExcludedResource(resourceList.GroupVersion, resource.Kind) {
 				continue
 			}
-			availableResources = append(availableResources, utils.ResourceDescriptor{
+			descriptor := utils.ResourceDescriptor{
 				Plural:     resource.Name,
 				ApiVersion: resourceList.GroupVersion,
 				Kind:       resource.Kind,
 				Namespaced: resource.Namespaced,
+			}
+			availableResources = append(availableResources, descriptor)
+			availableKinds = append(availableKinds, utils.ResourceKind{
+				ResourceDescriptor: descriptor,
+				ShortNames:         resource.ShortNames,
 			})
 		}
 	}
 
 	resourceCache.availableResources = availableResources
+	resourceCache.availableKinds = availableKinds
 	resourceCache.timestamp = time.Now()
 
-	return availableResources, nil
+	return resourceCache, nil
 }
 
 func resetAvailableResourceCache() {
