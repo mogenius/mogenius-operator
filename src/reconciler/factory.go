@@ -66,6 +66,8 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 	factory.WithReconciler(utils.AiModelResource, factory.module.reconcileAiModels, NamespaceFilter(ownNamespace))
 	factory.WithReconciler(utils.McpServerResource, factory.module.reconcileMcpServers, NamespaceFilter(ownNamespace))
 
+	factory.WithReconciler(utils.NamespaceResource, factory.module.reconcileNamespaces)
+
 	// Cluster-scoped, hence no namespace filter. An empty spec only publishes the
 	// detected GitOps status, so watching this costs a cluster nothing until it
 	// declares components.
