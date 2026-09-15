@@ -27,7 +27,7 @@ require (
 	github.com/robfig/cron/v3 v3.0.1
 	github.com/stretchr/testify v1.12.1
 	github.com/tklauser/go-sysconf v0.4.0
-	github.com/valkey-io/valkey-go v1.0.77
+	github.com/valkey-io/valkey-go v1.0.78
 	golang.org/x/crypto v0.57.0
 	golang.org/x/term v0.46.0
 	helm.sh/helm/v4 v4.3.0
