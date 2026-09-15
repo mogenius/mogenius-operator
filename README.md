@@ -10,7 +10,7 @@
 [![Go Version](https://img.shields.io/github/go-mod/go-version/mogenius/mogenius-operator)](go.mod)
 [![Release](https://img.shields.io/github/v/release/mogenius/mogenius-operator)](https://github.com/mogenius/mogenius-operator/releases)
 [![License](https://img.shields.io/github/license/mogenius/mogenius-operator)](LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/mogenius/mogenius-operator/main.yml?label=CI)](https://github.com/mogenius/mogenius-operator/actions)
+[![Build](https://github.com/mogenius/mogenius-operator/actions/workflows/develop.yml/badge.svg)](https://github.com/mogenius/mogenius-operator/actions/workflows/develop.yml)
 
 Go (≥1.25) operator that manages CRDs, Helm deployments, metrics collection, WebSocket communication, and IaC for the mogenius platform.
 
