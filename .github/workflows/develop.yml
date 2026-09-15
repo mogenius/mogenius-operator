@@ -72,7 +72,7 @@ jobs:
   # ============================================================================
   build-operator:
     needs: [prepare]
-    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@dae0d13cce40dcab691090d85d57d94abb312047 # v1.8.3
+    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@7a686ad01785edfadc6d4f3e7c198653249845a2 # v1.8.4
     secrets: inherit
     with:
       version: ${{ needs.prepare.outputs.version }}
