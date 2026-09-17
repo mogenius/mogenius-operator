@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.30.1](https://github.com/mogenius/mogenius-operator/compare/v2.30.0...v2.30.1) (2026-09-17)
+
+
+### Bug Fixes
+
+* attach an ephemeral debug container to shell-less pods for web terminal and SSH ([0eb7336](https://github.com/mogenius/mogenius-operator/commit/0eb733642f2ff8d2a66362eb0efac88d1ae6b96d))
+* **cluster-provider:** detect kind, evaluate every node, use spec.providerID ([1bc3227](https://github.com/mogenius/mogenius-operator/commit/1bc32270a0749d5cf4bb3184d2e4dd8f08eb8514))
+* **deps:** update module github.com/valkey-io/valkey-go to v1.0.78 ([b46231c](https://github.com/mogenius/mogenius-operator/commit/b46231c130c3c8bd1acb095739fc263c1acce85e))
+
 ## [2.30.0](https://github.com/mogenius/mogenius-operator/compare/v2.29.0...v2.30.0) (2026-09-16)
 
 
