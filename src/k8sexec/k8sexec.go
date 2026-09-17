@@ -27,6 +27,13 @@ const probeTimeout = 5 * time.Second
 // 137 (SIGKILL) code already handled by the parent.
 const ShellNotFoundExitCode = 66
 
+// DebugContainerFailedExitCode is the process exit code used when the
+// ephemeral debug container requested for a shell-less image could not be
+// attached or started. The parent maps it to a DEBUG_CONTAINER_FAILED close
+// reason: the terminal keeps the printed cause on screen, and the frontend
+// must not answer it with the NO_SHELL_AVAILABLE offer that led here.
+const DebugContainerFailedExitCode = 67
+
 type Executor interface {
 	Start(command []string) error
 	// Probe runs command non-interactively (no TTY, no stdin, output discarded)

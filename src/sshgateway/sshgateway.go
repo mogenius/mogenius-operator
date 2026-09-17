@@ -25,11 +25,14 @@
 package sshgateway
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
+	"mogenius-operator/src/debugcontainer"
 	"mogenius-operator/src/k8sclient"
 	"net"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/ssh"
 	rbacv1 "k8s.io/api/rbac/v1"
@@ -43,6 +46,9 @@ var (
 	gwOwnNamespace    string
 	gwHostSigner      ssh.Signer
 	gwAllowAdminBypas bool
+	// gwDebugImage is the image of the ephemeral debug container a user gets
+	// with `ssh mogenius-debug@…` — for workloads whose image ships no shell.
+	gwDebugImage string
 )
 
 // Setup stores dependencies and loads the cluster's persistent host key
@@ -51,7 +57,7 @@ var (
 // User CRDs live.
 // allowAdminBypass controls whether a session the platform marks as admin may
 // run under the operator's own identity; see MO_SSH_GATEWAY_ALLOW_ADMIN_BYPASS.
-func Setup(logger *slog.Logger, provider k8sclient.K8sClientProvider, ownNamespace string, allowAdminBypass bool) error {
+func Setup(logger *slog.Logger, provider k8sclient.K8sClientProvider, ownNamespace string, allowAdminBypass bool, debugImage string) error {
 	signer, err := loadOrCreateHostSigner(logger, provider.K8sClientSet(), ownNamespace)
 	if err != nil {
 		return fmt.Errorf("ssh host key: %w", err)
@@ -62,6 +68,7 @@ func Setup(logger *slog.Logger, provider k8sclient.K8sClientProvider, ownNamespa
 	gwOwnNamespace = ownNamespace
 	gwHostSigner = signer
 	gwAllowAdminBypas = allowAdminBypass
+	gwDebugImage = debugImage
 
 	logger.Info("SSH gateway initialized",
 		"hostKeyFingerprint", ssh.FingerprintSHA256(signer.PublicKey()),
@@ -251,12 +258,34 @@ func (s *Session) Handle(conn net.Conn, namespace string, podName string, reject
 		go rejectRemainingChannels(chans)
 		return
 	}
+	// `ssh mogenius-debug@…` asks for the ephemeral debug container: the
+	// workload container (first one, or `mogenius-debug` never matches a real
+	// container) becomes the target whose PID namespace the debug shell joins.
+	// Runs under the session's identity, so RBAC decides who may mutate the
+	// pod spec; a rejection reaches the client as the reason, not as a dropped
+	// pipe.
+	var containerNote string
+	if debugcontainer.IsDebugContainer(sconn.User()) {
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		debugName, err := debugcontainer.Ensure(ctx, clients.clientset, namespace, podName, debugcontainer.Options{
+			Image:           gwDebugImage,
+			TargetContainer: container,
+		})
+		cancel()
+		if err != nil {
+			logger.Error("debug container unavailable", "target", container, "error", err)
+			reject(err.Error())
+			go rejectRemainingChannels(chans)
+			return
+		}
+		containerNote = fmt.Sprintf("mogenius: debug container %q attached to %q — its processes are in `ps`, its filesystem under /proc/1/root", debugName, container)
+		container = debugName
+	}
 	logger.Info("SSH connection established", "user", sconn.User(), "container", container, "isAdmin", user.IsAdmin)
 
 	// Multi-container pods get a one-line hint in interactive shells: which
 	// container was picked, what else exists, and how to select one.
-	var containerNote string
-	if len(available) > 1 {
+	if containerNote == "" && len(available) > 1 {
 		if container == sconn.User() {
 			containerNote = fmt.Sprintf("mogenius: container %q (available: %s)", container, strings.Join(available, ", "))
 		} else {

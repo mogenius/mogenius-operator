@@ -13,7 +13,9 @@ rbac:
   # grant the ServiceAccount permissions yourself, out of band.
   create: true
   # -- replace the default blanket rule with your own ClusterRole rules. Whatever
-  # you leave out, the operator will hit as a Forbidden error at runtime.
+  # you leave out, the operator will hit as a Forbidden error at runtime. The
+  # debug-container fallback for shell-less images needs `get` and `update` on
+  # `pods/ephemeralcontainers`.
   rules: []
 
 
@@ -29,6 +31,11 @@ features:
   debugTools:
     # -- enable the debug tools container in the mogenius-operator pod
     enabled: false
+    # -- tool image. Also used as the ephemeral debug container the operator
+    # attaches to workload pods without a shell (distroless) when a user opens
+    # a terminal or SSH session there — independent of `enabled`. Must be
+    # pullable from the cluster; mirror it for air-gapped or allowlisted
+    # registries.
     image:
       registry: docker.io
       repository: nicolaka/netshoot

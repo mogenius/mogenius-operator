@@ -406,6 +406,12 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"storage_helper_image"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_DEBUG_CONTAINER_IMAGE",
+		DefaultValue: new("docker.io/nicolaka/netshoot:v0.16"), // renovate: datasource=docker depName=nicolaka/netshoot
+		Description:  new("image of the ephemeral debug container attached to pods whose image ships no shell (web terminal / SSH fallback)"),
+		Envs:         []string{"debug_container_image"},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ENABLE_POD_STATS_COLLECTOR",
 		DefaultValue: new("true"),
 		Description:  new("enable collection of pod stats"),

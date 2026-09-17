@@ -11,6 +11,7 @@ import (
 	"mogenius-operator/src/containerenumerator"
 	"mogenius-operator/src/core"
 	"mogenius-operator/src/cpumonitor"
+	"mogenius-operator/src/debugcontainer"
 	"mogenius-operator/src/flux"
 	"mogenius-operator/src/helm"
 	mokubernetes "mogenius-operator/src/kubernetes"
@@ -160,6 +161,7 @@ func initializeClusterSystems(
 		base.clientProvider,
 		configModule.Get("MO_OWN_NAMESPACE"),
 		allowAdminBypass,
+		debugcontainer.ImageFromConfig(configModule),
 	); err != nil {
 		base.logger.Warn("failed to initialize SSH gateway; kind=ssh tunnels will be rejected", "error", err)
 	}

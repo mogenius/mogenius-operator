@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/config"
+	"mogenius-operator/src/debugcontainer"
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/k8sexec"
 	"mogenius-operator/src/shell"
@@ -11,13 +13,18 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type execArgs struct {
-	Namespace string   `help:"" required:""`
-	Pod       string   `help:"" required:""`
-	Container string   `help:"" required:""`
-	Command   []string `arg:"" help:"" default:"sh" passthrough:""`
+	Namespace string `help:"" required:""`
+	Pod       string `help:"" required:""`
+	Container string `help:"" required:""`
+	// DebugContainer attaches (or reuses) an operator-managed ephemeral debug
+	// container targeting --container and opens the shell there instead. For
+	// images that ship no shell at all (distroless, scratch).
+	DebugContainer bool     `help:"open the shell in an ephemeral debug container targeting --container" name:"debug-container"`
+	Command        []string `arg:"" help:"" default:"sh" passthrough:""`
 }
 
 func RunExec(args *execArgs, logger *slog.Logger, configModule config.ConfigModule) error {
@@ -37,6 +44,28 @@ func RunExec(args *execArgs, logger *slog.Logger, configModule config.ConfigModu
 	}
 
 	clientProvider := k8sclient.NewK8sClientProvider(logger, configModule)
+
+	if args.DebugContainer {
+		// Progress goes to stdout: this process runs under a pty and everything
+		// it prints is streamed to the browser terminal, so the user watches the
+		// container being attached instead of staring at a blank screen.
+		ctx, cancel := context.WithTimeout(context.Background(), 90*time.Second)
+		debugName, err := debugcontainer.Ensure(ctx, clientProvider.K8sClientSet(), namespace, pod, debugcontainer.Options{
+			Image:           debugcontainer.ImageFromConfig(configModule),
+			TargetContainer: container,
+			Progress:        os.Stdout,
+		})
+		cancel()
+		if err != nil {
+			logger.Error("debug container unavailable", "error", err)
+			fmt.Printf("\r\n%s\r\n", strings.ReplaceAll(err.Error(), "\n", "\r\n"))
+			// Distinct exit code: the parent must not answer a failed fallback
+			// with the very NO_SHELL_AVAILABLE signal that offered the fallback.
+			os.Exit(k8sexec.DebugContainerFailedExitCode)
+		}
+		container = debugName
+	}
+
 	executor, err := k8sexec.NewExecutor(
 		logger,
 		clientProvider.K8sClientSet().CoreV1().RESTClient(),

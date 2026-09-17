@@ -56,6 +56,11 @@ type PodCmdConnectionRequest struct {
 	Container    string              `json:"container" validate:"required"`
 	WsConnection WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
 	LogTail      string              `json:"logTail"`
+	// DebugContainer (exec-sh only): open the shell in an ephemeral debug
+	// container that targets Container, for images without a shell. The user
+	// asks for this explicitly after the NO_SHELL_AVAILABLE signal; the API
+	// gates it more strictly than a plain exec because it mutates the pod spec.
+	DebugContainer bool `json:"debugContainer"`
 }
 
 type ComponentLogConnectionRequest struct {
@@ -325,6 +330,18 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, connWriteLock *sync.Mutex, tty
 					if conn != nil {
 						connWriteLock.Lock()
 						err := conn.WriteMessage(websocket.TextMessage, []byte("POD_DOES_NOT_EXIST"))
+						connWriteLock.Unlock()
+						if err != nil {
+							xtermLogger.Error("WriteMessage", "error", err)
+						}
+					}
+				}
+				if status.ExitStatus() == k8sexec.DebugContainerFailedExitCode {
+					// Same relay path as NO_SHELL_AVAILABLE below; the child has
+					// already printed why the debug container did not come up.
+					if conn != nil {
+						connWriteLock.Lock()
+						err := conn.WriteMessage(websocket.TextMessage, []byte("DEBUG_CONTAINER_FAILED"))
 						connWriteLock.Unlock()
 						if err != nil {
 							xtermLogger.Error("WriteMessage", "error", err)

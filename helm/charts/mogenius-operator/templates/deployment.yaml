@@ -82,6 +82,11 @@ spec:
             {{- end }}
             - name: MO_ENABLE_AUTO_UPGRADE
               value: {{ .Values.features.autoUpgrade.enabled | quote }}
+            # The same tool image serves two purposes: the optional debug-tools
+            # sidecar in this pod, and the ephemeral debug container the
+            # operator attaches to workload pods whose image ships no shell.
+            - name: MO_DEBUG_CONTAINER_IMAGE
+              value: {{ printf "%s/%s:%s" .Values.features.debugTools.image.registry .Values.features.debugTools.image.repository .Values.features.debugTools.image.tag | quote }}
           volumeMounts:
             - mountPath: /app/helm-data
               name: helm-data

@@ -3539,8 +3539,7 @@ func (self *socketApi) execShConnection(podCmdConnectionRequest xterm.PodCmdConn
 		return
 	}
 
-	cmd := exec.Command(
-		bin,
+	args := []string{
 		"exec",
 		"--namespace",
 		podCmdConnectionRequest.Namespace,
@@ -3548,12 +3547,20 @@ func (self *socketApi) execShConnection(podCmdConnectionRequest xterm.PodCmdConn
 		podCmdConnectionRequest.Pod,
 		"--container",
 		podCmdConnectionRequest.Container,
+	}
+	if podCmdConnectionRequest.DebugContainer {
+		// The child attaches (or reuses) the ephemeral debug container and
+		// prints its progress into the terminal before opening the shell there.
+		args = append(args, "--debug-container")
+	}
+	args = append(args,
 		"--",
 		// "sh" is a shell-open request: RunExec auto-detects an available shell
 		// (bash, sh, ash) instead of assuming sh, which fails on images that ship
 		// only bash/ash or no plain sh
 		"sh",
 	)
+	cmd := exec.Command(bin, args...)
 
 	xterm.XTermCommandStreamConnection(
 		"exec-sh",
