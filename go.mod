@@ -19,7 +19,7 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/nwidger/jsoncolor v0.3.2
 	github.com/ollama/ollama v0.34.2
-	github.com/openai/openai-go/v3 v3.64.3
+	github.com/openai/openai-go/v3 v3.66.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/pkg/sftp v1.13.11
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2
