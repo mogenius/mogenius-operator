@@ -30,12 +30,12 @@ import (
 	"log/slog"
 	"mogenius-operator/src/debugcontainer"
 	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/k8sexec"
 	"net"
 	"strings"
 	"time"
 
 	"golang.org/x/crypto/ssh"
-	rbacv1 "k8s.io/api/rbac/v1"
 	k8s "k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 )
@@ -130,77 +130,19 @@ func NewSession(user ConnectionUser) (*Session, error) {
 // Clientset is the Kubernetes client the tunnel's identity may use.
 func (s *Session) Clientset() k8s.Interface { return s.clients.clientset }
 
-// resolveExecClients maps the tunnel user to Kubernetes clients. Admin
-// sessions may use the operator identity (unless that bypass is switched
-// off); everyone else must have a User CRD with an RBAC subject — otherwise
-// the connection is rejected (fail closed).
+// resolveExecClients maps the tunnel user to Kubernetes clients. The rules
+// — admin bypass, impersonation via the User CRD, fail closed — live in
+// k8sexec.ResolveClients so a one-off exec-request and a shell into the same
+// pod are judged alike.
 func resolveExecClients(user ConnectionUser) (*execClients, error) {
-	if user.IsAdmin {
-		if !gwAllowAdminBypas {
-			// The admin marking comes from the platform over the control
-			// connection, so it is only as trustworthy as that connection.
-			// With the bypass off, such a session still has to name a user
-			// the cluster itself knows.
-			gwLogger.Info("admin bypass is disabled; falling back to impersonation", "email", user.Email)
-		} else {
-			return &execClients{restConfig: gwProvider.ClientConfig(), clientset: gwProvider.K8sClientSet()}, nil
-		}
-	}
-	if user.Email == "" {
-		return nil, fmt.Errorf("tunnel carries no user identity")
-	}
-
-	users, err := gwProvider.MogeniusClientSet().MogeniusV1alpha1.ListUsers(gwOwnNamespace)
+	clients, err := k8sexec.ResolveClients(gwLogger, gwProvider, gwOwnNamespace, gwAllowAdminBypas, k8sexec.Identity{
+		Email:   user.Email,
+		IsAdmin: user.IsAdmin,
+	})
 	if err != nil {
-		return nil, fmt.Errorf("list user CRDs: %w", err)
+		return nil, err
 	}
-	for i := range users {
-		if users[i].Spec.Email != user.Email {
-			continue
-		}
-		if users[i].Spec.Subject == nil {
-			return nil, fmt.Errorf("user %q has no RBAC subject on its User CRD", user.Email)
-		}
-		if err := validateImpersonationSubject(*users[i].Spec.Subject); err != nil {
-			return nil, fmt.Errorf("user %q has an unusable RBAC subject: %w", user.Email, err)
-		}
-		impersonated, err := gwProvider.WithImpersonate(*users[i].Spec.Subject)
-		if err != nil {
-			return nil, fmt.Errorf("impersonate %q: %w", user.Email, err)
-		}
-		return &execClients{restConfig: impersonated.ClientConfig(), clientset: impersonated.K8sClientSet()}, nil
-	}
-	return nil, fmt.Errorf("no User CRD found for %q", user.Email)
-}
-
-// validateImpersonationSubject rejects a Subject that WithImpersonate cannot
-// handle. Its unknown-kind branch calls assert.Assert(false, ...), which
-// exits the process — and the subject comes from a User CRD whose schema
-// declares kind as a plain string, so a malformed or hand-edited CRD would
-// otherwise take the whole operator down on the first SSH attempt.
-func validateImpersonationSubject(subject rbacv1.Subject) error {
-	switch subject.Kind {
-	case "User", "Group":
-		if subject.Name == "" {
-			return fmt.Errorf("%s subject has no name", subject.Kind)
-		}
-		if subject.APIGroup != rbacv1.GroupName {
-			return fmt.Errorf("%s subject must use apiGroup %q, got %q", subject.Kind, rbacv1.GroupName, subject.APIGroup)
-		}
-		if subject.Namespace != "" {
-			return fmt.Errorf("%s subject must not set a namespace", subject.Kind)
-		}
-	case "ServiceAccount":
-		if subject.Name == "" || subject.Namespace == "" {
-			return fmt.Errorf("ServiceAccount subject needs both name and namespace")
-		}
-		if subject.APIGroup != "" {
-			return fmt.Errorf("ServiceAccount subject must not set an apiGroup, got %q", subject.APIGroup)
-		}
-	default:
-		return fmt.Errorf("unsupported subject kind %q (expected User, Group or ServiceAccount)", subject.Kind)
-	}
-	return nil
+	return &execClients{restConfig: clients.RestConfig, clientset: clients.Clientset}, nil
 }
 
 // Handle runs an embedded SSH server on conn (one end of an in-process pipe
