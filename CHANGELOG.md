@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.31.0](https://github.com/mogenius/mogenius-operator/compare/v2.30.0...v2.31.0) (2026-09-25)
+
+
+### Features
+
+* add service/exec-request for non-interactive commands with time… ([78e45a1](https://github.com/mogenius/mogenius-operator/commit/78e45a1947d7096de16935e4440a8d44aacd8e26))
+* add service/exec-request for non-interactive commands with timeout and debug-container fallback ([aaed088](https://github.com/mogenius/mogenius-operator/commit/aaed088ba0b76ffa156a9c3d62909d73ff8c4513))
+
+
+### Bug Fixes
+
+* attach an ephemeral debug container to shell-less pods for web terminal and SSH ([0eb7336](https://github.com/mogenius/mogenius-operator/commit/0eb733642f2ff8d2a66362eb0efac88d1ae6b96d))
+* **cluster-provider:** detect kind, evaluate every node, use spec.providerID ([1bc3227](https://github.com/mogenius/mogenius-operator/commit/1bc32270a0749d5cf4bb3184d2e4dd8f08eb8514))
+* **deps:** update kubernetes monorepo to v0.37.1 ([#1284](https://github.com/mogenius/mogenius-operator/issues/1284)) ([582e6f7](https://github.com/mogenius/mogenius-operator/commit/582e6f783e765193f52bf043feb4be987fb9f909))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.74.0 ([86e5da3](https://github.com/mogenius/mogenius-operator/commit/86e5da34c18bd361860726aa5c53bf5746122488))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.75.0 ([#1281](https://github.com/mogenius/mogenius-operator/issues/1281)) ([35a84b7](https://github.com/mogenius/mogenius-operator/commit/35a84b774f483b316be3bdaa0536d2ca682276b9))
+* **deps:** update module github.com/go-playground/validator/v10 to v10.30.5 ([a93e7fc](https://github.com/mogenius/mogenius-operator/commit/a93e7fc4c2face94580ad3213bba027f16424c5b))
+* **deps:** update module github.com/ollama/ollama to v0.34.2 ([133cf0d](https://github.com/mogenius/mogenius-operator/commit/133cf0d5c6e4c0dd913c90e95545b464d8eaf7a0))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.64.3 ([b14905c](https://github.com/mogenius/mogenius-operator/commit/b14905cda3dd6ebc51e6ee317703cef6cbc7b2a3))
+* **deps:** update module github.com/valkey-io/valkey-go to v1.0.78 ([b46231c](https://github.com/mogenius/mogenius-operator/commit/b46231c130c3c8bd1acb095739fc263c1acce85e))
+
 ## [2.30.0](https://github.com/mogenius/mogenius-operator/compare/v2.29.0...v2.30.0) (2026-09-16)
 
 
