@@ -412,6 +412,20 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Envs:         []string{"debug_container_image"},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_EXEC_REQUEST_MAX_TIMEOUT_SECONDS",
+		DefaultValue: new("300"),
+		Description:  new("Upper bound for the timeout a service/exec-request may ask for, in seconds. Requests above it are rejected; requests without a timeout run for 10 seconds."),
+		Envs:         []string{"EXEC_REQUEST_MAX_TIMEOUT_SECONDS"},
+		Type:         new(config.ConfigVariableTypeInt),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_EXEC_REQUEST_MAX_OUTPUT_BYTES",
+		DefaultValue: new("1048576"),
+		Description:  new("Cap per output stream (stdout and stderr each) of a service/exec-request, in bytes. Longer output is cut and the response is marked truncated."),
+		Envs:         []string{"EXEC_REQUEST_MAX_OUTPUT_BYTES"},
+		Type:         new(config.ConfigVariableTypeInt),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_ENABLE_POD_STATS_COLLECTOR",
 		DefaultValue: new("true"),
 		Description:  new("enable collection of pod stats"),

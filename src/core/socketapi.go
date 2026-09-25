@@ -1491,6 +1491,22 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "service/exec-request"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request services.ExecRequest) (services.ExecResponse, error) {
+			// Identity from the datagram's user field, as for the tunnels
+			// above, so the payload cannot name a different user.
+			request.UserEmail = datagram.User.Email
+			result, err := services.ExecuteCommand(request)
+			// Audit the outcome, not the output: the payload already holds
+			// the command, and each stream may be up to the configured cap.
+			// AddToAuditLog logs its own write failures and hands err back.
+			_, err = store.AddToAuditLog(datagram, self.logger, result.AuditSummary(), err, nil, nil)
+			return result, err
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "service/log-stream-connection-request"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request xterm.PodCmdConnectionRequest) (Void, error) {

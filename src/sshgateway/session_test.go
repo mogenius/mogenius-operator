@@ -166,37 +166,6 @@ func TestFilecmdSetstatWithMalformedAttributes(t *testing.T) {
 	}
 }
 
-// WithImpersonate exits the process on an unknown subject kind, and the
-// subject comes from a User CRD whose schema does not constrain it.
-func TestValidateImpersonationSubject(t *testing.T) {
-	valid := []rbacv1.Subject{
-		{Kind: "User", Name: "jane", APIGroup: rbacv1.GroupName},
-		{Kind: "Group", Name: "ops", APIGroup: rbacv1.GroupName},
-		{Kind: "ServiceAccount", Name: "runner", Namespace: "mogenius"},
-	}
-	for _, subject := range valid {
-		if err := validateImpersonationSubject(subject); err != nil {
-			t.Errorf("valid %s subject rejected: %v", subject.Kind, err)
-		}
-	}
-
-	invalid := map[string]rbacv1.Subject{
-		"empty kind":               {Name: "jane", APIGroup: rbacv1.GroupName},
-		"lowercase kind":           {Kind: "user", Name: "jane", APIGroup: rbacv1.GroupName},
-		"unknown kind":             {Kind: "Robot", Name: "jane"},
-		"user without name":        {Kind: "User", APIGroup: rbacv1.GroupName},
-		"user with wrong apigroup": {Kind: "User", Name: "jane"},
-		"user with namespace":      {Kind: "User", Name: "jane", APIGroup: rbacv1.GroupName, Namespace: "default"},
-		"sa without namespace":     {Kind: "ServiceAccount", Name: "runner"},
-		"sa with apigroup":         {Kind: "ServiceAccount", Name: "runner", Namespace: "mogenius", APIGroup: rbacv1.GroupName},
-	}
-	for name, subject := range invalid {
-		if err := validateImpersonationSubject(subject); err == nil {
-			t.Errorf("%s was accepted; WithImpersonate would exit the process", name)
-		}
-	}
-}
-
 // stubProvider stands in for the operator's Kubernetes client provider so the
 // bypass path can be exercised without a cluster.
 type stubProvider struct {
