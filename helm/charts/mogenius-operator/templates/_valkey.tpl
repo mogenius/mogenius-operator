@@ -26,6 +26,34 @@ Volume mount for the external key-value store CA certificate.
   readOnly: true
 {{- end }}
 
+{{/*
+Returns a non-empty string when a client certificate secret must be mounted
+for mutual TLS (mTLS) on the external key-value store connection.
+*/}}
+{{- define "externalKvs.clientCertEnabled" -}}
+{{- if and .Values.externalKeyValueStore.enabled .Values.externalKeyValueStore.tls.enabled .Values.externalKeyValueStore.tls.clientCertSecret.name -}}
+true
+{{- end -}}
+{{- end }}
+
+{{/*
+Volume definition for the external key-value store client certificate.
+*/}}
+{{- define "externalKvs.clientCertVolume" -}}
+- name: valkey-tls-client
+  secret:
+    secretName: {{ .Values.externalKeyValueStore.tls.clientCertSecret.name }}
+{{- end }}
+
+{{/*
+Volume mount for the external key-value store client certificate.
+*/}}
+{{- define "externalKvs.clientCertVolumeMount" -}}
+- name: valkey-tls-client
+  mountPath: /etc/valkey-tls-client
+  readOnly: true
+{{- end }}
+
 {{- define "valkey.wait-for-connection" -}}
 - name: wait-for-valkey
   image: {{ .Values.valkey.image.registry }}/{{ .Values.valkey.image.repository }}:{{ .Values.valkey.image.tag }}
@@ -68,6 +96,12 @@ Volume mount for the external key-value store CA certificate.
     - name: VALKEY_CA_CERT_FILE
       value: "/etc/valkey-tls/{{ .Values.externalKeyValueStore.tls.caCertSecret.key }}"
     {{- end }}
+    {{- if .Values.externalKeyValueStore.tls.clientCertSecret.name }}
+    - name: VALKEY_TLS_CLIENT_CERT_FILE
+      value: "/etc/valkey-tls-client/{{ .Values.externalKeyValueStore.tls.clientCertSecret.certKey }}"
+    - name: VALKEY_TLS_CLIENT_KEY_FILE
+      value: "/etc/valkey-tls-client/{{ .Values.externalKeyValueStore.tls.clientCertSecret.keyKey }}"
+    {{- end }}
     {{- end }}
     {{- end }}
   command: ["/bin/sh", "-c"]
@@ -82,6 +116,7 @@ Volume mount for the external key-value store CA certificate.
       if [ "$VALKEY_TLS" = "true" ]; then
         TLS="--tls"
         [ -n "$VALKEY_CA_CERT_FILE" ] && TLS="$TLS --cacert $VALKEY_CA_CERT_FILE"
+        [ -n "$VALKEY_TLS_CLIENT_CERT_FILE" ] && TLS="$TLS --cert $VALKEY_TLS_CLIENT_CERT_FILE --key $VALKEY_TLS_CLIENT_KEY_FILE"
         [ "$VALKEY_TLS_INSECURE" = "true" ] && TLS="$TLS --insecure"
       fi
       # Each probe is bounded and the cap is wall-clock time. On a node whose
@@ -99,9 +134,14 @@ Volume mount for the external key-value store CA certificate.
         sleep 2
       done
       echo "valkey is ready"
-  {{- if eq (include "externalKvs.caEnabled" .) "true" }}
+  {{- if or (eq (include "externalKvs.caEnabled" .) "true") (eq (include "externalKvs.clientCertEnabled" .) "true") }}
   volumeMounts:
+    {{- if eq (include "externalKvs.caEnabled" .) "true" }}
     {{- include "externalKvs.caVolumeMount" . | nindent 4 }}
+    {{- end }}
+    {{- if eq (include "externalKvs.clientCertEnabled" .) "true" }}
+    {{- include "externalKvs.clientCertVolumeMount" . | nindent 4 }}
+    {{- end }}
   {{- end }}
   {{- with .Values.valkey.containerSecurityContext }}
   securityContext:

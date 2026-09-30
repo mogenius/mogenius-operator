@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os/exec"
 	"strings"
+	"syscall"
 	"testing"
 	"time"
 )
@@ -13,6 +14,14 @@ import (
 // runLocally executes the argv BuildShellCommand produced against the local
 // `sh`. The wrapper is plain POSIX sh, so this exercises exactly what the
 // container would run — only the exec transport is missing.
+//
+// GNU `timeout` without --foreground puts itself and the command it monitors
+// in one process group and signals that whole group, so on a KILL it dies
+// alongside the command instead of exiting 124/137 itself. A container
+// runtime reports that as the conventional 128+signal, same as a shell's $?;
+// Go's ExitCode() instead reports -1 for a signaled process, since there is
+// no real exit code. Reproduce the runtime's convention here so the local
+// run matches what Run sees from the exec API.
 func runLocally(t *testing.T, argv []string) (stdout, stderr string, exitCode int) {
 	t.Helper()
 	cmd := exec.Command(argv[0], argv[1:]...)
@@ -24,7 +33,11 @@ func runLocally(t *testing.T, argv []string) (stdout, stderr string, exitCode in
 	switch {
 	case err == nil:
 	case errors.As(err, &exitErr):
-		exitCode = exitErr.ExitCode()
+		if status, ok := exitErr.Sys().(syscall.WaitStatus); ok && status.Signaled() {
+			exitCode = 128 + int(status.Signal())
+		} else {
+			exitCode = exitErr.ExitCode()
+		}
 	default:
 		t.Fatalf("run %q: %v", argv, err)
 	}

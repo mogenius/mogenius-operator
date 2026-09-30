@@ -27,17 +27,21 @@
 | containerSecurityContext.privileged | bool | `false` |  |
 | containerSecurityContext.readOnlyRootFilesystem | bool | `true` |  |
 | envVars | object | `{"MO_API_SERVER":"wss://k8s-ws.mogenius.com/ws","MO_EVENT_SERVER":"wss://k8s-dispatcher.mogenius.com/ws"}` | environment variables to be set in the mogenius-operator deployment |
-| externalKeyValueStore | object | `{"enabled":false,"existingSecret":{"key":"valkey-password","name":""},"host":"","port":6379,"tls":{"caCertSecret":{"key":"ca.crt","name":""},"enabled":false,"insecureSkipVerify":false},"username":""}` | When enabled, set valkey.enabled to false. |
+| externalKeyValueStore | object | `{"enabled":false,"existingSecret":{"key":"valkey-password","name":""},"host":"","port":6379,"tls":{"caCertSecret":{"key":"ca.crt","name":""},"clientCertSecret":{"certKey":"tls.crt","keyKey":"tls.key","name":""},"enabled":false,"insecureSkipVerify":false},"username":""}` | When enabled, set valkey.enabled to false. |
 | externalKeyValueStore.enabled | bool | `false` | enable using an external key-value store (mutually exclusive with valkey.enabled) |
 | externalKeyValueStore.existingSecret | object | `{"key":"valkey-password","name":""}` | reference to an existing secret holding the password. Leave name empty if the store requires no auth. |
 | externalKeyValueStore.existingSecret.key | string | `"valkey-password"` | key within the existing secret that holds the password |
 | externalKeyValueStore.existingSecret.name | string | `""` | name of the existing secret holding the password |
 | externalKeyValueStore.host | string | `""` | hostname of the external key-value store (e.g. "my-redis.example.com") |
 | externalKeyValueStore.port | int | `6379` | port of the external key-value store (default: the standard Redis/Valkey port) |
-| externalKeyValueStore.tls | object | `{"caCertSecret":{"key":"ca.crt","name":""},"enabled":false,"insecureSkipVerify":false}` | TLS settings for the connection to the external key-value store |
+| externalKeyValueStore.tls | object | `{"caCertSecret":{"key":"ca.crt","name":""},"clientCertSecret":{"certKey":"tls.crt","keyKey":"tls.key","name":""},"enabled":false,"insecureSkipVerify":false}` | TLS settings for the connection to the external key-value store |
 | externalKeyValueStore.tls.caCertSecret | object | `{"key":"ca.crt","name":""}` | Leave name empty to use the system trust store (e.g. for publicly-trusted managed services). |
 | externalKeyValueStore.tls.caCertSecret.key | string | `"ca.crt"` | key within the existing secret that holds the CA certificate |
 | externalKeyValueStore.tls.caCertSecret.name | string | `""` | name of the existing secret holding the CA certificate |
+| externalKeyValueStore.tls.clientCertSecret | object | `{"certKey":"tls.crt","keyKey":"tls.key","name":""}` | Leave name empty to not present a client certificate. |
+| externalKeyValueStore.tls.clientCertSecret.certKey | string | `"tls.crt"` | key within the existing secret that holds the client certificate (PEM) |
+| externalKeyValueStore.tls.clientCertSecret.keyKey | string | `"tls.key"` | key within the existing secret that holds the client private key (PEM) |
+| externalKeyValueStore.tls.clientCertSecret.name | string | `""` | name of the existing secret holding the client certificate and key |
 | externalKeyValueStore.tls.enabled | bool | `false` | enable TLS for the connection |
 | externalKeyValueStore.tls.insecureSkipVerify | bool | `false` | skip TLS certificate verification (insecure; only for self-signed certs in trusted networks) |
 | externalKeyValueStore.username | string | `""` | optional ACL username for the external key-value store (leave empty for the default user) |
@@ -237,6 +241,21 @@ externalKeyValueStore:
     # Alternatively, skip verification entirely (insecure, only for trusted networks):
     # insecureSkipVerify: true
 ```
+
+For servers that enforce or map client certificates (mutual TLS), also provide a
+client certificate/key pair from an existing secret. It is mounted into the operator
+(and node-metrics) pods and presented during the TLS handshake:
+
+```yaml
+    clientCertSecret:
+      name: my-client-cert-secret
+      certKey: tls.crt
+      keyKey: tls.key
+```
+
+The chart itself never maps the certificate to an ACL user — that mapping, if any,
+is server-side config. Presenting a client certificate still requires `AUTH` unless
+the server is configured to authenticate the connection from the certificate alone.
 
 ### Restricting the Operator's Permissions (Unsupported)
 
