@@ -127,6 +127,52 @@ tests:
             secret:
               secretName: my-ca-secret
 
+  - it: wires a client certificate for mTLS on the external store
+    set:
+      valkey.enabled: false
+      externalKeyValueStore.enabled: true
+      externalKeyValueStore.host: my-redis.example.com
+      externalKeyValueStore.tls.enabled: true
+      externalKeyValueStore.tls.clientCertSecret.name: my-client-cert-secret
+      externalKeyValueStore.tls.clientCertSecret.certKey: tls.crt
+      externalKeyValueStore.tls.clientCertSecret.keyKey: tls.key
+    asserts:
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MO_VALKEY_TLS_CLIENT_CERT_FILE
+            value: /etc/valkey-tls-client/tls.crt
+      - contains:
+          path: spec.template.spec.containers[0].env
+          content:
+            name: MO_VALKEY_TLS_CLIENT_KEY_FILE
+            value: /etc/valkey-tls-client/tls.key
+      - contains:
+          path: spec.template.spec.containers[0].volumeMounts
+          content:
+            name: valkey-tls-client
+            mountPath: /etc/valkey-tls-client
+            readOnly: true
+      - contains:
+          path: spec.template.spec.volumes
+          content:
+            name: valkey-tls-client
+            secret:
+              secretName: my-client-cert-secret
+
+  - it: does not mount a client cert secret when TLS is enabled without one
+    set:
+      valkey.enabled: false
+      externalKeyValueStore.enabled: true
+      externalKeyValueStore.host: my-redis.example.com
+      externalKeyValueStore.tls.enabled: true
+    asserts:
+      - notContains:
+          path: spec.template.spec.volumes
+          content:
+            name: valkey-tls-client
+          any: true
+
   - it: enables TLS with insecureSkipVerify and no CA secret
     set:
       valkey.enabled: false

@@ -34,6 +34,9 @@ spec:
         {{- if eq (include "externalKvs.caEnabled" .) "true" }}
         {{- include "externalKvs.caVolume" . | nindent 8 }}
         {{- end }}
+        {{- if eq (include "externalKvs.clientCertEnabled" .) "true" }}
+        {{- include "externalKvs.clientCertVolume" . | nindent 8 }}
+        {{- end }}
       {{- with .Values.nodeMetrics.podSecurityContext }}
       securityContext:
         {{- toYaml . | nindent 8 }}
@@ -82,6 +85,9 @@ spec:
               mountPath: /hostcni
             {{- if eq (include "externalKvs.caEnabled" .) "true" }}
             {{- include "externalKvs.caVolumeMount" . | nindent 12 }}
+            {{- end }}
+            {{- if eq (include "externalKvs.clientCertEnabled" .) "true" }}
+            {{- include "externalKvs.clientCertVolumeMount" . | nindent 12 }}
             {{- end }}
           env:
             {{- include "common.env" . | nindent 12 }}

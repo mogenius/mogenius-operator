@@ -291,9 +291,10 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Description:  new("Username (ACL) of operator valkey Server, optional"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
-		Key:         "MO_VALKEY_PASSWORD",
-		IsSecret:    true,
-		Description: new("Password of operator valkey Server"),
+		Key:          "MO_VALKEY_PASSWORD",
+		DefaultValue: new(""),
+		IsSecret:     true,
+		Description:  new("Password of operator valkey Server, optional when a client certificate authenticates the connection (mTLS with clientAuth.certificateUser)"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_VALKEY_TLS_ENABLED",
@@ -311,6 +312,16 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Key:          "MO_VALKEY_TLS_CA_CERT_FILE",
 		DefaultValue: new(""),
 		Description:  new("Path to a CA certificate file used to verify the valkey server, optional"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_VALKEY_TLS_CLIENT_CERT_FILE",
+		DefaultValue: new(""),
+		Description:  new("Path to a client certificate file presented for mTLS to the valkey server, optional. Must be set together with MO_VALKEY_TLS_CLIENT_KEY_FILE"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_VALKEY_TLS_CLIENT_KEY_FILE",
+		DefaultValue: new(""),
+		Description:  new("Path to the private key file for MO_VALKEY_TLS_CLIENT_CERT_FILE, optional"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_STATS_RETENTION_MAX_ENTRIES",

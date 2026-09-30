@@ -188,6 +188,15 @@ externalKeyValueStore:
       name: ""
       # -- key within the existing secret that holds the CA certificate
       key: ca.crt
+    # -- reference to an existing secret holding a client certificate and key for mutual TLS (mTLS).
+    # -- Leave name empty to not present a client certificate.
+    clientCertSecret:
+      # -- name of the existing secret holding the client certificate and key
+      name: ""
+      # -- key within the existing secret that holds the client certificate (PEM)
+      certKey: tls.crt
+      # -- key within the existing secret that holds the client private key (PEM)
+      keyKey: tls.key
 
 valkey:
   # -- deploy the bundled Valkey instance. Set to false to use an external key-value store (see externalKeyValueStore)

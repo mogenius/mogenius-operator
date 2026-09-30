@@ -15,13 +15,12 @@ import (
 // the new env var yet and the operator crash-loops on upgrade. New optional
 // keys must declare a DefaultValue instead.
 var requiredEnvKeys = map[string]bool{
-	"MO_API_KEY":         true,
-	"MO_API_SERVER":      true,
-	"MO_CLUSTER_MFA_ID":  true,
-	"MO_CLUSTER_NAME":    true,
-	"MO_EVENT_SERVER":    true,
-	"MO_VALKEY_ADDR":     true,
-	"MO_VALKEY_PASSWORD": true,
+	"MO_API_KEY":        true,
+	"MO_API_SERVER":     true,
+	"MO_CLUSTER_MFA_ID": true,
+	"MO_CLUSTER_NAME":   true,
+	"MO_EVENT_SERVER":   true,
+	"MO_VALKEY_ADDR":    true,
 }
 
 func TestNewConfigKeysHaveDefaults(t *testing.T) {

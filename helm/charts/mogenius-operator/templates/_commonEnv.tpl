@@ -72,6 +72,12 @@
 - name: MO_VALKEY_TLS_CA_CERT_FILE
   value: "/etc/valkey-tls/{{ .Values.externalKeyValueStore.tls.caCertSecret.key }}"
 {{- end }}
+{{- if .Values.externalKeyValueStore.tls.clientCertSecret.name }}
+- name: MO_VALKEY_TLS_CLIENT_CERT_FILE
+  value: "/etc/valkey-tls-client/{{ .Values.externalKeyValueStore.tls.clientCertSecret.certKey }}"
+- name: MO_VALKEY_TLS_CLIENT_KEY_FILE
+  value: "/etc/valkey-tls-client/{{ .Values.externalKeyValueStore.tls.clientCertSecret.keyKey }}"
+{{- end }}
 {{- end }}
 {{- else }}
 {{- fail "no key-value store configured: enable the bundled valkey (valkey.enabled) or an external store (externalKeyValueStore.enabled)" }}

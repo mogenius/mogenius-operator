@@ -166,34 +166,68 @@ func (self *valkeyClient) Connect() error {
 
 // buildTLSConfig returns a *tls.Config when TLS is enabled for the Valkey
 // connection, or nil when TLS is disabled (plaintext). The serverName is used
-// for SNI and certificate hostname verification. An optional CA certificate
-// file overrides the system trust store, and verification can be skipped
-// entirely for self-signed certificates in trusted networks.
+// for SNI and certificate hostname verification.
 func (self *valkeyClient) buildTLSConfig(serverName string) (*tls.Config, error) {
 	enabled, _ := self.config.TryGetBool("MO_VALKEY_TLS_ENABLED")
 	if !enabled {
 		return nil, nil
 	}
 
+	insecureSkipVerify, _ := self.config.TryGetBool("MO_VALKEY_TLS_INSECURE_SKIP_VERIFY")
+
+	return buildTLSConfigFromFiles(tlsFileConfig{
+		serverName:         serverName,
+		insecureSkipVerify: insecureSkipVerify,
+		caCertFile:         self.config.Get("MO_VALKEY_TLS_CA_CERT_FILE"),
+		clientCertFile:     self.config.Get("MO_VALKEY_TLS_CLIENT_CERT_FILE"),
+		clientKeyFile:      self.config.Get("MO_VALKEY_TLS_CLIENT_KEY_FILE"),
+	})
+}
+
+// tlsFileConfig is the file-based subset of the Valkey TLS configuration,
+// split out of buildTLSConfig so it can be exercised directly in tests
+// without a ConfigModule.
+type tlsFileConfig struct {
+	serverName         string
+	insecureSkipVerify bool
+	caCertFile         string
+	clientCertFile     string
+	clientKeyFile      string
+}
+
+// buildTLSConfigFromFiles turns file paths into a *tls.Config. An optional CA
+// certificate overrides the system trust store. An optional client
+// certificate/key pair presents a client certificate for mTLS-enforcing
+// servers; the operator's ACL user still authenticates via AUTH unless the
+// server maps the certificate to an ACL user itself.
+func buildTLSConfigFromFiles(cfg tlsFileConfig) (*tls.Config, error) {
 	tlsConfig := &tls.Config{
-		MinVersion: tls.VersionTLS12,
-		ServerName: serverName,
+		MinVersion:         tls.VersionTLS12,
+		ServerName:         cfg.serverName,
+		InsecureSkipVerify: cfg.insecureSkipVerify,
 	}
 
-	if skip, _ := self.config.TryGetBool("MO_VALKEY_TLS_INSECURE_SKIP_VERIFY"); skip {
-		tlsConfig.InsecureSkipVerify = true
-	}
-
-	if caFile := self.config.Get("MO_VALKEY_TLS_CA_CERT_FILE"); caFile != "" {
-		caPEM, err := os.ReadFile(caFile)
+	if cfg.caCertFile != "" {
+		caPEM, err := os.ReadFile(cfg.caCertFile)
 		if err != nil {
-			return nil, fmt.Errorf("read CA cert %q: %w", caFile, err)
+			return nil, fmt.Errorf("read CA cert %q: %w", cfg.caCertFile, err)
 		}
 		pool := x509.NewCertPool()
 		if !pool.AppendCertsFromPEM(caPEM) {
-			return nil, fmt.Errorf("no valid certificates found in CA cert %q", caFile)
+			return nil, fmt.Errorf("no valid certificates found in CA cert %q", cfg.caCertFile)
 		}
 		tlsConfig.RootCAs = pool
+	}
+
+	if (cfg.clientCertFile == "") != (cfg.clientKeyFile == "") {
+		return nil, fmt.Errorf("MO_VALKEY_TLS_CLIENT_CERT_FILE and MO_VALKEY_TLS_CLIENT_KEY_FILE must be set together")
+	}
+	if cfg.clientCertFile != "" {
+		cert, err := tls.LoadX509KeyPair(cfg.clientCertFile, cfg.clientKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf("load client certificate %q/%q: %w", cfg.clientCertFile, cfg.clientKeyFile, err)
+		}
+		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
 
 	return tlsConfig, nil

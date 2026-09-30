@@ -121,6 +121,21 @@ externalKeyValueStore:
     # insecureSkipVerify: true
 ```
 
+For servers that enforce or map client certificates (mutual TLS), also provide a
+client certificate/key pair from an existing secret. It is mounted into the operator
+(and node-metrics) pods and presented during the TLS handshake:
+
+```yaml
+    clientCertSecret:
+      name: my-client-cert-secret
+      certKey: tls.crt
+      keyKey: tls.key
+```
+
+The chart itself never maps the certificate to an ACL user — that mapping, if any,
+is server-side config. Presenting a client certificate still requires `AUTH` unless
+the server is configured to authenticate the connection from the certificate alone.
+
 ### Restricting the Operator's Permissions (Unsupported)
 
 By default the chart grants the operator a ClusterRole with every verb on every
