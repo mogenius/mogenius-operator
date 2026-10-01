@@ -97,7 +97,9 @@ type UISection struct {
 }
 
 // UIFieldType selects the input widget the frontend renders for a field.
-// +kubebuilder:validation:Enum=string;integer;number;boolean;array;map;object;objectArray;oneOf;yaml
+// Valid values: string, integer, number, boolean, array, map, object,
+// objectArray, oneOf, yaml, envVar, resources.
+// +kubebuilder:validation:Enum=string;integer;number;boolean;array;map;object;objectArray;oneOf;yaml;envVar;resources
 type UIFieldType string
 
 const (
@@ -127,6 +129,25 @@ const (
 	// UIFieldTypeYaml renders a raw YAML editor for the subtree at Key. Escape hatch for
 	// parts of a spec that cannot (or should not) be expressed as structured form fields.
 	UIFieldTypeYaml UIFieldType = "yaml"
+	// UIFieldTypeEnvVar renders a Kubernetes env-var editor. The field key must
+	// point to the container's env array (e.g. spec.template.spec.containers.0.env).
+	//
+	// Two modes:
+	//   - List mode (no label set): renders a full add/remove list of env vars.
+	//     Each entry has a name input and a type selector (plain value, Secret key
+	//     reference, or ConfigMap key reference). Use this to let users manage an
+	//     arbitrary set of extra environment variables.
+	//   - Single mode (label set): the label is used as the env-var name (fixed).
+	//     Hides the name input and shows only the value/ref selector. Add one
+	//     envVar field per named env var you want to expose individually.
+	UIFieldTypeEnvVar UIFieldType = "envVar"
+	// UIFieldTypeResources renders a resource requests/limits editor for CPU,
+	// memory, and ephemeral storage. The field key must point to a container's
+	// resources object (e.g. spec.template.spec.containers.0.resources).
+	// Values are entered as a number with a unit selector (m/cores for CPU;
+	// Ki/Mi/Gi/Ti for memory and storage). The editor validates that each limit
+	// is greater than or equal to its corresponding request.
+	UIFieldTypeResources UIFieldType = "resources"
 )
 
 // UIField describes a single input in the form. Scalar types map to one property in the
@@ -145,7 +166,35 @@ type UIField struct {
 	Key string `json:"key"`
 	// Label is the human-readable name shown next to the input control.
 	Label string `json:"label"`
-	// Type selects the input widget the frontend renders for this field.
+	// Type selects the input widget rendered by the frontend. Valid values:
+	//
+	//   - string: single-line text input.
+	//   - integer: integer number input.
+	//   - number: floating-point number input.
+	//   - boolean: toggle switch (true/false).
+	//   - array: list of scalar values (strings, numbers). Use the `items` field
+	//     to configure each element's type.
+	//   - map: key-value pairs where both key and value are strings.
+	//   - object: inline object with named sub-fields defined in `fields`.
+	//   - objectArray: list of objects. Each item is rendered using the sub-fields
+	//     defined in `fields`. Use this to manage a list of structured entries.
+	//   - oneOf: variant selector. The user picks one variant from `fields`, each
+	//     with its own sub-field set.
+	//   - yaml: raw YAML editor for freeform structured input.
+	//   - envVar: Kubernetes environment variable editor. Each entry supports plain
+	//     values, Secret key references, and ConfigMap key references.
+	//     Two usage patterns:
+	//     1) As a child field of objectArray (no key, no label): renders a single
+	//        item editor inside the array (name + value/ref). The parent objectArray
+	//        handles add/remove.
+	//     2) Standalone with key + label: the key points to the container's env
+	//        array (e.g. spec.template.spec.containers.0.env) and the label is used
+	//        as the fixed env-var name. Only the value/ref is editable.
+	//   - resources: CPU, memory, and ephemeral-storage requests/limits editor.
+	//     The key must point to a container's resources object
+	//     (e.g. spec.template.spec.containers.0.resources). Values use a number
+	//     + unit selector (m/cores for CPU; Ki/Mi/Gi/Ti for memory/storage).
+	//     Validates that each limit is greater than or equal to its request.
 	Type UIFieldType `json:"type"`
 	// Description is shown as a tooltip or hint text below the input to help the user
 	// understand what value is expected.

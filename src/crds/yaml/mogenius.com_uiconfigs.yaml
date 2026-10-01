@@ -186,8 +186,35 @@ spec:
                                   form submission if this field is left empty.
                                 type: boolean
                               type:
-                                description: Type selects the input widget the frontend
-                                  renders for this field.
+                                description: |-
+                                  Type selects the input widget rendered by the frontend. Valid values:
+
+                                    - string: single-line text input.
+                                    - integer: integer number input.
+                                    - number: floating-point number input.
+                                    - boolean: toggle switch (true/false).
+                                    - array: list of scalar values (strings, numbers). Use the `items` field
+                                      to configure each element's type.
+                                    - map: key-value pairs where both key and value are strings.
+                                    - object: inline object with named sub-fields defined in `fields`.
+                                    - objectArray: list of objects. Each item is rendered using the sub-fields
+                                      defined in `fields`. Use this to manage a list of structured entries.
+                                    - oneOf: variant selector. The user picks one variant from `fields`, each
+                                      with its own sub-field set.
+                                    - yaml: raw YAML editor for freeform structured input.
+                                    - envVar: Kubernetes environment variable editor. Each entry supports plain
+                                      values, Secret key references, and ConfigMap key references.
+                                      Two usage patterns:
+                                      1) As a child field of objectArray (no key, no label): renders a single
+                                         item editor inside the array (name + value/ref). The parent objectArray
+                                         handles add/remove.
+                                      2) Standalone with key + label: the key points to the container's env
+                                         array (e.g. spec.template.spec.containers.0.env) and the label is used
+                                         as the fixed env-var name. Only the value/ref is editable.
+                                    - resources: CPU, memory, and ephemeral-storage requests/limits editor.
+                                      The key must point to a container's resources object
+                                      (e.g. spec.template.spec.containers.0.resources). Values use a number
+                                      Validates that each limit is greater than or equal to its request.
                                 enum:
                                 - string
                                 - integer
@@ -199,6 +226,8 @@ spec:
                                 - objectArray
                                 - oneOf
                                 - yaml
+                                - envVar
+                                - resources
                                 type: string
                               variants:
                                 description: |-
