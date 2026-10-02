@@ -815,13 +815,15 @@ func (self *socketApi) registerPatterns() {
 	{
 		type Request struct {
 			Folder dtos.PvcFileRequestDto `json:"folder" validate:"required"`
+			// MaxDepth descends that many levels; absent or 1 lists the folder itself.
+			MaxDepth int `json:"maxDepth"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "files/v2/list"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) ([]dtos.PersistentFileDto, error) {
-				return services.ListV2(request.Folder)
+				return services.ListV2(request.Folder, request.MaxDepth)
 			},
 		)
 	}
@@ -833,13 +835,15 @@ func (self *socketApi) registerPatterns() {
 			Folder     dtos.PvcFileRequestDto `json:"folder" validate:"required"`
 			Query      string                 `json:"query" validate:"required"`
 			MaxResults int                    `json:"maxResults"`
+			// Glob matches Query as a shell glob (`*.py`) instead of as a substring.
+			Glob bool `json:"glob"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "files/v2/search"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (services.FilesSearchResult, error) {
-				return services.SearchV2(request.Folder, request.Query, request.MaxResults)
+				return services.SearchV2(request.Folder, request.Query, request.MaxResults, request.Glob)
 			},
 		)
 	}
@@ -855,13 +859,15 @@ func (self *socketApi) registerPatterns() {
 	{
 		type Request struct {
 			Folder dtos.PvcFileRequestDto `json:"folder" validate:"required"`
+			// Mode is the octal or symbolic permission of the new folder; the umask decides when absent.
+			Mode string `json:"mode"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "files/v2/create-folder"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
-				err := services.CreateFolderV2(request.Folder)
+				err := services.CreateFolderV2(request.Folder, request.Mode)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
 		)
@@ -869,15 +875,17 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			File    dtos.PvcFileRequestDto `json:"file" validate:"required"`
-			NewName string                 `json:"newName" validate:"required"`
+			File dtos.PvcFileRequestDto `json:"file" validate:"required"`
+			// NewName renames within the folder; NewPath moves to another path. One of the two.
+			NewName string `json:"newName" validate:"required_without=NewPath"`
+			NewPath string `json:"newPath" validate:"required_without=NewName"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "files/v2/rename"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
-				err := services.RenameV2(request.File, request.NewName)
+				err := services.RenameV2(request.File, request.NewName, request.NewPath)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
 		)
@@ -919,14 +927,55 @@ func (self *socketApi) registerPatterns() {
 	{
 		type Request struct {
 			File dtos.PvcFileRequestDto `json:"file" validate:"required"`
+			// Recursive removes folders with their contents. Absent means true,
+			// which is what the storage UI has always done; the sandbox toolbox
+			// passes false for Daytona's default.
+			Recursive *bool `json:"recursive"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "files/v2/delete"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
-				err := services.DeleteV2(request.File)
+				err := services.DeleteV2(request.File, request.Recursive == nil || *request.Recursive)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
+			},
+		)
+	}
+
+	// text search in file contents below Folder.Path (Daytona findFiles)
+	{
+		type Request struct {
+			Folder     dtos.PvcFileRequestDto `json:"folder" validate:"required"`
+			Pattern    string                 `json:"pattern" validate:"required"`
+			MaxResults int                    `json:"maxResults"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "files/v2/find"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (services.FilesFindResult, error) {
+				return services.FindV2(request.Folder, request.Pattern, request.MaxResults)
+			},
+		)
+	}
+
+	// literal text replacement in the named files (Daytona replaceInFiles);
+	// Target names pod or volume, its path is not used
+	{
+		type Request struct {
+			Target   dtos.PvcFileRequestDto `json:"target" validate:"required"`
+			Files    []string               `json:"files" validate:"required,min=1"`
+			Pattern  string                 `json:"pattern" validate:"required"`
+			NewValue string                 `json:"newValue"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "files/v2/replace"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) ([]services.FileReplaceResult, error) {
+				results, err := services.ReplaceV2(request.Target, request.Files, request.Pattern, request.NewValue)
+				return store.AddToAuditLog(datagram, self.logger, results, err, nil, nil)
 			},
 		)
 	}
