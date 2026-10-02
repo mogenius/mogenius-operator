@@ -6,7 +6,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"math"
 	"mime"
 	"mime/multipart"
 	"mogenius-operator/src/dtos"
@@ -16,6 +15,7 @@ import (
 	"net/textproto"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -67,7 +67,7 @@ func List(folder dtos.PersistentFileRequestDto) ([]dtos.PersistentFileDto, error
 	if err != nil {
 		return nil, err
 	}
-	return listImpl(target, folder.Path)
+	return listImpl(target, folder.Path, 1)
 }
 
 func Info(r dtos.PersistentFileRequestDto) (dtos.PersistentFileDto, error) {
@@ -99,7 +99,7 @@ func CreateFolder(folder dtos.PersistentFileRequestDto) error {
 	if err != nil {
 		return err
 	}
-	return createFolderImpl(target, folder.Path)
+	return createFolderImpl(target, folder.Path, "")
 }
 
 func Rename(file dtos.PersistentFileRequestDto, newName string) error {
@@ -107,7 +107,7 @@ func Rename(file dtos.PersistentFileRequestDto, newName string) error {
 	if err != nil {
 		return err
 	}
-	return renameImpl(target, file.Path, newName)
+	return renameImpl(target, file.Path, newName, "")
 }
 
 func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString string) error {
@@ -131,29 +131,32 @@ func Delete(file dtos.PersistentFileRequestDto) error {
 	if err != nil {
 		return err
 	}
-	return deleteImpl(target, file.Path)
+	return deleteImpl(target, file.Path, true)
 }
 
 // ── v2 entry points (files/v2/* patterns, any mounted PVC) ────────────────────
 
-func ListV2(folder dtos.PvcFileRequestDto) ([]dtos.PersistentFileDto, error) {
-	target, err := resolvePvcFileTarget(folder.Namespace, folder.PvcName)
+// ListV2 lists the entries below folder.Path; maxDepth 1 (or less) is the
+// folder itself, larger values descend that many levels.
+func ListV2(folder dtos.PvcFileRequestDto, maxDepth int) ([]dtos.PersistentFileDto, error) {
+	target, err := resolveFileTarget(folder)
 	if err != nil {
 		return nil, err
 	}
-	return listImpl(target, folder.Path)
+	return listImpl(target, folder.Path, maxDepth)
 }
 
-func SearchV2(folder dtos.PvcFileRequestDto, query string, maxResults int) (FilesSearchResult, error) {
-	target, err := resolvePvcFileTarget(folder.Namespace, folder.PvcName)
+// SearchV2 finds entries by name below folder.Path; glob switches from substring to shell-glob matching.
+func SearchV2(folder dtos.PvcFileRequestDto, query string, maxResults int, glob bool) (FilesSearchResult, error) {
+	target, err := resolveFileTarget(folder)
 	if err != nil {
 		return FilesSearchResult{}, err
 	}
-	return searchImpl(target, folder.Path, query, maxResults)
+	return searchImpl(target, folder.Path, query, maxResults, glob)
 }
 
 func InfoV2(r dtos.PvcFileRequestDto) (dtos.PersistentFileDto, error) {
-	target, err := resolvePvcFileTarget(r.Namespace, r.PvcName)
+	target, err := resolveFileTarget(r)
 	if err != nil {
 		return dtos.PersistentFileDto{}, err
 	}
@@ -161,7 +164,7 @@ func InfoV2(r dtos.PvcFileRequestDto) (dtos.PersistentFileDto, error) {
 }
 
 func DownloadV2(pfile dtos.PvcFileRequestDto, postTo string) (FilesDownloadResponse, error) {
-	target, err := resolvePvcFileTarget(pfile.Namespace, pfile.PvcName)
+	target, err := resolveFileTarget(pfile)
 	if err != nil {
 		return FilesDownloadResponse{Error: err.Error()}, err
 	}
@@ -169,31 +172,35 @@ func DownloadV2(pfile dtos.PvcFileRequestDto, postTo string) (FilesDownloadRespo
 }
 
 func UploadedV2(tempZipFileSrc string, fileReq FilesUploadRequestV2) error {
-	target, err := resolvePvcFileTarget(fileReq.File.Namespace, fileReq.File.PvcName)
+	target, err := resolveFileTarget(fileReq.File)
 	if err != nil {
 		return fmt.Errorf("error verifying file %s: %w", fileReq.File.Path, err)
 	}
 	return uploadedImpl(target, tempZipFileSrc, fileReq.File.Path, fileReq.SizeInBytes)
 }
 
-func CreateFolderV2(folder dtos.PvcFileRequestDto) error {
-	target, err := resolvePvcFileTarget(folder.Namespace, folder.PvcName)
+// CreateFolderV2 creates the folder and its parents; mode (octal, e.g. "755")
+// is applied when given.
+func CreateFolderV2(folder dtos.PvcFileRequestDto, mode string) error {
+	target, err := resolveFileTarget(folder)
 	if err != nil {
 		return err
 	}
-	return createFolderImpl(target, folder.Path)
+	return createFolderImpl(target, folder.Path, mode)
 }
 
-func RenameV2(file dtos.PvcFileRequestDto, newName string) error {
-	target, err := resolvePvcFileTarget(file.Namespace, file.PvcName)
+// RenameV2 renames within the folder (newName) or moves to another path
+// (newPath, resolved like every request path). Exactly one of the two.
+func RenameV2(file dtos.PvcFileRequestDto, newName string, newPath string) error {
+	target, err := resolveFileTarget(file)
 	if err != nil {
 		return err
 	}
-	return renameImpl(target, file.Path, newName)
+	return renameImpl(target, file.Path, newName, newPath)
 }
 
 func ChownV2(file dtos.PvcFileRequestDto, uidString string, gidString string) error {
-	target, err := resolvePvcFileTarget(file.Namespace, file.PvcName)
+	target, err := resolveFileTarget(file)
 	if err != nil {
 		return err
 	}
@@ -201,19 +208,21 @@ func ChownV2(file dtos.PvcFileRequestDto, uidString string, gidString string) er
 }
 
 func ChmodV2(file dtos.PvcFileRequestDto, mode string) error {
-	target, err := resolvePvcFileTarget(file.Namespace, file.PvcName)
+	target, err := resolveFileTarget(file)
 	if err != nil {
 		return err
 	}
 	return chmodImpl(target, file.Path, mode)
 }
 
-func DeleteV2(file dtos.PvcFileRequestDto) error {
-	target, err := resolvePvcFileTarget(file.Namespace, file.PvcName)
+// DeleteV2 removes the path. recursive=false removes only a file or an empty
+// folder, as Daytona's deleteFile does by default.
+func DeleteV2(file dtos.PvcFileRequestDto, recursive bool) error {
+	target, err := resolveFileTarget(file)
 	if err != nil {
 		return err
 	}
-	return deleteImpl(target, file.Path)
+	return deleteImpl(target, file.Path, recursive)
 }
 
 // ── target-based implementations ──────────────────────────────────────────────
@@ -221,6 +230,37 @@ func DeleteV2(file dtos.PvcFileRequestDto) error {
 // statFormat is the tab-separated stat -c format listImpl/infoImpl/searchImpl
 // share; parseStatLine reads it back.
 const statFormat = "%n\t%F\t%s\t%u\t%g\t%a\t%Y"
+
+// statRecordScript is the `sh -c` body find hands its matches to: one
+// statFormat record per path, each closed by a NUL byte. A newline inside a
+// file name therefore stays inside its record instead of starting a new one.
+// POSIX sh, busybox included: `printf '\0'` writes the NUL.
+var statRecordScript = "for f; do stat -c '" + statFormat + "' -- \"$f\"; printf '\\0'; done"
+
+// statExecArgs is the find tail that prints every match as a NUL-closed
+// statFormat record; splitStatRecords reads the output back.
+func statExecArgs() []string {
+	return []string{"-exec", "sh", "-c", statRecordScript, "sh", "{}", "+"}
+}
+
+// splitStatRecords splits find+stat output into statFormat records. Records
+// are NUL-separated (statExecArgs); plain newline-separated output, as a
+// single `stat` prints it, is accepted too.
+func splitStatRecords(output string) []string {
+	separator := "\x00"
+	if !strings.Contains(output, separator) {
+		separator = "\n"
+	}
+	var records []string
+	for record := range strings.SplitSeq(output, separator) {
+		record = strings.TrimSuffix(record, "\n")
+		if strings.TrimSpace(record) == "" {
+			continue
+		}
+		records = append(records, record)
+	}
+	return records
+}
 
 // filesSearchDefaultMaxResults caps a files/v2/search answer when the caller
 // sends no limit.
@@ -236,21 +276,28 @@ type FilesSearchResult struct {
 // containerPath. The pattern travels as one argv element - there is no shell,
 // so the query cannot inject commands; glob characters in it act as wildcards.
 // lost+found is skipped like the listing does.
-func searchFindArgs(containerPath, query string) []string {
-	return []string{
+// searchFindArgs builds the name search: a case-insensitive substring match
+// by default, or the query as a shell glob (`*.py`, `data-??.csv`) when glob
+// is set — Daytona's searchFiles passes globs.
+func searchFindArgs(containerPath, query string, glob bool) []string {
+	nameTest := []string{"-iname", "*" + query + "*"}
+	if glob {
+		nameTest = []string{"-name", query}
+	}
+	args := []string{
 		"find", containerPath,
 		"-mindepth", "1",
 		"!", "-name", "lost+found",
 		"!", "-path", "*/lost+found/*",
-		"-iname", "*" + query + "*",
-		"-exec", "stat", "-c", statFormat, "{}", ";",
 	}
+	args = append(args, nameTest...)
+	return append(args, statExecArgs()...)
 }
 
 // searchImpl runs one find over the subtree below requestPath and returns the
 // matching entries with paths relative to that subtree. Results are capped at
 // maxResults; Truncated tells the caller the list is incomplete.
-func searchImpl(target fileExecTarget, requestPath, query string, maxResults int) (FilesSearchResult, error) {
+func searchImpl(target fileExecTarget, requestPath, query string, maxResults int, glob bool) (FilesSearchResult, error) {
 	query = strings.TrimSpace(query)
 	if query == "" {
 		return FilesSearchResult{}, fmt.Errorf("query cannot be empty")
@@ -266,7 +313,7 @@ func searchImpl(target fileExecTarget, requestPath, query string, maxResults int
 
 	output, err := mokubernetes.ExecInPod(
 		target.Namespace, target.Pod, target.Container,
-		searchFindArgs(containerPath, query),
+		searchFindArgs(containerPath, query, glob),
 		nil,
 	)
 	// find exits non-zero when a subfolder is unreadable but still prints
@@ -276,8 +323,8 @@ func searchImpl(target fileExecTarget, requestPath, query string, maxResults int
 	}
 
 	result := FilesSearchResult{Items: []dtos.PersistentFileDto{}}
-	for line := range strings.SplitSeq(strings.TrimSpace(output), "\n") {
-		if line == "" || !strings.Contains(line, "\t") {
+	for _, line := range splitStatRecords(output) {
+		if !strings.Contains(line, "\t") {
 			continue
 		}
 		if len(result.Items) >= maxResults {
@@ -294,19 +341,19 @@ func searchImpl(target fileExecTarget, requestPath, query string, maxResults int
 	return result, nil
 }
 
-func listImpl(target fileExecTarget, requestPath string) ([]dtos.PersistentFileDto, error) {
+func listImpl(target fileExecTarget, requestPath string, maxDepth int) ([]dtos.PersistentFileDto, error) {
 	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
 		return nil, err
 	}
+	if maxDepth < 1 {
+		maxDepth = 1
+	}
 
+	args := []string{"find", containerPath, "-maxdepth", strconv.Itoa(maxDepth), "-mindepth", "1"}
 	output, err := mokubernetes.ExecInPod(
 		target.Namespace, target.Pod, target.Container,
-		[]string{
-			"find", containerPath,
-			"-maxdepth", "1", "-mindepth", "1",
-			"-exec", "stat", "-c", statFormat, "{}", ";",
-		},
+		append(args, statExecArgs()...),
 		nil,
 	)
 	if err != nil {
@@ -314,10 +361,7 @@ func listImpl(target fileExecTarget, requestPath string) ([]dtos.PersistentFileD
 	}
 
 	var result []dtos.PersistentFileDto
-	for line := range strings.SplitSeq(strings.TrimSpace(output), "\n") {
-		if line == "" {
-			continue
-		}
+	for _, line := range splitStatRecords(output) {
 		item, parseErr := parseStatLine(containerPath, line)
 		if parseErr != nil {
 			serviceLogger.Warn("List: parseStatLine error", "line", line, "error", parseErr)
@@ -426,7 +470,7 @@ func downloadImpl(target fileExecTarget, requestPath string, postTo string) (Fil
 		contentType = "application/octet-stream"
 	}
 	partHeader := make(textproto.MIMEHeader)
-	partHeader.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(filename)))
+	partHeader.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, headerFilename(filename)))
 	partHeader.Set("Content-Type", contentType)
 
 	w, err := multiPartWriter.CreatePart(partHeader)
@@ -509,28 +553,49 @@ func uploadedImpl(target fileExecTarget, tempZipFileSrc string, requestPath stri
 	return err
 }
 
-func createFolderImpl(target fileExecTarget, requestPath string) error {
+func createFolderImpl(target fileExecTarget, requestPath string, mode string) error {
 	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
 		return err
 	}
-	_, err = mokubernetes.ExecInPod(
-		target.Namespace, target.Pod, target.Container,
-		[]string{"mkdir", "-p", containerPath},
-		nil,
-	)
+	args := []string{"mkdir", "-p"}
+	if mode != "" {
+		normalized, err := normalizeMode(mode)
+		if err != nil {
+			return err
+		}
+		args = append(args, "-m", normalized)
+	}
+	args = append(args, "--", containerPath)
+	_, err = mokubernetes.ExecInPod(target.Namespace, target.Pod, target.Container, args, nil)
 	return err
 }
 
-func renameImpl(target fileExecTarget, requestPath string, newName string) error {
+func renameImpl(target fileExecTarget, requestPath string, newName string, newRequestPath string) error {
 	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
 		return err
 	}
-	newPath := path.Join(path.Dir(containerPath), newName)
+	var destination string
+	switch {
+	case newRequestPath != "" && newName != "":
+		return fmt.Errorf("give either newName or newPath, not both")
+	case newRequestPath != "":
+		destination, err = resolvePath(target.MountRoot, newRequestPath)
+		if err != nil {
+			return err
+		}
+	case newName != "":
+		if strings.ContainsAny(newName, "/\\") || strings.ContainsRune(newName, 0) {
+			return fmt.Errorf("newName must be a plain file name")
+		}
+		destination = path.Join(path.Dir(containerPath), newName)
+	default:
+		return fmt.Errorf("newName or newPath is required")
+	}
 	_, err = mokubernetes.ExecInPod(
 		target.Namespace, target.Pod, target.Container,
-		[]string{"mv", containerPath, newPath},
+		[]string{"mv", "--", containerPath, destination},
 		nil,
 	)
 	return err
@@ -542,22 +607,16 @@ func chownImpl(target fileExecTarget, requestPath string, uidString string, gidS
 		return err
 	}
 
-	uid, err := strconv.Atoi(uidString)
-	if err != nil {
-		return err
+	if err := validateOwnerPart(uidString); err != nil {
+		return fmt.Errorf("uid: %w", err)
 	}
-	gid, err := strconv.Atoi(gidString)
-	if err != nil {
-		return err
-	}
-	maxInt := int(math.Pow(2, 32))
-	if uid <= 0 || uid >= maxInt || gid <= 0 || gid >= maxInt {
-		return fmt.Errorf("gid/uid > 0 and < 2^32")
+	if err := validateOwnerPart(gidString); err != nil {
+		return fmt.Errorf("gid: %w", err)
 	}
 
 	_, err = mokubernetes.ExecInPod(
 		target.Namespace, target.Pod, target.Container,
-		[]string{"chown", fmt.Sprintf("%s:%s", uidString, gidString), containerPath},
+		[]string{"chown", fmt.Sprintf("%s:%s", uidString, gidString), "--", containerPath},
 		nil,
 	)
 	return err
@@ -569,30 +628,74 @@ func chmodImpl(target fileExecTarget, requestPath string, mode string) error {
 		return err
 	}
 
-	mod := fmt.Sprintf("%0*s", 4, mode)
-	if _, err = strconv.ParseUint(mod, 0, 32); err != nil {
-		return fmt.Errorf("failed to parse oct permissions: %s %w", mod, err)
+	mod, err := normalizeMode(mode)
+	if err != nil {
+		return err
 	}
 
 	_, err = mokubernetes.ExecInPod(
 		target.Namespace, target.Pod, target.Container,
-		[]string{"chmod", mod, containerPath},
+		[]string{"chmod", mod, "--", containerPath},
 		nil,
 	)
 	return err
 }
 
-func deleteImpl(target fileExecTarget, requestPath string) error {
+func deleteImpl(target fileExecTarget, requestPath string, recursive bool) error {
 	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
 		return err
 	}
-	_, err = mokubernetes.ExecInPod(
-		target.Namespace, target.Pod, target.Container,
-		[]string{"rm", "-rf", containerPath},
-		nil,
-	)
+	if recursive {
+		_, err = mokubernetes.ExecInPod(target.Namespace, target.Pod, target.Container, []string{"rm", "-rf", "--", containerPath}, nil)
+		return err
+	}
+	// Not recursive: a file goes with rm, a folder only when empty (rmdir
+	// refuses otherwise) — busybox rm has no -d, so the type decides the tool.
+	info, err := infoImpl(target, requestPath)
+	if err != nil {
+		return err
+	}
+	tool := []string{"rm", "-f", "--", containerPath}
+	if info.Type == "directory" {
+		tool = []string{"rmdir", "--", containerPath}
+	}
+	_, err = mokubernetes.ExecInPod(target.Namespace, target.Pod, target.Container, tool, nil)
 	return err
+}
+
+// normalizeMode accepts "755", "0755" or "u+x"-style symbolic modes and
+// returns what chmod/mkdir -m take. Numeric modes are zero-padded to four
+// digits and checked to be octal.
+func normalizeMode(mode string) (string, error) {
+	mode = strings.TrimSpace(mode)
+	if mode == "" {
+		return "", fmt.Errorf("mode cannot be empty")
+	}
+	if symbolicMode.MatchString(mode) {
+		return mode, nil
+	}
+	padded := fmt.Sprintf("%0*s", 4, mode)
+	if _, err := strconv.ParseUint(padded, 8, 32); err != nil {
+		return "", fmt.Errorf("failed to parse oct permissions: %s %w", mode, err)
+	}
+	return padded, nil
+}
+
+// symbolicMode is chmod's symbolic form, e.g. u+x or go-w,u=rwx.
+var symbolicMode = regexp.MustCompile(`^[ugoa]*[-+=][rwxXst]+(,[ugoa]*[-+=][rwxXst]+)*$`)
+
+// ownerPart is a numeric id or a user/group name as the system accepts it.
+var ownerPart = regexp.MustCompile(`^([0-9]{1,10}|[a-z_][a-z0-9_.-]{0,31}\$?)$`)
+
+func validateOwnerPart(value string) error {
+	if !ownerPart.MatchString(value) {
+		return fmt.Errorf("%q is neither a numeric id nor a valid name", value)
+	}
+	if n, err := strconv.ParseUint(value, 10, 64); err == nil && n >= 1<<32 {
+		return fmt.Errorf("%q is out of range", value)
+	}
+	return nil
 }
 
 // ── types ─────────────────────────────────────────────────────────────────────
@@ -636,19 +739,37 @@ func resolvePath(mountRoot, requestPath string) (string, error) {
 	if relPath == "" {
 		return mountRoot, nil
 	}
-	joined := mountRoot + "/" + relPath
+	// A pod's own filesystem has mount root "/"; joining naively would yield "//x".
+	joined := strings.TrimSuffix(mountRoot, "/") + "/" + relPath
 
 	// Defense in depth on top of the rejections above: the cleaned result must
 	// stay inside mountRoot. The uncleaned join is returned so legacy paths
 	// stay byte-for-byte identical (e.g. trailing slashes survive).
 	cleanedRoot := filepath.Clean(mountRoot)
-	if cleaned := filepath.Clean(joined); cleaned != cleanedRoot && !strings.HasPrefix(cleaned, cleanedRoot+"/") {
+	prefix := cleanedRoot + "/"
+	if cleanedRoot == "/" {
+		prefix = "/"
+	}
+	if cleaned := filepath.Clean(joined); cleaned != cleanedRoot && !strings.HasPrefix(cleaned, prefix) {
 		return "", fmt.Errorf("path escapes mount root")
 	}
 	return joined, nil
 }
 
 // parseStatLine parses one line of `stat -c '%n\t%F\t%s\t%u\t%g\t%a\t%Y'` output.
+// headerFilename makes a file name safe for a Content-Disposition header:
+// quotes and backslashes are escaped, control characters (a newline would end
+// the header and lose the whole part) become underscores.
+func headerFilename(name string) string {
+	cleaned := strings.Map(func(r rune) rune {
+		if r < 0x20 || r == 0x7f {
+			return '_'
+		}
+		return r
+	}, name)
+	return strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(cleaned)
+}
+
 func parseStatLine(rootContainerPath, line string) (dtos.PersistentFileDto, error) {
 	parts := strings.Split(line, "\t")
 	if len(parts) < 7 {
