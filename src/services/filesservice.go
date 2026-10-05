@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"mime"
@@ -393,30 +392,6 @@ func DownloadStreamInfo(pfile dtos.PvcFileRequestDto) (FilesDownloadStreamInfo, 
 		result.SizeInBytes = -1
 	}
 	return result, nil
-}
-
-// DownloadToWriter streams the file (`cat`) or the folder (`tar czf -`)
-// into w as the exec produces it: nothing is buffered here, so w's own
-// backpressure reaches the command in the container. Cancelling ctx ends the
-// exec and with it the command.
-func DownloadToWriter(ctx context.Context, pfile dtos.PvcFileRequestDto, w io.Writer) error {
-	target, err := resolveFileTarget(pfile)
-	if err != nil {
-		return err
-	}
-	containerPath, err := resolvePath(target.MountRoot, pfile.Path)
-	if err != nil {
-		return err
-	}
-	info, err := infoImpl(target, pfile.Path)
-	if err != nil {
-		return err
-	}
-	command := []string{"cat", containerPath}
-	if info.Type == "directory" {
-		command = []string{"tar", "czf", "-", "-C", path.Dir(containerPath), path.Base(containerPath)}
-	}
-	return mokubernetes.ExecInPodToWriterContext(ctx, target.Namespace, target.Pod, target.Container, command, nil, w)
 }
 
 // downloadNameAndType is the file name and content type a download carries:
