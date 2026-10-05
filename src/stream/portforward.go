@@ -1,4 +1,4 @@
-package xterm
+package stream
 
 import (
 	"context"
@@ -184,7 +184,7 @@ func needsTLS(remotePort int, targetProtocol string) bool {
 //   - Text frames for control: PFM:O:<connID>, PFM:C:<connID>, PEER_IS_READY, BROWSER_PING
 //   - Binary frames for data:  [1 byte connID length][connID as ASCII][raw TCP bytes]
 func PortForwardStreamConnection(request PortForwardConnectionRequest) {
-	logger := xtermLogger.With("scope", "PortForwardStreamConnection")
+	logger := streamLogger.With("scope", "PortForwardStreamConnection")
 
 	logger.Info("=== PORT-FORWARD REQUEST RECEIVED ===",
 		"namespace", request.Namespace,
@@ -275,7 +275,7 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 	wsURL := url.URL{
 		Scheme: wsReq.WebsocketScheme,
 		Host:   wsReq.WebsocketHost,
-		Path:   "/xterm-stream",
+		Path:   GatewayPath,
 	}
 
 	headers := utils.HttpHeader("")

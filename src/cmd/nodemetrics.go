@@ -19,7 +19,7 @@ type nodeMetricsArgs struct {
 }
 
 // nodeMetricsSystems holds the services needed for the nodemetrics subcommand.
-// It skips WebSocket clients, AI, ArgoCD, Helm, xterm, HTTP/Socket API, reconciler,
+// It skips WebSocket clients, AI, ArgoCD, Helm, stream, HTTP/Socket API, reconciler,
 // pod-stats collector, and other cluster-mode-only subsystems.
 type nodeMetricsSystems struct {
 	core                 core.Core

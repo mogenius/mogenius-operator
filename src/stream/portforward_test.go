@@ -1,4 +1,4 @@
-package xterm
+package stream
 
 import "testing"
 

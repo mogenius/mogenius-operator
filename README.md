@@ -27,7 +27,7 @@ Modular packages under `src/`:
 - `k8sclient/` – Kubernetes client provider & kubeconfig.
 - `valkeyclient/` – Valkey/Redis caching & time-series helpers.
 - `websocket/` – WebSocket multiplexing with auto-reconnect.
-- `xterm/` – Terminal/shell access over WebSocket.
+- `stream/` – Stream sockets to the platform gateway: terminal, logs, events, port-forward/SSH tunnel, file download.
 - `helm/` – Helm SDK integration & chart management.
 - `iacmanager/` – Infrastructure-as-Code orchestration.
 - `networkmonitor/` – Network traffic collection (eBPF via snoopy, or procdev).

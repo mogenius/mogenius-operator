@@ -1,4 +1,4 @@
-package xterm
+package stream
 
 import (
 	"context"
@@ -59,14 +59,14 @@ func FileDownloadStream(request FileDownloadStreamRequest, produce func(ctx cont
 	websocketUrl := url.URL{
 		Scheme: request.WsConnection.WebsocketScheme,
 		Host:   request.WsConnection.WebsocketHost,
-		Path:   "/xterm-stream",
+		Path:   GatewayPath,
 	}
 	readMessages, conn, connWriteLock, _, err := GenerateWsConnection(
 		fdsCmdType, request.Namespace, "", request.Pod, request.Container,
 		websocketUrl, request.WsConnection, ctx, cancel,
 	)
 	if err != nil || conn == nil {
-		xtermLogger.Error("[FileDownloadStream] unable to connect to the stream gateway", "channelId", request.WsConnection.ChannelId, "error", err)
+		streamLogger.Error("[FileDownloadStream] unable to connect to the stream gateway", "channelId", request.WsConnection.ChannelId, "error", err)
 		return
 	}
 	// GenerateWsConnection sets a 30 minute read deadline for the ack; a
@@ -96,12 +96,12 @@ func FileDownloadStream(request FileDownloadStreamRequest, produce func(ctx cont
 			case strings.HasPrefix(text, fdsCreditPrefix):
 				credit, parseErr := strconv.ParseInt(strings.TrimPrefix(text, fdsCreditPrefix), 10, 64)
 				if parseErr != nil || credit <= 0 {
-					xtermLogger.Warn("[FileDownloadStream] ignoring malformed credit frame", "frame", text)
+					streamLogger.Warn("[FileDownloadStream] ignoring malformed credit frame", "frame", text)
 					continue
 				}
 				window.add(credit)
 			case text == fdsClosedByPeerFrame:
-				xtermLogger.Debug("[FileDownloadStream] peer closed the download", "channelId", request.WsConnection.ChannelId)
+				streamLogger.Debug("[FileDownloadStream] peer closed the download", "channelId", request.WsConnection.ChannelId)
 				return
 			}
 		}
@@ -115,7 +115,7 @@ func FileDownloadStream(request FileDownloadStreamRequest, produce func(ctx cont
 	case ctx.Err() != nil:
 		// the peer went away or the socket died: nothing left to tell
 	case produceErr != nil:
-		xtermLogger.Error("[FileDownloadStream] exec failed", "channelId", request.WsConnection.ChannelId, "error", produceErr)
+		streamLogger.Error("[FileDownloadStream] exec failed", "channelId", request.WsConnection.ChannelId, "error", produceErr)
 		closeReason = produceErr.Error()
 		_ = send(websocket.TextMessage, []byte(fdsErrPrefix+closeReason))
 	default:

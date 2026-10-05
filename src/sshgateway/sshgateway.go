@@ -2,7 +2,7 @@
 // translates sessions into Kubernetes exec API calls — no sshd, no open port
 // 22 and no image changes in the target container (Teleport-style gateway).
 //
-// It has no listener of its own: the port-forward tunnel (see src/xterm)
+// It has no listener of its own: the port-forward tunnel (see src/stream)
 // hands each kind=ssh sub-connection over as an in-process net.Pipe end.
 // Authentication happens before a connection ever reaches this package —
 // the platform authenticates and authorizes the tunnel — so the embedded
