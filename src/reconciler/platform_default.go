@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"sync"
 	"time"
 
@@ -38,17 +39,15 @@ type cachedDefaultConfig struct {
 	fetchedAt time.Time
 }
 
+const defaultPlatformSource = "https://raw.githubusercontent.com/mogenius/platform-defaults"
+
+// releaseVersionPattern matches release tags of platform-defaults (v1.0.0,
+// 1.2.3, v1.0.0-rc.1). Those live under refs/tags; everything else is
+// treated as a branch name.
+var releaseVersionPattern = regexp.MustCompile(`^v?\d+\.\d+\.\d+([-+].*)?$`)
+
 func getDefaultConfig(source string, version string, component string) (componentDefaultSpec, error) {
-	if source == "" {
-		source = "https://raw.githubusercontent.com/mogenius/platform-defaults/refs/heads"
-	}
-	// An empty version would build ".../refs/heads//traefik.yaml", so every
-	// component fetch would 404 and no component could be installed at all --
-	// a confusing failure for a field the UI does not even offer.
-	if version == "" {
-		version = "main"
-	}
-	url := fmt.Sprintf("%s/%s/%s.yaml", source, version, component)
+	url := defaultConfigURL(source, version, component)
 
 	body, err := fetchDefaultConfigCached(url)
 	if err != nil {
@@ -61,6 +60,27 @@ func getDefaultConfig(source string, version string, component string) (componen
 	}
 
 	return defaults.Spec, nil
+}
+
+// defaultConfigURL builds the URL of a component's default config. For the
+// default source, release versions resolve to refs/tags/<version> and
+// anything else to refs/heads/<version>; a custom source is used as base URL
+// as is.
+func defaultConfigURL(source string, version string, component string) string {
+	// An empty version would build ".../refs/heads//traefik.yaml", so every
+	// component fetch would 404 and no component could be installed at all --
+	// a confusing failure for a field the UI does not even offer.
+	if version == "" {
+		version = "main"
+	}
+	if source == "" {
+		ref := "heads"
+		if releaseVersionPattern.MatchString(version) {
+			ref = "tags"
+		}
+		source = fmt.Sprintf("%s/refs/%s", defaultPlatformSource, ref)
+	}
+	return fmt.Sprintf("%s/%s/%s.yaml", source, version, component)
 }
 
 func fetchDefaultConfigCached(url string) ([]byte, error) {
