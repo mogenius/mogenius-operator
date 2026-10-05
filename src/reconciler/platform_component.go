@@ -97,8 +97,11 @@ func (d *reconcilerModule) buildComponentArtifact(
 	if len(cs.patches) > 0 {
 		for _, patchRef := range cs.patches {
 			patch, err := d.fetchPlatformPatch(ctx, patchRef)
-			if err != nil && !apierrors.IsNotFound(err) {
-				return gitops.GitOpsArtifact{}, &ReconcileResult{Err: fmt.Errorf("fetch platform patch for %s: %w", cs.name, err)}
+			if err != nil {
+				if !apierrors.IsNotFound(err) {
+					return gitops.GitOpsArtifact{}, &ReconcileResult{Err: fmt.Errorf("fetch platform patch for %s: %w", cs.name, err)}
+				}
+				continue
 			}
 			patches = append(patches, *patch)
 		}
