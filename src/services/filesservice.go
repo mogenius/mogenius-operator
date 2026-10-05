@@ -31,21 +31,6 @@ type fileExecTarget struct {
 	MountRoot string
 }
 
-// resolveNfsFileTarget resolves the legacy NFS exec target: the nfs-server pod
-// of a mogenius volume, always container "nfs-server" with mount root /exports.
-func resolveNfsFileTarget(volumeNamespace, volumeName string) (fileExecTarget, error) {
-	podNames := mokubernetes.AllPodNamesForLabel(volumeNamespace, "app", fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName))
-	if len(podNames) == 0 {
-		return fileExecTarget{}, fmt.Errorf("NFS server pod not found for %s/%s", volumeNamespace, volumeName)
-	}
-	return fileExecTarget{
-		Namespace: volumeNamespace,
-		Pod:       podNames[0],
-		Container: "nfs-server",
-		MountRoot: "/exports",
-	}, nil
-}
-
 // resolvePvcFileTarget resolves the v2 exec target: any running pod that
 // mounts the PVC without subPath, chosen by ResolvePvcTarget.
 func resolvePvcFileTarget(namespace, pvcName string) (fileExecTarget, error) {
@@ -61,85 +46,11 @@ func resolvePvcFileTarget(namespace, pvcName string) (fileExecTarget, error) {
 	}, nil
 }
 
-// ── legacy NFS entry points (deprecated patterns files/*) ─────────────────────
+// ── entry points (files/v2/* patterns, any mounted PVC or running pod) ────────
 
-func List(folder dtos.PersistentFileRequestDto) ([]dtos.PersistentFileDto, error) {
-	target, err := resolveNfsFileTarget(folder.VolumeNamespace, folder.VolumeName)
-	if err != nil {
-		return nil, err
-	}
-	return listImpl(target, folder.Path, 1)
-}
-
-func Info(r dtos.PersistentFileRequestDto) (dtos.PersistentFileDto, error) {
-	target, err := resolveNfsFileTarget(r.VolumeNamespace, r.VolumeName)
-	if err != nil {
-		return dtos.PersistentFileDto{}, err
-	}
-	return infoImpl(target, r.Path)
-}
-
-func Download(pfile dtos.PersistentFileRequestDto, postTo string) (FilesDownloadResponse, error) {
-	target, err := resolveNfsFileTarget(pfile.VolumeNamespace, pfile.VolumeName)
-	if err != nil {
-		return FilesDownloadResponse{Error: err.Error()}, err
-	}
-	return downloadImpl(target, pfile.Path, postTo)
-}
-
-func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) error {
-	target, err := resolveNfsFileTarget(fileReq.File.VolumeNamespace, fileReq.File.VolumeName)
-	if err != nil {
-		return fmt.Errorf("error verifying file %s: %w", fileReq.File.Path, err)
-	}
-	return uploadedImpl(target, tempZipFileSrc, fileReq.File.Path, fileReq.SizeInBytes)
-}
-
-func CreateFolder(folder dtos.PersistentFileRequestDto) error {
-	target, err := resolveNfsFileTarget(folder.VolumeNamespace, folder.VolumeName)
-	if err != nil {
-		return err
-	}
-	return createFolderImpl(target, folder.Path, "")
-}
-
-func Rename(file dtos.PersistentFileRequestDto, newName string) error {
-	target, err := resolveNfsFileTarget(file.VolumeNamespace, file.VolumeName)
-	if err != nil {
-		return err
-	}
-	return renameImpl(target, file.Path, newName, "")
-}
-
-func Chown(file dtos.PersistentFileRequestDto, uidString string, gidString string) error {
-	target, err := resolveNfsFileTarget(file.VolumeNamespace, file.VolumeName)
-	if err != nil {
-		return err
-	}
-	return chownImpl(target, file.Path, uidString, gidString)
-}
-
-func Chmod(file dtos.PersistentFileRequestDto, mode string) error {
-	target, err := resolveNfsFileTarget(file.VolumeNamespace, file.VolumeName)
-	if err != nil {
-		return err
-	}
-	return chmodImpl(target, file.Path, mode)
-}
-
-func Delete(file dtos.PersistentFileRequestDto) error {
-	target, err := resolveNfsFileTarget(file.VolumeNamespace, file.VolumeName)
-	if err != nil {
-		return err
-	}
-	return deleteImpl(target, file.Path, true)
-}
-
-// ── v2 entry points (files/v2/* patterns, any mounted PVC) ────────────────────
-
-// ListV2 lists the entries below folder.Path; maxDepth 1 (or less) is the
+// List lists the entries below folder.Path; maxDepth 1 (or less) is the
 // folder itself, larger values descend that many levels.
-func ListV2(folder dtos.PvcFileRequestDto, maxDepth int) ([]dtos.PersistentFileDto, error) {
+func List(folder dtos.PvcFileRequestDto, maxDepth int) ([]dtos.PersistentFileDto, error) {
 	target, err := resolveFileTarget(folder)
 	if err != nil {
 		return nil, err
@@ -147,8 +58,8 @@ func ListV2(folder dtos.PvcFileRequestDto, maxDepth int) ([]dtos.PersistentFileD
 	return listImpl(target, folder.Path, maxDepth)
 }
 
-// SearchV2 finds entries by name below folder.Path; glob switches from substring to shell-glob matching.
-func SearchV2(folder dtos.PvcFileRequestDto, query string, maxResults int, glob bool) (FilesSearchResult, error) {
+// Search finds entries by name below folder.Path; glob switches from substring to shell-glob matching.
+func Search(folder dtos.PvcFileRequestDto, query string, maxResults int, glob bool) (FilesSearchResult, error) {
 	target, err := resolveFileTarget(folder)
 	if err != nil {
 		return FilesSearchResult{}, err
@@ -156,7 +67,7 @@ func SearchV2(folder dtos.PvcFileRequestDto, query string, maxResults int, glob 
 	return searchImpl(target, folder.Path, query, maxResults, glob)
 }
 
-func InfoV2(r dtos.PvcFileRequestDto) (dtos.PersistentFileDto, error) {
+func Info(r dtos.PvcFileRequestDto) (dtos.PersistentFileDto, error) {
 	target, err := resolveFileTarget(r)
 	if err != nil {
 		return dtos.PersistentFileDto{}, err
@@ -164,7 +75,7 @@ func InfoV2(r dtos.PvcFileRequestDto) (dtos.PersistentFileDto, error) {
 	return infoImpl(target, r.Path)
 }
 
-func DownloadV2(pfile dtos.PvcFileRequestDto, postTo string) (FilesDownloadResponse, error) {
+func Download(pfile dtos.PvcFileRequestDto, postTo string) (FilesDownloadResponse, error) {
 	target, err := resolveFileTarget(pfile)
 	if err != nil {
 		return FilesDownloadResponse{Error: err.Error()}, err
@@ -172,7 +83,7 @@ func DownloadV2(pfile dtos.PvcFileRequestDto, postTo string) (FilesDownloadRespo
 	return downloadImpl(target, pfile.Path, postTo)
 }
 
-func UploadedV2(tempZipFileSrc string, fileReq FilesUploadRequestV2) error {
+func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) error {
 	target, err := resolveFileTarget(fileReq.File)
 	if err != nil {
 		return fmt.Errorf("error verifying file %s: %w", fileReq.File.Path, err)
@@ -180,9 +91,9 @@ func UploadedV2(tempZipFileSrc string, fileReq FilesUploadRequestV2) error {
 	return uploadedImpl(target, tempZipFileSrc, fileReq.File.Path, fileReq.SizeInBytes)
 }
 
-// CreateFolderV2 creates the folder and its parents; mode (octal, e.g. "755")
+// CreateFolder creates the folder and its parents; mode (octal, e.g. "755")
 // is applied when given.
-func CreateFolderV2(folder dtos.PvcFileRequestDto, mode string) error {
+func CreateFolder(folder dtos.PvcFileRequestDto, mode string) error {
 	target, err := resolveFileTarget(folder)
 	if err != nil {
 		return err
@@ -190,9 +101,9 @@ func CreateFolderV2(folder dtos.PvcFileRequestDto, mode string) error {
 	return createFolderImpl(target, folder.Path, mode)
 }
 
-// RenameV2 renames within the folder (newName) or moves to another path
+// Rename renames within the folder (newName) or moves to another path
 // (newPath, resolved like every request path). Exactly one of the two.
-func RenameV2(file dtos.PvcFileRequestDto, newName string, newPath string) error {
+func Rename(file dtos.PvcFileRequestDto, newName string, newPath string) error {
 	target, err := resolveFileTarget(file)
 	if err != nil {
 		return err
@@ -200,7 +111,7 @@ func RenameV2(file dtos.PvcFileRequestDto, newName string, newPath string) error
 	return renameImpl(target, file.Path, newName, newPath)
 }
 
-func ChownV2(file dtos.PvcFileRequestDto, uidString string, gidString string) error {
+func Chown(file dtos.PvcFileRequestDto, uidString string, gidString string) error {
 	target, err := resolveFileTarget(file)
 	if err != nil {
 		return err
@@ -208,7 +119,7 @@ func ChownV2(file dtos.PvcFileRequestDto, uidString string, gidString string) er
 	return chownImpl(target, file.Path, uidString, gidString)
 }
 
-func ChmodV2(file dtos.PvcFileRequestDto, mode string) error {
+func Chmod(file dtos.PvcFileRequestDto, mode string) error {
 	target, err := resolveFileTarget(file)
 	if err != nil {
 		return err
@@ -216,9 +127,9 @@ func ChmodV2(file dtos.PvcFileRequestDto, mode string) error {
 	return chmodImpl(target, file.Path, mode)
 }
 
-// DeleteV2 removes the path. recursive=false removes only a file or an empty
+// Delete removes the path. recursive=false removes only a file or an empty
 // folder, as Daytona's deleteFile does by default.
-func DeleteV2(file dtos.PvcFileRequestDto, recursive bool) error {
+func Delete(file dtos.PvcFileRequestDto, recursive bool) error {
 	target, err := resolveFileTarget(file)
 	if err != nil {
 		return err
@@ -455,11 +366,11 @@ type FilesDownloadStreamInfo struct {
 	Container string `json:"-"`
 }
 
-// DownloadStreamInfoV2 resolves the target and stats the path. Every error a
+// DownloadStreamInfo resolves the target and stats the path. Every error a
 // download can fail with before its first byte (pod gone, path missing, no
 // exec tooling) surfaces here, so the API can answer the browser with a
 // status code instead of a broken stream.
-func DownloadStreamInfoV2(pfile dtos.PvcFileRequestDto) (FilesDownloadStreamInfo, error) {
+func DownloadStreamInfo(pfile dtos.PvcFileRequestDto) (FilesDownloadStreamInfo, error) {
 	target, err := resolveFileTarget(pfile)
 	if err != nil {
 		return FilesDownloadStreamInfo{}, err
@@ -484,11 +395,11 @@ func DownloadStreamInfoV2(pfile dtos.PvcFileRequestDto) (FilesDownloadStreamInfo
 	return result, nil
 }
 
-// DownloadToWriterV2 streams the file (`cat`) or the folder (`tar czf -`)
+// DownloadToWriter streams the file (`cat`) or the folder (`tar czf -`)
 // into w as the exec produces it: nothing is buffered here, so w's own
 // backpressure reaches the command in the container. Cancelling ctx ends the
 // exec and with it the command.
-func DownloadToWriterV2(ctx context.Context, pfile dtos.PvcFileRequestDto, w io.Writer) error {
+func DownloadToWriter(ctx context.Context, pfile dtos.PvcFileRequestDto, w io.Writer) error {
 	target, err := resolveFileTarget(pfile)
 	if err != nil {
 		return err
@@ -782,12 +693,6 @@ type FilesDownloadResponse struct {
 }
 
 type FilesUploadRequest struct {
-	File        dtos.PersistentFileRequestDto `json:"file"`
-	SizeInBytes int64                         `json:"sizeInBytes"`
-	Id          string                        `json:"id"`
-}
-
-type FilesUploadRequestV2 struct {
 	File        dtos.PvcFileRequestDto `json:"file"`
 	SizeInBytes int64                  `json:"sizeInBytes"`
 	Id          string                 `json:"id"`

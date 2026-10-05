@@ -50,7 +50,7 @@ const (
 	StorageHelperStatusReady    = "READY"
 )
 
-type StorageV2MountResponse struct {
+type StorageMountResponse struct {
 	PodName string `json:"podName"`
 	Status  string `json:"status"`
 }
@@ -265,14 +265,14 @@ func storageHelperWaitingReason(pod *v1.Pod) (reason string, message string) {
 
 // ── mount / unmount ──────────────────────────────────────────────────────────
 
-// StorageV2Mount ensures a helper pod exists for the PVC (idempotent): an
+// StorageMount ensures a helper pod exists for the PVC (idempotent): an
 // existing helper pod is reported with its current state, otherwise the pod is
 // created and reported as STARTING.
-func StorageV2Mount(namespace, pvcName string) (StorageV2MountResponse, error) {
+func StorageMount(namespace, pvcName string) (StorageMountResponse, error) {
 	// existing helper pod: store first, live fallback by derived name
 	if existing := findStorageHelperPod(store.GetPods(namespace), pvcName); existing != nil {
 		helperTracker.touch(namespace, existing.Name)
-		return StorageV2MountResponse{PodName: existing.Name, Status: storageHelperStatus(existing)}, nil
+		return StorageMountResponse{PodName: existing.Name, Status: storageHelperStatus(existing)}, nil
 	}
 
 	podName := StorageHelperPodName(pvcName)
@@ -280,10 +280,10 @@ func StorageV2Mount(namespace, pvcName string) (StorageV2MountResponse, error) {
 	if live, err := podClient.Get(context.Background(), podName, metav1.GetOptions{}); err == nil {
 		if isStorageHelperPod(live) && podClaimsPvc(live, pvcName) {
 			helperTracker.touch(namespace, live.Name)
-			return StorageV2MountResponse{PodName: live.Name, Status: storageHelperStatus(live)}, nil
+			return StorageMountResponse{PodName: live.Name, Status: storageHelperStatus(live)}, nil
 		}
 		// name collision with a foreign pod — refuse instead of adopting it
-		return StorageV2MountResponse{}, fmt.Errorf("pod %s/%s already exists and is not a mogenius storage helper", namespace, podName)
+		return StorageMountResponse{}, fmt.Errorf("pod %s/%s already exists and is not a mogenius storage helper", namespace, podName)
 	}
 
 	pod := buildStorageHelperPod(namespace, pvcName)
@@ -294,16 +294,16 @@ func StorageV2Mount(namespace, pvcName string) (StorageV2MountResponse, error) {
 	case apierrors.IsAlreadyExists(err):
 		// concurrent mount request already created it — idempotent success
 	default:
-		return StorageV2MountResponse{}, fmt.Errorf("failed to create storage helper pod %s/%s: %w", namespace, podName, err)
+		return StorageMountResponse{}, fmt.Errorf("failed to create storage helper pod %s/%s: %w", namespace, podName, err)
 	}
 
 	helperTracker.touch(namespace, podName)
-	return StorageV2MountResponse{PodName: podName, Status: StorageHelperStatusStarting}, nil
+	return StorageMountResponse{PodName: podName, Status: StorageHelperStatusStarting}, nil
 }
 
-// StorageV2Unmount deletes the helper pod(s) for the PVC. Idempotent: no
+// StorageUnmount deletes the helper pod(s) for the PVC. Idempotent: no
 // helper pod is not an error.
-func StorageV2Unmount(namespace, pvcName string) error {
+func StorageUnmount(namespace, pvcName string) error {
 	podClient := clientProvider.K8sClientSet().CoreV1().Pods(namespace)
 
 	// candidates: helper pods from the store plus the derived name (covers a

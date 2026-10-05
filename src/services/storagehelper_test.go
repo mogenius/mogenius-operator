@@ -288,7 +288,7 @@ func TestHelperStatusOmittedWithoutHelperPod(t *testing.T) {
 		t.Fatal("expected no helper pod for a pvc mounted only by regular pods")
 	}
 
-	item := StorageV2InfoItem{Namespace: "test-ns", PvcName: "my-pvc"}
+	item := StorageInfoItem{Namespace: "test-ns", PvcName: "my-pvc"}
 	encoded, err := json.Marshal(item)
 	if err != nil {
 		t.Fatalf("marshal failed: %v", err)
@@ -297,7 +297,7 @@ func TestHelperStatusOmittedWithoutHelperPod(t *testing.T) {
 		t.Fatalf("helperStatus must be omitted when nil, got %s", encoded)
 	}
 
-	item.HelperStatus = &StorageV2HelperStatus{PodName: "mo-storage-helper-my-pvc", Phase: "Pending", Reason: "ContainerCreating"}
+	item.HelperStatus = &StorageHelperStatus{PodName: "mo-storage-helper-my-pvc", Phase: "Pending", Reason: "ContainerCreating"}
 	encoded, err = json.Marshal(item)
 	if err != nil {
 		t.Fatalf("marshal failed: %v", err)

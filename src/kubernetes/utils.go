@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"strings"
 
-	core "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"k8s.io/client-go/tools/remotecommand"
@@ -56,29 +55,9 @@ func MoAddLabels(existingLabels *map[string]string, newLabels map[string]string)
 	return resultingLabels
 }
 
-func ServiceForNfsVolume(volumeNamespace string, volumeName string) *core.Service {
-	services := AllServices(volumeNamespace)
-	for _, srv := range services {
-		if strings.Contains(srv.Name, fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName)) {
-			return &srv
-		}
-	}
-	return nil
-}
-
 // dfArgs is the POSIX-portable df invocation (1K blocks, portable layout). GNU's
 // -B1 is rejected by busybox/BSD/uutils df found in arbitrary app containers.
 var dfArgs = []string{"df", "-P", "-k"}
-
-// NfsDiskUsage returns free/used/total bytes of the NFS export directory by
-// executing df inside the NFS server pod – no local mount needed.
-func NfsDiskUsage(volumeNamespace string, volumeName string) (free, used, total uint64, err error) {
-	output, execErr := ExecInNfsPod(volumeNamespace, volumeName, append(dfArgs, "/exports"), nil)
-	if execErr != nil {
-		return 0, 0, 0, fmt.Errorf("df exec failed: %w", execErr)
-	}
-	return parseDfOutput(output)
-}
 
 // PodDiskUsage returns free/used/total bytes of mountPath by executing
 // `df -P -k <mountPath>` inside the given container.
@@ -133,27 +112,6 @@ func parseDfOutput(output string) (free, used, total uint64, err error) {
 	return free * blockSize, used * blockSize, total * blockSize, nil
 }
 
-// ExecInNfsPod executes a command inside the NFS server pod for the given volume and
-// returns the buffered stdout. stdin may be nil.
-func ExecInNfsPod(volumeNamespace, volumeName string, command []string, stdin io.Reader) (string, error) {
-	podNames := AllPodNamesForLabel(volumeNamespace, "app", fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName))
-	if len(podNames) == 0 {
-		return "", fmt.Errorf("NFS server pod not found for %s/%s", volumeNamespace, volumeName)
-	}
-	var stdout bytes.Buffer
-	err := execInNfsPodStream(volumeNamespace, podNames[0], command, stdin, &stdout)
-	return stdout.String(), err
-}
-
-// ExecInNfsPodToWriter streams exec stdout directly into the provided writer. stdin may be nil.
-func ExecInNfsPodToWriter(volumeNamespace, volumeName string, command []string, stdin io.Reader, stdout io.Writer) error {
-	podNames := AllPodNamesForLabel(volumeNamespace, "app", fmt.Sprintf("%s-%s", utils.NFS_POD_PREFIX, volumeName))
-	if len(podNames) == 0 {
-		return fmt.Errorf("NFS server pod not found for %s/%s", volumeNamespace, volumeName)
-	}
-	return execInNfsPodStream(volumeNamespace, podNames[0], command, stdin, stdout)
-}
-
 // ExecInPod executes a command inside the given container of a pod and returns
 // the buffered stdout. stdin may be nil.
 func ExecInPod(namespace, podName, container string, command []string, stdin io.Reader) (string, error) {
@@ -174,12 +132,6 @@ func ExecInPodToWriter(namespace, podName, container string, command []string, s
 // `tar` or `cat` running against a writer nobody reads.
 func ExecInPodToWriterContext(ctx context.Context, namespace, podName, container string, command []string, stdin io.Reader, stdout io.Writer) error {
 	return execInPodStreamContext(ctx, namespace, podName, container, command, stdin, stdout)
-}
-
-// execInNfsPodStream keeps the legacy NFS entry point; the NFS server pod
-// always runs its single container named "nfs-server".
-func execInNfsPodStream(namespace, podName string, command []string, stdin io.Reader, stdout io.Writer) error {
-	return execInPodStream(namespace, podName, "nfs-server", command, stdin, stdout)
 }
 
 func execInPodStream(namespace, podName, container string, command []string, stdin io.Reader, stdout io.Writer) error {

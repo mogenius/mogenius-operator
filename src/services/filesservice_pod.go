@@ -115,10 +115,10 @@ func resolvePodFileTarget(namespace, podName, container string) (fileExecTarget,
 
 // ── find (text search) ──────────────────────────────────────────────────────
 
-// FindV2 searches file contents below folder.Path for pattern (grep regular
+// Find searches file contents below folder.Path for pattern (grep regular
 // expression) and returns matching lines. Binary files are skipped. "Nothing
 // matched" is an empty result, not an error; grep's other failures are.
-func FindV2(folder dtos.PvcFileRequestDto, pattern string, maxResults int) (FilesFindResult, error) {
+func Find(folder dtos.PvcFileRequestDto, pattern string, maxResults int) (FilesFindResult, error) {
 	if strings.TrimSpace(pattern) == "" {
 		return FilesFindResult{}, fmt.Errorf("pattern cannot be empty")
 	}
@@ -202,11 +202,11 @@ func requestPathOf(mountRoot, containerPath string) string {
 
 // ── replace ─────────────────────────────────────────────────────────────────
 
-// ReplaceV2 replaces every occurrence of pattern (a literal, not a regular
+// Replace replaces every occurrence of pattern (a literal, not a regular
 // expression) with newValue in each named file and reports per file. A file
 // without an occurrence counts as success and is not rewritten. `base` names
 // pod or volume; its Path is not used.
-func ReplaceV2(base dtos.PvcFileRequestDto, files []string, pattern, newValue string) ([]FileReplaceResult, error) {
+func Replace(base dtos.PvcFileRequestDto, files []string, pattern, newValue string) ([]FileReplaceResult, error) {
 	if pattern == "" {
 		return nil, fmt.Errorf("pattern cannot be empty")
 	}
