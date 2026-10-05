@@ -168,6 +168,14 @@ func ExecInPodToWriter(namespace, podName, container string, command []string, s
 	return execInPodStream(namespace, podName, container, command, stdin, stdout)
 }
 
+// ExecInPodToWriterContext is ExecInPodToWriter with a context: cancelling it
+// tears the exec session down, which ends the command in the container. Long
+// streams (file downloads) use it so an abandoned transfer does not leave a
+// `tar` or `cat` running against a writer nobody reads.
+func ExecInPodToWriterContext(ctx context.Context, namespace, podName, container string, command []string, stdin io.Reader, stdout io.Writer) error {
+	return execInPodStreamContext(ctx, namespace, podName, container, command, stdin, stdout)
+}
+
 // execInNfsPodStream keeps the legacy NFS entry point; the NFS server pod
 // always runs its single container named "nfs-server".
 func execInNfsPodStream(namespace, podName string, command []string, stdin io.Reader, stdout io.Writer) error {
@@ -175,6 +183,10 @@ func execInNfsPodStream(namespace, podName string, command []string, stdin io.Re
 }
 
 func execInPodStream(namespace, podName, container string, command []string, stdin io.Reader, stdout io.Writer) error {
+	return execInPodStreamContext(context.Background(), namespace, podName, container, command, stdin, stdout)
+}
+
+func execInPodStreamContext(ctx context.Context, namespace, podName, container string, command []string, stdin io.Reader, stdout io.Writer) error {
 	clientset := clientProvider.K8sClientSet()
 	restConfig := clientProvider.ClientConfig()
 
@@ -209,7 +221,7 @@ func execInPodStream(namespace, podName, container string, command []string, std
 		opts.Stdin = stdin
 	}
 
-	err = executor.StreamWithContext(context.Background(), opts)
+	err = executor.StreamWithContext(ctx, opts)
 	if err != nil {
 		return fmt.Errorf("%w: %s", err, stderr.String())
 	}

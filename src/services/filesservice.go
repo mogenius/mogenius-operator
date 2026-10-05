@@ -4,6 +4,7 @@ import (
 	"archive/tar"
 	"archive/zip"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"mime"
@@ -438,6 +439,91 @@ func detectContentType(target fileExecTarget, containerPath string) (mimeType st
 	return mimeType, contentType
 }
 
+// FilesDownloadStreamInfo is the datagram answer of files/v2/download-stream:
+// what the browser needs for its headers, sent before the first byte flows.
+// The resolved exec target rides along for the stream socket's headers but
+// stays out of the wire format.
+type FilesDownloadStreamInfo struct {
+	Name        string `json:"name"`
+	ContentType string `json:"contentType"`
+	// -1 for a directory: its tar.gz size is only known at the end.
+	SizeInBytes int64 `json:"sizeInBytes"`
+	IsDirectory bool  `json:"isDirectory"`
+
+	Namespace string `json:"-"`
+	Pod       string `json:"-"`
+	Container string `json:"-"`
+}
+
+// DownloadStreamInfoV2 resolves the target and stats the path. Every error a
+// download can fail with before its first byte (pod gone, path missing, no
+// exec tooling) surfaces here, so the API can answer the browser with a
+// status code instead of a broken stream.
+func DownloadStreamInfoV2(pfile dtos.PvcFileRequestDto) (FilesDownloadStreamInfo, error) {
+	target, err := resolveFileTarget(pfile)
+	if err != nil {
+		return FilesDownloadStreamInfo{}, err
+	}
+	info, err := infoImpl(target, pfile.Path)
+	if err != nil {
+		return FilesDownloadStreamInfo{}, err
+	}
+	name, contentType := downloadNameAndType(info)
+	result := FilesDownloadStreamInfo{
+		Name:        name,
+		ContentType: contentType,
+		SizeInBytes: info.SizeInBytes,
+		IsDirectory: info.Type == "directory",
+		Namespace:   target.Namespace,
+		Pod:         target.Pod,
+		Container:   target.Container,
+	}
+	if result.IsDirectory {
+		result.SizeInBytes = -1
+	}
+	return result, nil
+}
+
+// DownloadToWriterV2 streams the file (`cat`) or the folder (`tar czf -`)
+// into w as the exec produces it: nothing is buffered here, so w's own
+// backpressure reaches the command in the container. Cancelling ctx ends the
+// exec and with it the command.
+func DownloadToWriterV2(ctx context.Context, pfile dtos.PvcFileRequestDto, w io.Writer) error {
+	target, err := resolveFileTarget(pfile)
+	if err != nil {
+		return err
+	}
+	containerPath, err := resolvePath(target.MountRoot, pfile.Path)
+	if err != nil {
+		return err
+	}
+	info, err := infoImpl(target, pfile.Path)
+	if err != nil {
+		return err
+	}
+	command := []string{"cat", containerPath}
+	if info.Type == "directory" {
+		command = []string{"tar", "czf", "-", "-C", path.Dir(containerPath), path.Base(containerPath)}
+	}
+	return mokubernetes.ExecInPodToWriterContext(ctx, target.Namespace, target.Pod, target.Container, command, nil, w)
+}
+
+// downloadNameAndType is the file name and content type a download carries:
+// folders go out as <name>.tar.gz, files keep their sniffed type so the UI
+// can preview an extension-less text file without asking.
+func downloadNameAndType(info dtos.PersistentFileDto) (string, string) {
+	filename := info.Name
+	contentType := info.ContentType
+	if info.Type == "directory" {
+		filename = info.Name + ".tar.gz"
+		contentType = "application/gzip"
+	}
+	if contentType == "" {
+		contentType = "application/octet-stream"
+	}
+	return filename, contentType
+}
+
 func downloadImpl(target fileExecTarget, requestPath string, postTo string) (FilesDownloadResponse, error) {
 	result := FilesDownloadResponse{}
 
@@ -457,18 +543,8 @@ func downloadImpl(target fileExecTarget, requestPath string, postTo string) (Fil
 	multiPartWriter := multipart.NewWriter(buf)
 
 	// CreateFormFile would stamp every part application/octet-stream; the
-	// platform passes the part's Content-Type straight through to the browser,
-	// so a sniffed type here is what lets the UI preview an extension-less
-	// text file without asking.
-	filename := info.Name
-	contentType := info.ContentType
-	if info.Type == "directory" {
-		filename = info.Name + ".tar.gz"
-		contentType = "application/gzip"
-	}
-	if contentType == "" {
-		contentType = "application/octet-stream"
-	}
+	// platform passes the part's Content-Type straight through to the browser.
+	filename, contentType := downloadNameAndType(info)
 	partHeader := make(textproto.MIMEHeader)
 	partHeader.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, headerFilename(filename)))
 	partHeader.Set("Content-Type", contentType)

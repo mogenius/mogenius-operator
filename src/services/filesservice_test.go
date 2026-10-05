@@ -1,6 +1,7 @@
 package services
 
 import (
+	"mogenius-operator/src/dtos"
 	"strings"
 	"testing"
 )
@@ -159,5 +160,26 @@ func TestHeaderFilename(t *testing.T) {
 		if got := headerFilename(in); got != want {
 			t.Errorf("headerFilename(%q) = %q, want %q", in, got, want)
 		}
+	}
+}
+
+func TestDownloadNameAndType(t *testing.T) {
+	cases := []struct {
+		name        string
+		info        dtos.PersistentFileDto
+		wantName    string
+		wantContent string
+	}{
+		{"file keeps its sniffed type", dtos.PersistentFileDto{Name: "notes", Type: "file", ContentType: "text/plain"}, "notes", "text/plain"},
+		{"file without type is an octet stream", dtos.PersistentFileDto{Name: "blob.bin", Type: "file"}, "blob.bin", "application/octet-stream"},
+		{"directory becomes a tar.gz", dtos.PersistentFileDto{Name: "src", Type: "directory", ContentType: "inode/directory"}, "src.tar.gz", "application/gzip"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			name, contentType := downloadNameAndType(c.info)
+			if name != c.wantName || contentType != c.wantContent {
+				t.Fatalf("downloadNameAndType = %q, %q; want %q, %q", name, contentType, c.wantName, c.wantContent)
+			}
+		})
 	}
 }
