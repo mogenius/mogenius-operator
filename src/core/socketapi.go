@@ -690,125 +690,6 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	// Deprecated: will be removed in future versions
-	{
-		type Request struct {
-			Folder dtos.PersistentFileRequestDto `json:"folder" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "files/list"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) ([]dtos.PersistentFileDto, error) {
-				return services.List(request.Folder)
-			},
-		)
-	}
-
-	// Deprecated: will be removed in future versions
-	{
-		type Request struct {
-			Folder dtos.PersistentFileRequestDto `json:"folder" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "files/create-folder"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (bool, error) {
-				return true, services.CreateFolder(request.Folder)
-			},
-		)
-	}
-
-	// Deprecated: will be removed in future versions
-	{
-		type Request struct {
-			File    dtos.PersistentFileRequestDto `json:"file" validate:"required"`
-			NewName string                        `json:"newName" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "files/rename"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (bool, error) {
-				return true, services.Rename(request.File, request.NewName)
-			},
-		)
-	}
-
-	// Deprecated: will be removed in future versions
-	{
-		type Request struct {
-			File dtos.PersistentFileRequestDto `json:"file" validate:"required"`
-			Uid  string                        `json:"uid" validate:"required"`
-			Gid  string                        `json:"gid" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "files/chown"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (bool, error) {
-				return true, services.Chown(request.File, request.Uid, request.Gid)
-			},
-		)
-	}
-
-	// Deprecated: will be removed in future versions
-	{
-		type Request struct {
-			File dtos.PersistentFileRequestDto `json:"file" validate:"required"`
-			Mode string                        `json:"mode" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "files/chmod"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (bool, error) {
-				return true, services.Chmod(request.File, request.Mode)
-			},
-		)
-	}
-
-	// Deprecated: will be removed in future versions
-	{
-		type Request struct {
-			File dtos.PersistentFileRequestDto `json:"file" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "files/delete"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (bool, error) {
-				return true, services.Delete(request.File)
-			},
-		)
-	}
-
-	// Deprecated: will be removed in future versions
-	{
-		type Request struct {
-			File   dtos.PersistentFileRequestDto `json:"file" validate:"required"`
-			PostTo string                        `json:"postTo" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "files/download"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (services.FilesDownloadResponse, error) {
-				return services.Download(request.File, request.PostTo)
-			},
-		)
-	}
-
-	// Deprecated: will be removed in future versions
-	RegisterPatternHandler(
-		PatternHandle{self, "files/info"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request dtos.PersistentFileRequestDto) (dtos.PersistentFileDto, error) {
-			return services.Info(request)
-		},
-	)
-
 	// files/v2/*: file operations on any PVC mounted by a running pod,
 	// executed in that pod (no mogenius NFS server required). The binary
 	// upload counterpart (files/v2/upload) is intercepted by the upload
@@ -825,7 +706,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/list"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) ([]dtos.PersistentFileDto, error) {
-				return services.ListV2(request.Folder, request.MaxDepth)
+				return services.List(request.Folder, request.MaxDepth)
 			},
 		)
 	}
@@ -845,7 +726,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/search"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (services.FilesSearchResult, error) {
-				return services.SearchV2(request.Folder, request.Query, request.MaxResults, request.Glob)
+				return services.Search(request.Folder, request.Query, request.MaxResults, request.Glob)
 			},
 		)
 	}
@@ -854,7 +735,7 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "files/v2/info"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request dtos.PvcFileRequestDto) (dtos.PersistentFileDto, error) {
-			return services.InfoV2(request)
+			return services.Info(request)
 		},
 	)
 
@@ -869,7 +750,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/create-folder"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
-				err := services.CreateFolderV2(request.Folder, request.Mode)
+				err := services.CreateFolder(request.Folder, request.Mode)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
 		)
@@ -887,7 +768,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/rename"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
-				err := services.RenameV2(request.File, request.NewName, request.NewPath)
+				err := services.Rename(request.File, request.NewName, request.NewPath)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
 		)
@@ -904,7 +785,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/chown"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
-				err := services.ChownV2(request.File, request.Uid, request.Gid)
+				err := services.Chown(request.File, request.Uid, request.Gid)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
 		)
@@ -920,7 +801,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/chmod"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
-				err := services.ChmodV2(request.File, request.Mode)
+				err := services.Chmod(request.File, request.Mode)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
 		)
@@ -939,7 +820,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/delete"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
-				err := services.DeleteV2(request.File, request.Recursive == nil || *request.Recursive)
+				err := services.Delete(request.File, request.Recursive == nil || *request.Recursive)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
 		)
@@ -957,7 +838,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/find"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (services.FilesFindResult, error) {
-				return services.FindV2(request.Folder, request.Pattern, request.MaxResults)
+				return services.Find(request.Folder, request.Pattern, request.MaxResults)
 			},
 		)
 	}
@@ -976,7 +857,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/replace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) ([]services.FileReplaceResult, error) {
-				results, err := services.ReplaceV2(request.Target, request.Files, request.Pattern, request.NewValue)
+				results, err := services.Replace(request.Target, request.Files, request.Pattern, request.NewValue)
 				return store.AddToAuditLog(datagram, self.logger, results, err, nil, nil)
 			},
 		)
@@ -992,7 +873,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/download"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (services.FilesDownloadResponse, error) {
-				return services.DownloadV2(request.File, request.PostTo)
+				return services.Download(request.File, request.PostTo)
 			},
 		)
 	}
@@ -1011,7 +892,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/download-stream"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (services.FilesDownloadStreamInfo, error) {
-				info, err := services.DownloadStreamInfoV2(request.File)
+				info, err := services.DownloadStreamInfo(request.File)
 				if err != nil {
 					return info, err
 				}
@@ -1023,7 +904,7 @@ func (self *socketApi) registerPatterns() {
 						Container:    info.Container,
 					},
 					func(ctx context.Context, w io.Writer) error {
-						return services.DownloadToWriterV2(ctx, request.File, w)
+						return services.DownloadToWriter(ctx, request.File, w)
 					},
 				)
 				return info, nil
@@ -2853,73 +2734,13 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	// Deprecated: will be removed in future versions
-	RegisterPatternHandler(
-		PatternHandle{self, "storage/create-volume"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.NfsVolumeRequest) (bool, error) {
-			res := services.CreateMogeniusNfsVolume(self.eventsClient, request)
-			var resErr error
-			if !res.Success {
-				resErr = fmt.Errorf("%s", res.Error)
-			}
-			_, auditErr := store.AddToAuditLog(datagram, self.logger, res, resErr, nil, nil)
-			if auditErr != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", auditErr)
-			}
-			if resErr != nil {
-				return false, resErr
-			}
-			return true, nil
-		},
-	)
-
-	// Deprecated: will be removed in future versions
-	RegisterPatternHandler(
-		PatternHandle{self, "storage/delete-volume"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.NfsVolumeRequest) (bool, error) {
-			res := services.DeleteMogeniusNfsVolume(self.eventsClient, request)
-			var resErr error
-			if !res.Success {
-				resErr = fmt.Errorf("%s", res.Error)
-			}
-			_, auditErr := store.AddToAuditLog(datagram, self.logger, res, resErr, nil, nil)
-			if auditErr != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", auditErr)
-			}
-			if resErr != nil {
-				return false, resErr
-			}
-			return true, nil
-		},
-	)
-
-	// Deprecated: will be removed in future versions
-	RegisterPatternHandler(
-		PatternHandle{self, "storage/stats"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.NfsVolumeStatsRequest) (services.NfsVolumeStatsResponse, error) {
-			return services.StatsMogeniusNfsVolume(request), nil
-		},
-	)
-
-	// Deprecated: will be removed in future versions
-	RegisterPatternHandler(
-		PatternHandle{self, "storage/status"},
-		PatternConfig{},
-		func(datagram structs.Datagram, request services.NfsStatusRequest) (services.NfsStatusResponse, error) {
-			return services.StatusMogeniusNfs(request), nil
-		},
-	)
-
 	// storage/v2/info: batch PVC info (status, capacity, mounts, browsability)
 	// with one pod scan per distinct namespace in the batch.
 	RegisterPatternHandler(
 		PatternHandle{self, "storage/v2/info"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request services.StorageV2InfoRequest) (services.StorageV2InfoResponse, error) {
-			return services.StorageV2Info(request)
+		func(datagram structs.Datagram, request services.StorageInfoRequest) (services.StorageInfoResponse, error) {
+			return services.StorageInfo(request)
 		},
 	)
 
@@ -2934,8 +2755,8 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "storage/v2/stats"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (services.StorageV2StatsResponse, error) {
-				return services.StorageV2Stats(request.Namespace, request.PvcName)
+			func(datagram structs.Datagram, request Request) (services.StorageStatsResponse, error) {
+				return services.StorageStats(request.Namespace, request.PvcName)
 			},
 		)
 
@@ -2945,8 +2766,8 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "storage/v2/mount"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (services.StorageV2MountResponse, error) {
-				response, err := services.StorageV2Mount(request.Namespace, request.PvcName)
+			func(datagram structs.Datagram, request Request) (services.StorageMountResponse, error) {
+				response, err := services.StorageMount(request.Namespace, request.PvcName)
 				return store.AddToAuditLog(datagram, self.logger, response, err, nil, nil)
 			},
 		)
@@ -2957,7 +2778,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "storage/v2/unmount"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
-				err := services.StorageV2Unmount(request.Namespace, request.PvcName)
+				err := services.StorageUnmount(request.Namespace, request.PvcName)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
 		)

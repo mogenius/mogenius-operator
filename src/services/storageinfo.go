@@ -17,17 +17,17 @@ const pvProvisionedByAnnotation = "pv.kubernetes.io/provisioned-by"
 
 // ── wire types (storage/v2/info, storage/v2/stats) ────────────────────────────
 
-type StorageV2InfoRequestItem struct {
+type StorageInfoRequestItem struct {
 	Namespace string `json:"namespace" validate:"required"`
 	PvcName   string `json:"pvcName" validate:"required"`
 }
 
-type StorageV2InfoRequest struct {
-	Items      []StorageV2InfoRequestItem `json:"items" validate:"required"`
+type StorageInfoRequest struct {
+	Items      []StorageInfoRequestItem `json:"items" validate:"required"`
 	WithEvents bool                       `json:"withEvents"`
 }
 
-type StorageV2MountedBy struct {
+type StorageMountedBy struct {
 	PodName        string `json:"podName"`
 	ControllerKind string `json:"controllerKind"`
 	ControllerName string `json:"controllerName"`
@@ -37,27 +37,27 @@ type StorageV2MountedBy struct {
 	Ready          bool   `json:"ready"`
 }
 
-type StorageV2Event struct {
+type StorageEvent struct {
 	Type          string `json:"type"`
 	Reason        string `json:"reason"`
 	Message       string `json:"message"`
 	LastTimestamp string `json:"lastTimestamp"`
 }
 
-// StorageV2HelperStatus reports the live state of the helper pod mounting a
+// StorageHelperStatus reports the live state of the helper pod mounting a
 // PVC — present on an item only while such a pod exists, so the UI can show
 // why a mount hangs (e.g. FailedMount events, ContainerCreating) instead of a
 // static "Mounting…" text.
-type StorageV2HelperStatus struct {
+type StorageHelperStatus struct {
 	PodName string           `json:"podName"`
 	Phase   string           `json:"phase"`
 	Ready   bool             `json:"ready"`
 	Reason  string           `json:"reason"`
 	Message string           `json:"message"`
-	Events  []StorageV2Event `json:"events,omitempty"`
+	Events  []StorageEvent `json:"events,omitempty"`
 }
 
-type StorageV2InfoItem struct {
+type StorageInfoItem struct {
 	Namespace        string                 `json:"namespace"`
 	PvcName          string                 `json:"pvcName"`
 	Phase            string                 `json:"phase"`
@@ -68,21 +68,21 @@ type StorageV2InfoItem struct {
 	VolumeName       string                 `json:"volumeName"`
 	VolumeMode       string                 `json:"volumeMode"`
 	Provisioner      string                 `json:"provisioner"`
-	MountedBy        []StorageV2MountedBy   `json:"mountedBy"`
+	MountedBy        []StorageMountedBy   `json:"mountedBy"`
 	Browsable        bool                   `json:"browsable"`
 	BrowsableReason  string                 `json:"browsableReason"`
 	HelperMounted    bool                   `json:"helperMounted"`
-	HelperStatus     *StorageV2HelperStatus `json:"helperStatus,omitempty"`
-	Events           []StorageV2Event       `json:"events,omitempty"`
+	HelperStatus     *StorageHelperStatus `json:"helperStatus,omitempty"`
+	Events           []StorageEvent       `json:"events,omitempty"`
 	// PVC creationTimestamp as RFC3339, "" when unknown
 	CreatedAt string `json:"createdAt,omitempty"`
 }
 
-type StorageV2InfoResponse struct {
-	Items []StorageV2InfoItem `json:"items"`
+type StorageInfoResponse struct {
+	Items []StorageInfoItem `json:"items"`
 }
 
-type StorageV2StatsResponse struct {
+type StorageStatsResponse struct {
 	TotalBytes      uint64 `json:"totalBytes"`
 	UsedBytes       uint64 `json:"usedBytes"`
 	FreeBytes       uint64 `json:"freeBytes"`
@@ -92,20 +92,20 @@ type StorageV2StatsResponse struct {
 
 // ── storage/v2/stats ──────────────────────────────────────────────────────────
 
-// StorageV2Stats resolves the exec target for the PVC and reads filesystem
+// StorageStats resolves the exec target for the PVC and reads filesystem
 // usage via `df -B1 <mountPath>` in that container.
-func StorageV2Stats(namespace, pvcName string) (StorageV2StatsResponse, error) {
+func StorageStats(namespace, pvcName string) (StorageStatsResponse, error) {
 	target, err := ResolvePvcTarget(namespace, pvcName)
 	if err != nil {
-		return StorageV2StatsResponse{}, err
+		return StorageStatsResponse{}, err
 	}
 
 	free, used, total, err := mokubernetes.PodDiskUsage(target.Namespace, target.PodName, target.ContainerName, target.MountPath)
 	if err != nil {
-		return StorageV2StatsResponse{}, err
+		return StorageStatsResponse{}, err
 	}
 
-	return StorageV2StatsResponse{
+	return StorageStatsResponse{
 		TotalBytes:      total,
 		UsedBytes:       used,
 		FreeBytes:       free,
@@ -142,10 +142,10 @@ func buildNamespacePodIndex(namespace string) namespacePodIndex {
 	return index
 }
 
-// StorageV2Info builds the batch PVC info of the storage/v2/info contract.
+// StorageInfo builds the batch PVC info of the storage/v2/info contract.
 // It scans the pods of every distinct namespace in the batch exactly once.
-func StorageV2Info(request StorageV2InfoRequest) (StorageV2InfoResponse, error) {
-	response := StorageV2InfoResponse{Items: []StorageV2InfoItem{}}
+func StorageInfo(request StorageInfoRequest) (StorageInfoResponse, error) {
+	response := StorageInfoResponse{Items: []StorageInfoItem{}}
 
 	// one pod scan per distinct namespace
 	podIndexes := map[string]namespacePodIndex{}
@@ -156,11 +156,11 @@ func StorageV2Info(request StorageV2InfoRequest) (StorageV2InfoResponse, error) 
 	}
 
 	for _, item := range request.Items {
-		infoItem := StorageV2InfoItem{
+		infoItem := StorageInfoItem{
 			Namespace:   item.Namespace,
 			PvcName:     item.PvcName,
 			AccessModes: []string{},
-			MountedBy:   []StorageV2MountedBy{},
+			MountedBy:   []StorageMountedBy{},
 		}
 
 		pvc := getPvc(item.Namespace, item.PvcName)
@@ -200,7 +200,7 @@ func StorageV2Info(request StorageV2InfoRequest) (StorageV2InfoResponse, error) 
 }
 
 // fillPvcFields copies the PVC-derived fields of the wire contract.
-func fillPvcFields(item *StorageV2InfoItem, pvc *v1.PersistentVolumeClaim) {
+func fillPvcFields(item *StorageInfoItem, pvc *v1.PersistentVolumeClaim) {
 	item.Phase = string(pvc.Status.Phase)
 	item.VolumeName = pvc.Spec.VolumeName
 	if !pvc.CreationTimestamp.IsZero() {
@@ -240,8 +240,8 @@ func fillPvcFields(item *StorageV2InfoItem, pvc *v1.PersistentVolumeClaim) {
 // NO_EXEC_TOOLING is deliberately NOT probed here — exec-probing every PVC in
 // a batch listing would be far too expensive; it surfaces only when an actual
 // file operation or stats call fails the probe (via ErrPvcNoExecTooling).
-func computeMounts(index namespacePodIndex, pvcName string) ([]StorageV2MountedBy, bool, string) {
-	mountedBy := []StorageV2MountedBy{}
+func computeMounts(index namespacePodIndex, pvcName string) ([]StorageMountedBy, bool, string) {
+	mountedBy := []StorageMountedBy{}
 	browsable := false
 	anyNonSubPath := false
 
@@ -275,7 +275,7 @@ func computeMounts(index namespacePodIndex, pvcName string) ([]StorageV2MountedB
 				}
 				subPath := mount.SubPath != "" || mount.SubPathExpr != ""
 				ready := readyByContainer[container.Name]
-				mountedBy = append(mountedBy, StorageV2MountedBy{
+				mountedBy = append(mountedBy, StorageMountedBy{
 					PodName:        pod.Name,
 					ControllerKind: controllerKind,
 					ControllerName: controllerName,
@@ -377,9 +377,9 @@ const storageHelperEventLimit = 10
 // buildHelperStatus maps the helper pod's live state onto the wire shape.
 // Events are fetched only for withEvents requests (the single-item detail
 // call the UI polls), newest first, capped at storageHelperEventLimit.
-func buildHelperStatus(pod *v1.Pod, namespace string, withEvents bool) *StorageV2HelperStatus {
+func buildHelperStatus(pod *v1.Pod, namespace string, withEvents bool) *StorageHelperStatus {
 	reason, message := storageHelperWaitingReason(pod)
-	status := &StorageV2HelperStatus{
+	status := &StorageHelperStatus{
 		PodName: pod.Name,
 		Phase:   string(pod.Status.Phase),
 		Ready:   storageHelperStatus(pod) == StorageHelperStatusReady,
@@ -402,8 +402,8 @@ func buildHelperStatus(pod *v1.Pod, namespace string, withEvents bool) *StorageV
 // collectPvcEvents lists the events for the PVC and (when bound) its PV,
 // newest first. Queries are namespaced to the PVC's namespace, matching the
 // legacy storagestatus behavior.
-func collectPvcEvents(namespace, pvcName, pvName string) []StorageV2Event {
-	events := []StorageV2Event{}
+func collectPvcEvents(namespace, pvcName, pvName string) []StorageEvent {
+	events := []StorageEvent{}
 	events = append(events, listEventsFor(namespace, pvcName, "PersistentVolumeClaim")...)
 	if pvName != "" {
 		events = append(events, listEventsFor(namespace, pvName, "PersistentVolume")...)
@@ -414,7 +414,7 @@ func collectPvcEvents(namespace, pvcName, pvName string) []StorageV2Event {
 	return events
 }
 
-func listEventsFor(namespace, name, kind string) []StorageV2Event {
+func listEventsFor(namespace, name, kind string) []StorageEvent {
 	fieldSelector := fmt.Sprintf("involvedObject.name=%s,involvedObject.kind=%s", name, kind)
 	eventList, err := clientProvider.K8sClientSet().CoreV1().Events(namespace).List(context.Background(), metav1.ListOptions{
 		FieldSelector: fieldSelector,
@@ -424,9 +424,9 @@ func listEventsFor(namespace, name, kind string) []StorageV2Event {
 		return nil
 	}
 
-	result := make([]StorageV2Event, 0, len(eventList.Items))
+	result := make([]StorageEvent, 0, len(eventList.Items))
 	for _, event := range eventList.Items {
-		result = append(result, StorageV2Event{
+		result = append(result, StorageEvent{
 			Type:          event.Type,
 			Reason:        event.Reason,
 			Message:       event.Message,
