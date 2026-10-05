@@ -18,6 +18,7 @@ import (
 	"mogenius-operator/src/valkeyclient"
 	"net/http"
 	"slices"
+	"strings"
 
 	"encoding/json"
 
@@ -330,9 +331,13 @@ func (self *argocd) syncApplication(data ArgoCdApplicationSyncRequest, token str
 	if data.Revision != "" {
 		syncBody["revision"] = data.Revision
 	}
+	// Sync options sent with a sync replace the application's own instead of
+	// merging with them, so a caller-supplied list would silently drop the
+	// ServerSideApply=true every Application we create carries. Without a
+	// list, Argo CD falls back to the application's options, which keep it.
 	if len(data.SyncOptions) > 0 {
 		syncBody["syncOptions"] = map[string]any{
-			"items": data.SyncOptions,
+			"items": withServerSideApply(data.SyncOptions),
 		}
 	}
 	if len(data.Resources) > 0 {
@@ -706,4 +711,17 @@ func argoServerRunsInsecure(deployment *unstructured.Unstructured) bool {
 		}
 	}
 	return false
+}
+
+// withServerSideApply returns the sync options with ServerSideApply=true,
+// replacing any ServerSideApply value the caller set.
+func withServerSideApply(options []string) []string {
+	result := make([]string, 0, len(options)+1)
+	for _, option := range options {
+		if strings.HasPrefix(option, "ServerSideApply=") {
+			continue
+		}
+		result = append(result, option)
+	}
+	return append(result, "ServerSideApply=true")
 }

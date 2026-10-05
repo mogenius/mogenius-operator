@@ -175,6 +175,7 @@ func buildFluxHelmRelease(component string, artifact GitOpsArtifact, values map[
 		spec["values"] = values
 	}
 
+	forceServerSideApply(spec)
 	return &unstructured.Unstructured{
 		Object: map[string]any{
 			"apiVersion": "helm.toolkit.fluxcd.io/v2",
@@ -241,6 +242,7 @@ func buildFluxOCIHelmRelease(component string, artifact GitOpsArtifact, namespac
 	if len(artifact.Values) > 0 {
 		spec["values"] = artifact.Values
 	}
+	forceServerSideApply(spec)
 	return &unstructured.Unstructured{
 		Object: map[string]any{
 			"apiVersion": "helm.toolkit.fluxcd.io/v2",
@@ -303,6 +305,7 @@ func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespa
 		}
 	}
 
+	forceServerSideApply(spec)
 	return &unstructured.Unstructured{
 		Object: map[string]any{
 			"apiVersion": "helm.toolkit.fluxcd.io/v2",
@@ -315,4 +318,15 @@ func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespa
 			"spec": spec,
 		},
 	}
+}
+
+// forceServerSideApply pins install, upgrade and rollback of a HelmRelease to
+// server-side apply. Upgrade and rollback default to "auto", which inherits
+// what the release used before, so a release first installed client-side would
+// stay client-side for good -- the same reason the Helm SDK path in helm.go
+// sets "true" instead of "auto".
+func forceServerSideApply(spec map[string]any) {
+	_ = unstructured.SetNestedField(spec, true, "install", "serverSideApply")
+	_ = unstructured.SetNestedField(spec, "enabled", "upgrade", "serverSideApply")
+	_ = unstructured.SetNestedField(spec, "enabled", "rollback", "serverSideApply")
 }
