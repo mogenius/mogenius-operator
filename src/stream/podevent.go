@@ -1,4 +1,4 @@
-package xterm
+package stream
 
 import (
 	"context"
@@ -33,33 +33,33 @@ func writeEvent(conn *websocket.Conn, connWriteLock *sync.Mutex, event v1.Event)
 		}
 		connWriteLock.Unlock()
 		if err != nil {
-			xtermLogger.Error("WriteMessage", "error", err)
+			streamLogger.Error("WriteMessage", "error", err)
 		}
 	}
 }
 
 func PodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace string, controller string) {
 	if wsConnectionRequest.WebsocketScheme == "" {
-		xtermLogger.Error("WebsocketScheme is empty")
+		streamLogger.Error("WebsocketScheme is empty")
 		return
 	}
 
 	if wsConnectionRequest.WebsocketHost == "" {
-		xtermLogger.Error("WebsocketHost is empty")
+		streamLogger.Error("WebsocketHost is empty")
 		return
 	}
 
-	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
+	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: GatewayPath}
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*time.Duration(600))
 	readMessages, conn, connWriteLock, _, err := GenerateWsConnection("pod-events", namespace, controller, "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		xtermLogger.Error("Unable to connect to websocket", "error", err)
+		streamLogger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 
 	data, err := store.List(50, kubernetes.VALKEY_RESOURCE_PREFIX, "v1", "Event", namespace, controller+"*")
 	if err != nil {
-		xtermLogger.Error("Error getting events from pod-events", "error", err.Error())
+		streamLogger.Error("Error getting events from pod-events", "error", err.Error())
 		return
 	}
 
@@ -68,12 +68,12 @@ func PodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace
 		sort.Slice(data, func(i, j int) bool {
 			event := &v1.Event{}
 			if err := json.Unmarshal([]byte(data[i]), event); err != nil {
-				xtermLogger.Error("Unable to unmarshal event", "error", err)
+				streamLogger.Error("Unable to unmarshal event", "error", err)
 				return false
 			}
 			event2 := &v1.Event{}
 			if err := json.Unmarshal([]byte(data[j]), event2); err != nil {
-				xtermLogger.Error("Unable to unmarshal event", "error", err)
+				streamLogger.Error("Unable to unmarshal event", "error", err)
 				return false
 			}
 			return event.CreationTimestamp.Time.Before(event2.CreationTimestamp.Time)
@@ -87,7 +87,7 @@ func PodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace
 	for _, item := range data {
 		event := v1.Event{}
 		if err := json.Unmarshal([]byte(item), &event); err != nil {
-			xtermLogger.Error("Unable to unmarshal event", "error", err)
+			streamLogger.Error("Unable to unmarshal event", "error", err)
 			continue
 		}
 		writeEvent(conn, connWriteLock, event)

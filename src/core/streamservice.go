@@ -6,9 +6,9 @@ import (
 	"mogenius-operator/src/cpumonitor"
 	"mogenius-operator/src/networkmonitor"
 	"mogenius-operator/src/rammonitor"
+	"mogenius-operator/src/stream"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/valkeyclient"
-	"mogenius-operator/src/xterm"
 	"net/url"
 	"slices"
 	"strings"
@@ -19,18 +19,18 @@ import (
 	"github.com/valkey-io/valkey-go"
 )
 
-type XtermService interface {
-	LiveStreamConnection(wsConnectionRequest xterm.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService, store valkeyclient.ValkeyClient, podNames []string)
+type StreamService interface {
+	LiveStreamConnection(wsConnectionRequest stream.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService, store valkeyclient.ValkeyClient, podNames []string)
 }
 
-type xtermService struct {
+type streamService struct {
 	logger       *slog.Logger
 	statsDb      ValkeyStatsDb
 	streamEnrich func(nodeName string, data any) any
 }
 
-func NewXtermService(logger *slog.Logger, statsDb ValkeyStatsDb) XtermService {
-	self := &xtermService{}
+func NewStreamService(logger *slog.Logger, statsDb ValkeyStatsDb) StreamService {
+	self := &streamService{}
 	self.logger = logger
 	self.statsDb = statsDb
 
@@ -50,7 +50,7 @@ func NewXtermService(logger *slog.Logger, statsDb ValkeyStatsDb) XtermService {
 	return self
 }
 
-func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService, store valkeyclient.ValkeyClient, podNames []string) {
+func (self *streamService) LiveStreamConnection(conReq stream.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService, store valkeyclient.ValkeyClient, podNames []string) {
 	logger := self.logger.With("scope", "LiveStreamConnection")
 
 	var valkeyKey string
@@ -80,12 +80,12 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 		return
 	}
 
-	websocketUrl := url.URL{Scheme: conReq.WebsocketScheme, Host: conReq.WebsocketHost, Path: "/xterm-stream"}
+	websocketUrl := url.URL{Scheme: conReq.WebsocketScheme, Host: conReq.WebsocketHost, Path: stream.GatewayPath}
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3600)
 	defer cancel()
 	// websocket connection
-	readMessages, conn, connWriteLock, _, err := xterm.GenerateWsConnection(datagram.Pattern, "", "", "", "", websocketUrl, conReq, ctx, cancel)
+	readMessages, conn, connWriteLock, _, err := stream.GenerateWsConnection(datagram.Pattern, "", "", "", "", websocketUrl, conReq, ctx, cancel)
 	if err != nil {
 		logger.Error("Unable to connect to websocket", "error", err)
 		return
@@ -93,7 +93,7 @@ func (self *xtermService) LiveStreamConnection(conReq xterm.WsConnectionRequest,
 	// GenerateWsConnection already runs the single reader for this conn
 	// (gorilla allows one concurrent reader); consume its channel instead
 	// of reading the conn a second time from here.
-	go xterm.DiscardReadMessages(readMessages)
+	go stream.DiscardReadMessages(readMessages)
 
 	listener := NewMessageCallback(datagram, func(message any) {
 		if conn != nil {

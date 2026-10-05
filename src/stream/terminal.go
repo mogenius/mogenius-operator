@@ -1,4 +1,4 @@
-package xterm
+package stream
 
 import (
 	"context"
@@ -20,7 +20,7 @@ import (
 func injectContent(content io.Reader, conn *websocket.Conn, connWriteLock *sync.Mutex) {
 	data, err := io.ReadAll(content)
 	if err != nil {
-		xtermLogger.Error("failed to read inject content", "error", err)
+		streamLogger.Error("failed to read inject content", "error", err)
 		return
 	}
 	if conn == nil {
@@ -30,11 +30,11 @@ func injectContent(content io.Reader, conn *websocket.Conn, connWriteLock *sync.
 	err = conn.WriteMessage(websocket.BinaryMessage, data)
 	connWriteLock.Unlock()
 	if err != nil {
-		xtermLogger.Error("failed to write websocket message", "error", err)
+		streamLogger.Error("failed to write websocket message", "error", err)
 	}
 }
 
-func XTermCommandStreamConnection(
+func TerminalStreamConnection(
 	cmdType string,
 	wsConnectionRequest WsConnectionRequest,
 	namespace string,
@@ -45,27 +45,27 @@ func XTermCommandStreamConnection(
 	injectPreContent io.Reader,
 ) {
 	if wsConnectionRequest.WebsocketScheme == "" {
-		xtermLogger.Error("WebsocketScheme is empty")
+		streamLogger.Error("WebsocketScheme is empty")
 		return
 	}
 
 	if wsConnectionRequest.WebsocketHost == "" {
-		xtermLogger.Error("WebsocketHost is empty")
+		streamLogger.Error("WebsocketHost is empty")
 		return
 	}
 
-	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
+	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: GatewayPath}
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(30*time.Minute))
 	// websocket connection
 	readMessages, conn, connWriteLock, _, err := GenerateWsConnection(cmdType, namespace, controller, podName, container, websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		xtermLogger.Error("Unable to connect to websocket", "error", err)
+		streamLogger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 
 	defer func() {
-		xtermLogger.Debug("[XTermCommandStreamConnection] Closing connection.")
+		streamLogger.Debug("[TerminalStreamConnection] Closing connection.")
 		cancel()
 	}()
 
@@ -78,10 +78,10 @@ func XTermCommandStreamConnection(
 			err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
 			connWriteLock.Unlock()
 			if err != nil {
-				xtermLogger.Debug("write close:", "error", err)
+				streamLogger.Debug("write close:", "error", err)
 			}
 		}
-		xtermLogger.Error("Pod does not exist, closing connection.", "podName", podName)
+		streamLogger.Error("Pod does not exist, closing connection.", "podName", podName)
 		return
 	}
 
@@ -91,7 +91,7 @@ func XTermCommandStreamConnection(
 	// send ping
 	err = wsPing(conn)
 	if err != nil {
-		xtermLogger.Error("Unable to send ping", "error", err)
+		streamLogger.Error("Unable to send ping", "error", err)
 		return
 	}
 
@@ -99,13 +99,13 @@ func XTermCommandStreamConnection(
 	cmd.Env = append(os.Environ(), "TERM=xterm-256color")
 	tty, err := pty.Start(cmd)
 	if err != nil {
-		xtermLogger.Error("Unable to start pty/cmd", "error", err)
+		streamLogger.Error("Unable to start pty/cmd", "error", err)
 		if conn != nil {
 			connWriteLock.Lock()
 			err := conn.WriteMessage(websocket.TextMessage, []byte(err.Error()))
 			connWriteLock.Unlock()
 			if err != nil {
-				xtermLogger.Error("WriteMessage", "error", err)
+				streamLogger.Error("WriteMessage", "error", err)
 			}
 		}
 		return
@@ -135,7 +135,7 @@ func GetPreviousLogContent(podCmdConnectionRequest PodCmdConnectionRequest) io.R
 	if terminatedState != nil {
 		tmpPreviousResReq, err := kubernetes.StreamPreviousLog(podCmdConnectionRequest.Namespace, podCmdConnectionRequest.Pod)
 		if err != nil {
-			xtermLogger.Error(err.Error())
+			streamLogger.Error(err.Error())
 		} else {
 			previousRestReq = tmpPreviousResReq
 		}
@@ -148,7 +148,7 @@ func GetPreviousLogContent(podCmdConnectionRequest PodCmdConnectionRequest) io.R
 	var previousStream io.ReadCloser
 	tmpPreviousStream, err := previousRestReq.Stream(cancelCtx)
 	if err != nil {
-		xtermLogger.Error(err.Error())
+		streamLogger.Error(err.Error())
 		previousStream = io.NopCloser(strings.NewReader(fmt.Sprintln(err.Error())))
 	} else {
 		previousStream = tmpPreviousStream
@@ -156,7 +156,7 @@ func GetPreviousLogContent(podCmdConnectionRequest PodCmdConnectionRequest) io.R
 
 	data, err := io.ReadAll(previousStream)
 	if err != nil {
-		xtermLogger.Error("failed to read data", "error", err)
+		streamLogger.Error("failed to read data", "error", err)
 	}
 
 	lastState := kubernetes.LastTerminatedStateToString(terminatedState)

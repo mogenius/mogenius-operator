@@ -45,7 +45,7 @@ mogenius-k8s-manager/
 │   ├── k8sclient/          # Kubernetes client provider & kubeconfig
 │   ├── valkeyclient/       # Redis-compatible caching layer
 │   ├── websocket/          # WebSocket multiplexing with auto-reconnect
-│   ├── xterm/              # Terminal/shell access over WebSocket
+│   ├── stream/             # Stream sockets to the platform: terminal, logs, events, port-forward, file download
 │   ├── helm/               # Helm SDK integration, chart management
 │   ├── gitmanager/         # Git operations orchestration
 │   ├── iacmanager/         # Infrastructure-as-Code orchestration

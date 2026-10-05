@@ -1,4 +1,4 @@
-package xterm
+package stream
 
 import (
 	"context"
@@ -27,11 +27,17 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-var xtermLogger *slog.Logger
+// GatewayPath is the path every stream socket dials on the platform's stream
+// gateway: terminals, logs, events, port-forwards and file downloads alike.
+// The name is historical (the first stream was the browser terminal) and is
+// part of the wire protocol, so it stays even though the package moved on.
+const GatewayPath = "/xterm-stream"
+
+var streamLogger *slog.Logger
 var store valkeyclient.ValkeyClient
 
 func Setup(logManagerModule logging.SlogManager, storeModule valkeyclient.ValkeyClient) {
-	xtermLogger = logManagerModule.CreateLogger("xterm")
+	streamLogger = logManagerModule.CreateLogger("stream")
 	store = storeModule
 }
 
@@ -82,7 +88,7 @@ type CmdWindowSize struct {
 	Cols uint16 `json:"cols"`
 }
 
-type XtermReadMessages struct {
+type ReadMessage struct {
 	MessageType int
 	Data        []byte
 	Err         error
@@ -130,13 +136,13 @@ func checkPodIsReady(ctx context.Context, namespace string, podName string, cont
 	for {
 		select {
 		case <-ctx.Done():
-			xtermLogger.Error("Context done.")
+			streamLogger.Error("Context done.")
 			return
 		default:
 			// refresh cache
 			pod := mirrorStore.GetPod(namespace, podName)
 			if pod == nil {
-				xtermLogger.Error("Unable to find pod", "error", "pod not found", "namespace", namespace, "podName", podName)
+				streamLogger.Error("Unable to find pod", "error", "pod not found", "namespace", namespace, "podName", podName)
 				if conn != nil {
 					// clear screen
 					clearScreen(conn, connWriteLock)
@@ -145,14 +151,14 @@ func checkPodIsReady(ctx context.Context, namespace string, podName string, cont
 					err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
 					connWriteLock.Unlock()
 					if err != nil {
-						xtermLogger.Debug("write close:", "error", err)
+						streamLogger.Debug("write close:", "error", err)
 					}
 				}
 				return
 			}
 
 			if isPodAvailable(pod, container) {
-				xtermLogger.Debug("Pod is ready", "podName", pod.Name)
+				streamLogger.Debug("Pod is ready", "podName", pod.Name)
 				// clear screen
 				clearScreen(conn, connWriteLock)
 				return
@@ -167,7 +173,7 @@ func checkPodIsReady(ctx context.Context, namespace string, podName string, cont
 				err := conn.WriteMessage(websocket.TextMessage, []byte(msg))
 				connWriteLock.Unlock()
 				if err != nil {
-					xtermLogger.Error("WriteMessage", "error", err)
+					streamLogger.Error("WriteMessage", "error", err)
 					ctx.Done()
 					return
 				}
@@ -183,7 +189,7 @@ func clearScreen(conn *websocket.Conn, connWriteLock *sync.Mutex) {
 	err := conn.WriteMessage(websocket.BinaryMessage, []byte("\u001b[2J\u001b[H"))
 	connWriteLock.Unlock()
 	if err != nil {
-		xtermLogger.Error("WriteMessage", "error", err)
+		streamLogger.Error("WriteMessage", "error", err)
 	}
 }
 
@@ -197,12 +203,12 @@ func GenerateWsConnection(
 	wsConnectionRequest WsConnectionRequest,
 	ctx context.Context,
 	cancel context.CancelFunc,
-) (readMessages *chan XtermReadMessages, conn *websocket.Conn, connWriteLock *sync.Mutex, connReadLock *sync.Mutex, err error) {
+) (readMessages *chan ReadMessage, conn *websocket.Conn, connWriteLock *sync.Mutex, connReadLock *sync.Mutex, err error) {
 	maxRetries := 6
 	currentRetries := 0
 	// Small buffer so a burst of control frames (PEER_IS_READY, resize) does
 	// not park the reader goroutine while the consumer is between receives.
-	xtermMessages := make(chan XtermReadMessages, 16)
+	messages := make(chan ReadMessage, 16)
 
 	for {
 		// add header
@@ -223,9 +229,9 @@ func GenerateWsConnection(
 		connWriteLock := &sync.Mutex{}
 		connReadLock := &sync.Mutex{}
 		if err != nil {
-			xtermLogger.Error("failed to connect, retrying in 5 seconds", "error", err.Error())
+			streamLogger.Error("failed to connect, retrying in 5 seconds", "error", err.Error())
 			if currentRetries >= maxRetries {
-				xtermLogger.Error("Max retries reached, exiting.")
+				streamLogger.Error("Max retries reached, exiting.")
 				return nil, nil, nil, nil, err
 			}
 			time.Sleep(5 * time.Second)
@@ -238,17 +244,17 @@ func GenerateWsConnection(
 		// API send ack when it is ready to receive messages.
 		err = conn.SetReadDeadline(time.Now().Add(30 * time.Minute))
 		if err != nil {
-			xtermLogger.Error("failed to set read deadline", "error", err)
+			streamLogger.Error("failed to set read deadline", "error", err)
 		}
 		connReadLock.Lock()
 		_, _, err = conn.ReadMessage()
 		connReadLock.Unlock()
 		if err != nil {
-			xtermLogger.Error("failed to receive ack-ready, retrying in 5 seconds", "error", err)
+			streamLogger.Error("failed to receive ack-ready, retrying in 5 seconds", "error", err)
 			time.Sleep(5 * time.Second)
 			if currentRetries >= maxRetries {
-				xtermLogger.Error("Max retries reached, exiting.")
-				return &xtermMessages, conn, connWriteLock, connReadLock, err
+				streamLogger.Error("Max retries reached, exiting.")
+				return &messages, conn, connWriteLock, connReadLock, err
 			}
 			currentRetries++
 			continue
@@ -257,12 +263,12 @@ func GenerateWsConnection(
 		// XtermLogger.Infof("Ready ack from connected stream endpoint: %s.", string(ack))
 
 		// oncloseWs will close the connection and the context
-		go oncloseWs(conn, connReadLock, ctx, cancel, xtermMessages)
-		return &xtermMessages, conn, connWriteLock, connReadLock, nil
+		go oncloseWs(conn, connReadLock, ctx, cancel, messages)
+		return &messages, conn, connWriteLock, connReadLock, nil
 	}
 }
 
-func oncloseWs(conn *websocket.Conn, connReadLock *sync.Mutex, ctx context.Context, cancel context.CancelFunc, readMessages chan XtermReadMessages) {
+func oncloseWs(conn *websocket.Conn, connReadLock *sync.Mutex, ctx context.Context, cancel context.CancelFunc, readMessages chan ReadMessage) {
 	defer func() {
 		cancel()
 		if conn != nil {
@@ -290,16 +296,16 @@ func oncloseWs(conn *websocket.Conn, connReadLock *sync.Mutex, ctx context.Conte
 				// permanent leak per stream. The deferred cancel/close only
 				// runs if we can get out of this select.
 				select {
-				case readMessages <- XtermReadMessages{MessageType: messageType, Data: p, Err: err}:
+				case readMessages <- ReadMessage{MessageType: messageType, Data: p, Err: err}:
 				case <-ctx.Done():
 					return
 				}
 			}
 			if err != nil {
 				if closeErr, ok := err.(*websocket.CloseError); ok {
-					xtermLogger.Debug("[oncloseWs] WebSocket closed", "statusCode", closeErr.Code, "closeErr", closeErr.Text)
+					streamLogger.Debug("[oncloseWs] WebSocket closed", "statusCode", closeErr.Code, "closeErr", closeErr.Text)
 				} else {
-					xtermLogger.Debug("[oncloseWs] Failed to read message. Connection closed.", "error", err)
+					streamLogger.Debug("[oncloseWs] Failed to read message. Connection closed.", "error", err)
 				}
 				return
 			}
@@ -311,10 +317,10 @@ func wsPing(conn *websocket.Conn) error {
 	err := conn.WriteControl(websocket.PingMessage, nil, time.Now().Add(time.Second))
 	if err != nil {
 		if websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseNoStatusReceived) {
-			xtermLogger.Info("The connection was closed")
+			streamLogger.Info("The connection was closed")
 			return err
 		}
-		xtermLogger.Info("failed to send ping", "error", err)
+		streamLogger.Info("failed to send ping", "error", err)
 		return err
 	}
 	return nil
@@ -332,7 +338,7 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, connWriteLock *sync.Mutex, tty
 						err := conn.WriteMessage(websocket.TextMessage, []byte("POD_DOES_NOT_EXIST"))
 						connWriteLock.Unlock()
 						if err != nil {
-							xtermLogger.Error("WriteMessage", "error", err)
+							streamLogger.Error("WriteMessage", "error", err)
 						}
 					}
 				}
@@ -344,7 +350,7 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, connWriteLock *sync.Mutex, tty
 						err := conn.WriteMessage(websocket.TextMessage, []byte("DEBUG_CONTAINER_FAILED"))
 						connWriteLock.Unlock()
 						if err != nil {
-							xtermLogger.Error("WriteMessage", "error", err)
+							streamLogger.Error("WriteMessage", "error", err)
 						}
 					}
 				}
@@ -358,7 +364,7 @@ func cmdWait(cmd *exec.Cmd, conn *websocket.Conn, connWriteLock *sync.Mutex, tty
 						err := conn.WriteMessage(websocket.TextMessage, []byte("NO_SHELL_AVAILABLE"))
 						connWriteLock.Unlock()
 						if err != nil {
-							xtermLogger.Error("WriteMessage", "error", err)
+							streamLogger.Error("WriteMessage", "error", err)
 						}
 					}
 				}
@@ -395,7 +401,7 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 				err := conn.WriteMessage(websocket.BinaryMessage, buf[:read])
 				connWriteLock.Unlock()
 				if err != nil {
-					xtermLogger.Error("WriteMessage", "error", err)
+					streamLogger.Error("WriteMessage", "error", err)
 				}
 				continue
 			}
@@ -409,7 +415,7 @@ func cmdOutputToWebsocket(ctx context.Context, cancel context.CancelFunc, conn *
 // goroutine would block on its first delivery and the connection would only
 // be released when the context expires. Returns when oncloseWs closes the
 // channel, so its lifetime is bound to the connection.
-func DiscardReadMessages(readMessages *chan XtermReadMessages) {
+func DiscardReadMessages(readMessages *chan ReadMessage) {
 	if readMessages == nil {
 		return
 	}
@@ -417,7 +423,7 @@ func DiscardReadMessages(readMessages *chan XtermReadMessages) {
 	}
 }
 
-func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Context, tty *os.File, cmdType *string) {
+func websocketToCmdInput(readMessages <-chan ReadMessage, ctx context.Context, tty *os.File, cmdType *string) {
 	for msg := range readMessages {
 		select {
 		case <-ctx.Done():
@@ -445,7 +451,7 @@ func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Cont
 						err := json.Unmarshal([]byte(str), &resizeMessage)
 						if err == nil {
 							if err := pty.Setsize(tty, &pty.Winsize{Rows: uint16(resizeMessage.Rows), Cols: uint16(resizeMessage.Cols)}); err != nil {
-								xtermLogger.Error("Unable to resize", "error", err)
+								streamLogger.Error("Unable to resize", "error", err)
 								continue
 							}
 							continue
@@ -457,7 +463,7 @@ func websocketToCmdInput(readMessages <-chan XtermReadMessages, ctx context.Cont
 					if *cmdType == "exec-sh" {
 						_, err := tty.Write(msg.Data)
 						if err != nil {
-							xtermLogger.Error("failed to write in tty context", "error", err)
+							streamLogger.Error("failed to write in tty context", "error", err)
 						}
 					}
 				}
@@ -473,19 +479,19 @@ func closeConnection(conn *websocket.Conn, connWriteLock *sync.Mutex, cmd *exec.
 		err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
 		connWriteLock.Unlock()
 		if err != nil {
-			xtermLogger.Debug("write close:", "error", err)
+			streamLogger.Debug("write close:", "error", err)
 		}
 	}
 	err := cmd.Process.Kill()
 	if err != nil && !strings.Contains(err.Error(), "process already finished") {
-		xtermLogger.Error("failed to kill process", "error", err)
+		streamLogger.Error("failed to kill process", "error", err)
 	}
 	_, err = cmd.Process.Wait()
 	if err != nil && !strings.Contains(err.Error(), "no child processes") {
-		xtermLogger.Error("failed to wait for process", "error", err)
+		streamLogger.Error("failed to wait for process", "error", err)
 	}
 	err = tty.Close()
 	if err != nil && !strings.Contains(err.Error(), "file already closed") {
-		xtermLogger.Error("failed to close tty", "error", err)
+		streamLogger.Error("failed to close tty", "error", err)
 	}
 }

@@ -138,7 +138,7 @@ func (self *httpService) Run() {
 
 	// ReadHeaderTimeout blocks slowloris-style attacks; IdleTimeout reaps
 	// keep-alive connections from gone clients. We leave Read/WriteTimeout
-	// unset because xterm/log-stream/websocket handlers legitimately run
+	// unset because terminal/log-stream/websocket handlers legitimately run
 	// for minutes/hours; per-handler timeouts handle those cases.
 	server := &http.Server{
 		Addr:              addr,
@@ -149,7 +149,7 @@ func (self *httpService) Run() {
 	}
 
 	// Drain in-flight requests on shutdown instead of cutting the listener
-	// mid-write. Hijacked connections (websocket/xterm/log streams) are not
+	// mid-write. Hijacked connections (websocket/terminal/log streams) are not
 	// tracked by Shutdown and end with the process, as before.
 	shutdown.Add(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)

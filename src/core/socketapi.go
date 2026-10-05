@@ -21,12 +21,12 @@ import (
 	"mogenius-operator/src/services"
 	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/store"
+	"mogenius-operator/src/stream"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"mogenius-operator/src/version"
 	"mogenius-operator/src/websocket"
-	"mogenius-operator/src/xterm"
 	"os"
 	"os/exec"
 	"reflect"
@@ -82,7 +82,7 @@ const messageWorkerCount = 50
 type SocketApi interface {
 	Link(
 		httpService HttpService,
-		xtermService XtermService,
+		streamService StreamService,
 		dbstatsModule ValkeyStatsDb,
 		apiService Api,
 		moKubernetes MoKubernetes,
@@ -148,7 +148,7 @@ type socketApi struct {
 	patternHandlerLock    sync.RWMutex
 	patternHandler        map[string]PatternHandler
 	httpService           HttpService
-	xtermService          XtermService
+	streamService         StreamService
 	apiService            Api
 	moKubernetes          MoKubernetes
 	sealedSecret          SealedSecretManager
@@ -210,7 +210,7 @@ func NewSocketApi(
 
 func (self *socketApi) Link(
 	httpService HttpService,
-	xtermService XtermService,
+	streamService StreamService,
 	dbstatsModule ValkeyStatsDb,
 	apiService Api,
 	moKubernetes MoKubernetes,
@@ -220,14 +220,14 @@ func (self *socketApi) Link(
 ) {
 	assert.Assert(apiService != nil)
 	assert.Assert(httpService != nil)
-	assert.Assert(xtermService != nil)
+	assert.Assert(streamService != nil)
 	assert.Assert(dbstatsModule != nil)
 	assert.Assert(moKubernetes != nil)
 	assert.Assert(aiApi != nil)
 
 	self.apiService = apiService
 	self.httpService = httpService
-	self.xtermService = xtermService
+	self.streamService = streamService
 	self.dbstats = dbstatsModule
 	self.moKubernetes = moKubernetes
 	self.sealedSecret = sealedSecret
@@ -238,7 +238,7 @@ func (self *socketApi) Link(
 func (self *socketApi) Run() {
 	assert.Assert(self.apiService != nil)
 	assert.Assert(self.httpService != nil)
-	assert.Assert(self.xtermService != nil)
+	assert.Assert(self.streamService != nil)
 
 	self.AssertPatternsUnique()
 	self.startMessageHandler()
@@ -884,8 +884,8 @@ func (self *socketApi) registerPatterns() {
 		// socket under a credit window. files/v2/download stays for API
 		// versions that still collect the file through the callback POST.
 		type Request struct {
-			File         dtos.PvcFileRequestDto    `json:"file" validate:"required"`
-			WsConnection xterm.WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+			File         dtos.PvcFileRequestDto     `json:"file" validate:"required"`
+			WsConnection stream.WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
 		}
 
 		RegisterPatternHandler(
@@ -896,8 +896,8 @@ func (self *socketApi) registerPatterns() {
 				if err != nil {
 					return info, err
 				}
-				go xterm.FileDownloadStream(
-					xterm.FileDownloadStreamRequest{
+				go stream.FileDownloadStream(
+					stream.FileDownloadStreamRequest{
 						WsConnection: request.WsConnection,
 						Namespace:    info.Namespace,
 						Pod:          info.Pod,
@@ -1425,14 +1425,14 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "service/port-forward-connection-request"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.PortForwardConnectionRequest) (Void, error) {
+		func(datagram structs.Datagram, request stream.PortForwardConnectionRequest) (Void, error) {
 			// Take the identity from the datagram's user field so every
 			// handler sees the same one, instead of a copy the payload could
 			// disagree with. Both travel in the same frame (see the UserEmail
 			// doc on the request type), so this is consistency, not a
 			// separate trust level.
 			request.UserEmail = datagram.User.Email
-			go xterm.PortForwardStreamConnection(request)
+			go stream.PortForwardStreamConnection(request)
 			// Same treatment as exec-sh below: interactive cluster access
 			// must leave an audit trail of who opened a tunnel to which pod.
 			_, err := store.AddToAuditLog(datagram, self.logger, any(nil), nil, nil, nil)
@@ -1446,7 +1446,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "service/exec-sh-connection-request"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.PodCmdConnectionRequest) (Void, error) {
+		func(datagram structs.Datagram, request stream.PodCmdConnectionRequest) (Void, error) {
 			go self.execShConnection(request)
 			_, err := store.AddToAuditLog(datagram, self.logger, any(nil), nil, nil, nil)
 			if err != nil {
@@ -1475,7 +1475,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "service/log-stream-connection-request"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.PodCmdConnectionRequest) (Void, error) {
+		func(datagram structs.Datagram, request stream.PodCmdConnectionRequest) (Void, error) {
 			go self.logStreamConnection(request)
 			return nil, nil
 		},
@@ -1484,7 +1484,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "cluster/component-log-stream-connection-request"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.ComponentLogConnectionRequest) (Void, error) {
+		func(datagram structs.Datagram, request stream.ComponentLogConnectionRequest) (Void, error) {
 			go componentLogStreamConnection(request)
 			return nil, nil
 		},
@@ -1493,7 +1493,7 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "service/pod-event-stream-connection-request"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.PodEventConnectionRequest) (Void, error) {
+		func(datagram structs.Datagram, request stream.PodEventConnectionRequest) (Void, error) {
 			go podEventStreamConnection(request)
 			return nil, nil
 		},
@@ -2845,8 +2845,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "live-stream/nodes-traffic"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.WsConnectionRequest) (Void, error) {
-			go self.xtermService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, []string{})
+		func(datagram structs.Datagram, request stream.WsConnectionRequest) (Void, error) {
+			go self.streamService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, []string{})
 			return nil, nil
 		},
 	)
@@ -2854,8 +2854,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "live-stream/nodes-memory"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.WsConnectionRequest) (Void, error) {
-			go self.xtermService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, []string{})
+		func(datagram structs.Datagram, request stream.WsConnectionRequest) (Void, error) {
+			go self.streamService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, []string{})
 			return nil, nil
 		},
 	)
@@ -2863,8 +2863,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "live-stream/nodes-cpu"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.WsConnectionRequest) (Void, error) {
-			go self.xtermService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, []string{})
+		func(datagram structs.Datagram, request stream.WsConnectionRequest) (Void, error) {
+			go self.streamService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, []string{})
 			return nil, nil
 		},
 	)
@@ -2872,8 +2872,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "live-stream/pod-cpu"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.WsConnectionRequest) (Void, error) {
-			go self.xtermService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, []string{request.PodName})
+		func(datagram structs.Datagram, request stream.WsConnectionRequest) (Void, error) {
+			go self.streamService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, []string{request.PodName})
 			return nil, nil
 		},
 	)
@@ -2881,8 +2881,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "live-stream/pod-memory"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.WsConnectionRequest) (Void, error) {
-			go self.xtermService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, []string{request.PodName})
+		func(datagram structs.Datagram, request stream.WsConnectionRequest) (Void, error) {
+			go self.streamService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, []string{request.PodName})
 			return nil, nil
 		},
 	)
@@ -2890,8 +2890,8 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "live-stream/pod-traffic"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.WsConnectionRequest) (Void, error) {
-			go self.xtermService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, []string{request.PodName})
+		func(datagram structs.Datagram, request stream.WsConnectionRequest) (Void, error) {
+			go self.streamService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, []string{request.PodName})
 			return nil, nil
 		},
 	)
@@ -2899,12 +2899,12 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "live-stream/workspace-cpu"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.WsConnectionRequest) (any, error) {
+		func(datagram structs.Datagram, request stream.WsConnectionRequest) (any, error) {
 			podNames, err := self.apiService.GetWorkspacePodsNames(request.Workspace)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get workspace pods: %w", err)
 			}
-			go self.xtermService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, podNames)
+			go self.streamService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, podNames)
 			return nil, nil
 		},
 	)
@@ -2912,12 +2912,12 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "live-stream/workspace-memory"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.WsConnectionRequest) (any, error) {
+		func(datagram structs.Datagram, request stream.WsConnectionRequest) (any, error) {
 			podNames, err := self.apiService.GetWorkspacePodsNames(request.Workspace)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get workspace pods: %w", err)
 			}
-			go self.xtermService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, podNames)
+			go self.streamService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, podNames)
 			return nil, nil
 		},
 	)
@@ -2925,12 +2925,12 @@ func (self *socketApi) registerPatterns() {
 	RegisterPatternHandler(
 		PatternHandle{self, "live-stream/workspace-traffic"},
 		PatternConfig{},
-		func(datagram structs.Datagram, request xterm.WsConnectionRequest) (any, error) {
+		func(datagram structs.Datagram, request stream.WsConnectionRequest) (any, error) {
 			podNames, err := self.apiService.GetWorkspacePodsNames(request.Workspace)
 			if err != nil {
 				return nil, fmt.Errorf("failed to get workspace pods: %w", err)
 			}
-			go self.xtermService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, podNames)
+			go self.streamService.LiveStreamConnection(request, datagram, self.httpService, self.valkeyClient, podNames)
 			return nil, nil
 		},
 	)
@@ -3453,7 +3453,7 @@ func (self *socketApi) upgradeK8sManager(command string) (*structs.Job, error) {
 	return job, err
 }
 
-func (self *socketApi) execShConnection(podCmdConnectionRequest xterm.PodCmdConnectionRequest) {
+func (self *socketApi) execShConnection(podCmdConnectionRequest stream.PodCmdConnectionRequest) {
 	// allows to execute itself without being in $PATH (e.g. while developing locally)
 	bin, err := os.Executable()
 	if err != nil {
@@ -3484,7 +3484,7 @@ func (self *socketApi) execShConnection(podCmdConnectionRequest xterm.PodCmdConn
 	)
 	cmd := exec.Command(bin, args...)
 
-	xterm.XTermCommandStreamConnection(
+	stream.TerminalStreamConnection(
 		"exec-sh",
 		podCmdConnectionRequest.WsConnection,
 		podCmdConnectionRequest.Namespace,
@@ -3496,7 +3496,7 @@ func (self *socketApi) execShConnection(podCmdConnectionRequest xterm.PodCmdConn
 	)
 }
 
-func (self *socketApi) logStreamConnection(podCmdConnectionRequest xterm.PodCmdConnectionRequest) {
+func (self *socketApi) logStreamConnection(podCmdConnectionRequest stream.PodCmdConnectionRequest) {
 	bin, err := os.Executable()
 	if err != nil {
 		self.logger.Error("failed to get current executable path", "error", err)
@@ -3516,7 +3516,7 @@ func (self *socketApi) logStreamConnection(podCmdConnectionRequest xterm.PodCmdC
 		podCmdConnectionRequest.LogTail,
 	)
 
-	xterm.XTermCommandStreamConnection(
+	stream.TerminalStreamConnection(
 		"log",
 		podCmdConnectionRequest.WsConnection,
 		podCmdConnectionRequest.Namespace,
@@ -3524,12 +3524,12 @@ func (self *socketApi) logStreamConnection(podCmdConnectionRequest xterm.PodCmdC
 		podCmdConnectionRequest.Pod,
 		podCmdConnectionRequest.Container,
 		cmd,
-		xterm.GetPreviousLogContent(podCmdConnectionRequest),
+		stream.GetPreviousLogContent(podCmdConnectionRequest),
 	)
 }
 
-func componentLogStreamConnection(componentLogConnectionRequest xterm.ComponentLogConnectionRequest) {
-	xterm.ComponentStreamConnection(
+func componentLogStreamConnection(componentLogConnectionRequest stream.ComponentLogConnectionRequest) {
+	stream.ComponentStreamConnection(
 		componentLogConnectionRequest.WsConnection,
 		componentLogConnectionRequest.Component,
 		componentLogConnectionRequest.Namespace,
@@ -3538,8 +3538,8 @@ func componentLogStreamConnection(componentLogConnectionRequest xterm.ComponentL
 	)
 }
 
-func podEventStreamConnection(podLogConnectionRequest xterm.PodEventConnectionRequest) {
-	xterm.PodEventStreamConnection(
+func podEventStreamConnection(podLogConnectionRequest stream.PodEventConnectionRequest) {
+	stream.PodEventStreamConnection(
 		podLogConnectionRequest.WsConnection,
 		podLogConnectionRequest.Namespace,
 		podLogConnectionRequest.Controller,

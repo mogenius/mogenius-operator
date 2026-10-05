@@ -1,4 +1,4 @@
-package xterm
+package stream
 
 import (
 	"context"
@@ -28,22 +28,22 @@ func ComponentStreamConnection(
 	valkeyKey := strings.Join([]string{"logs", component, "channel"}, ":")
 
 	if wsConnectionRequest.WebsocketScheme == "" {
-		xtermLogger.Error("WebsocketScheme is empty")
+		streamLogger.Error("WebsocketScheme is empty")
 		return
 	}
 
 	if wsConnectionRequest.WebsocketHost == "" {
-		xtermLogger.Error("WebsocketHost is empty")
+		streamLogger.Error("WebsocketHost is empty")
 		return
 	}
 
-	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: "/xterm-stream"}
+	websocketUrl := url.URL{Scheme: wsConnectionRequest.WebsocketScheme, Host: wsConnectionRequest.WebsocketHost, Path: GatewayPath}
 	// context
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(30*time.Minute))
 	// websocket connection
 	readMessages, conn, connWriteLock, _, err := GenerateWsConnection("log", "", "", "", "", websocketUrl, wsConnectionRequest, ctx, cancel)
 	if err != nil {
-		xtermLogger.Error("Unable to connect to websocket", "error", err)
+		streamLogger.Error("Unable to connect to websocket", "error", err)
 		return
 	}
 	// Component logs are write-only from our side; inbound frames (peer
@@ -58,13 +58,13 @@ func ComponentStreamConnection(
 	// send ping
 	err = wsPing(conn)
 	if err != nil {
-		xtermLogger.Error("Unable to send ping", "error", err)
+		streamLogger.Error("Unable to send ping", "error", err)
 		return
 	}
 
 	data, err := valkeyclient.GetLastObjectsFromSortedList[logging.LogLine](store, 100, "logs", component)
 	if err != nil {
-		xtermLogger.Error("Error getting last 50 logs", "error", err)
+		streamLogger.Error("Error getting last 50 logs", "error", err)
 	}
 
 	logEntriesWritten := false
@@ -79,7 +79,7 @@ func ComponentStreamConnection(
 		err = conn.WriteMessage(websocket.TextMessage, []byte(messageStr))
 		logEntriesWritten = true
 		if err != nil {
-			xtermLogger.Error("WriteMessage", "error", err)
+			streamLogger.Error("WriteMessage", "error", err)
 		}
 		connWriteLock.Unlock()
 	}
@@ -92,7 +92,7 @@ func ComponentStreamConnection(
 			err = conn.WriteMessage(websocket.TextMessage, fmt.Appendf(nil, "[INFO] %s No recent log entries found.\n", utils.FormatJsonTimePrettyFromTime(time.Now())))
 		}
 		if err != nil {
-			xtermLogger.Error("WriteMessage", "error", err)
+			streamLogger.Error("WriteMessage", "error", err)
 		}
 		connWriteLock.Unlock()
 	}
@@ -103,7 +103,7 @@ func ComponentStreamConnection(
 			var entry logging.LogLine
 			err := json.Unmarshal([]byte(msg.Message), &entry)
 			if err != nil {
-				xtermLogger.Error("Unmarshal", "error", err)
+				streamLogger.Error("Unmarshal", "error", err)
 				return
 			}
 			messageStr := processLogLine(component, namespace, release, entry)
@@ -116,16 +116,16 @@ func ComponentStreamConnection(
 			connWriteLock.Unlock()
 			if err != nil {
 				if strings.Contains(err.Error(), "broken pipe") {
-					xtermLogger.Debug("write close:", "error", err)
+					streamLogger.Debug("write close:", "error", err)
 					cancel()
 					return
 				}
-				xtermLogger.Error("WriteMessage", "error", err)
+				streamLogger.Error("WriteMessage", "error", err)
 			}
 		}
 	})
 	if err != nil {
-		xtermLogger.Error("failed to register receive handler", "error", err)
+		streamLogger.Error("failed to register receive handler", "error", err)
 	}
 
 	if conn != nil {
@@ -134,7 +134,7 @@ func ComponentStreamConnection(
 		err := conn.WriteMessage(websocket.CloseMessage, closeMsg)
 		connWriteLock.Unlock()
 		if err != nil {
-			xtermLogger.Debug("write close:", "error", err)
+			streamLogger.Debug("write close:", "error", err)
 		}
 	}
 }

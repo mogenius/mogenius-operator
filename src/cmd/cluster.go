@@ -24,12 +24,12 @@ import (
 	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/sshgateway"
 	"mogenius-operator/src/store"
+	"mogenius-operator/src/stream"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/valkeyclient"
 	"mogenius-operator/src/watcher"
 	"mogenius-operator/src/websocket"
-	"mogenius-operator/src/xterm"
 	"os"
 	"strconv"
 	"strings"
@@ -51,7 +51,7 @@ type clusterSystems struct {
 	apiModule             core.Api
 	socketApi             core.SocketApi
 	httpApi               core.HttpService
-	xtermService          core.XtermService
+	streamService         core.StreamService
 	aiWebsocketConnection ai.AiWebsocketConnection
 	valkeyLoggerService   core.ValkeyLogger
 	podStatsCollector     core.PodStatsCollector
@@ -146,11 +146,11 @@ func initializeClusterSystems(
 	}
 	services.Setup(logManagerModule, configModule, base.clientProvider)
 	structs.Setup(logManagerModule)
-	xterm.Setup(logManagerModule, base.valkeyClient)
+	stream.Setup(logManagerModule, base.valkeyClient)
 	allowExternalHosts, _ := configModule.TryGetBool("MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS")
 	sshGatewayEnabled, _ := configModule.TryGetBool("MO_SSH_GATEWAY_ENABLED")
 	allowAdminBypass, _ := configModule.TryGetBool("MO_SSH_GATEWAY_ALLOW_ADMIN_BYPASS")
-	xterm.SetupPortForward(
+	stream.SetupPortForward(
 		base.clientProvider.ClientConfig(),
 		base.clientProvider.K8sClientSet(),
 		allowExternalHosts,
@@ -175,7 +175,7 @@ func initializeClusterSystems(
 	alertmanager := core.NewAlertmanagerService(logManagerModule.CreateLogger("alertmanager"), configModule)
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobClients, eventConnectionClient, base.valkeyClient, argocdModule, fluxModule, alertmanager)
 	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, base.valkeyClient, ownerCacheService)
-	xtermService := core.NewXtermService(logManagerModule.CreateLogger("xterm-service"), dbstatsService)
+	streamService := core.NewStreamService(logManagerModule.CreateLogger("stream-service"), dbstatsService)
 	aiWebsocketConnection := ai.NewAiWebsocketConnection(logManagerModule.CreateLogger("ai-websocket-connection"), aiManager)
 	valkeyLoggerService := core.NewValkeyLogger(base.valkeyClient, valkeyLogChannel)
 	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, base.clientProvider)
@@ -196,7 +196,7 @@ func initializeClusterSystems(
 	mocore.Link(moKubernetes)
 	podStatsCollector.Link(dbstatsService)
 	nodeMetricsCollector.Link(dbstatsService, leaderElector)
-	socketApi.Link(httpApi, xtermService, dbstatsService, apiModule, moKubernetes, sealedSecret, aiApi, aiWebsocketConnection)
+	socketApi.Link(httpApi, streamService, dbstatsService, apiModule, moKubernetes, sealedSecret, aiApi, aiWebsocketConnection)
 	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule, reconciler)
 	apiModule.Link(workspaceManager)
@@ -214,7 +214,7 @@ func initializeClusterSystems(
 		apiModule:             apiModule,
 		socketApi:             socketApi,
 		httpApi:               httpApi,
-		xtermService:          xtermService,
+		streamService:         streamService,
 		aiWebsocketConnection: aiWebsocketConnection,
 		valkeyLoggerService:   valkeyLoggerService,
 		podStatsCollector:     podStatsCollector,
