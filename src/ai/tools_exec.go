@@ -27,6 +27,15 @@ type toolOutcome struct {
 // dispatchToolCall resolves and executes a single tool call by name, handling
 // the built-in / MCP / approval
 func (ai *aiManager) dispatchToolCall(ctx context.Context, name string, args map[string]any, rawArgs string, e toolExec) toolOutcome {
+	// A nil StepRecorder is a valid caller contract (chat / tests; see the
+	// StepRecorder docs). Normalize it here so the built-in and MCP branches
+	// below can call RecordStep.ToolCall unconditionally without a nil-pointer
+	// panic — the chat path (runChatTurn) builds its toolExec without a
+	// recorder, which previously crashed the operator on every tool call.
+	if e.RecordStep == nil {
+		e.RecordStep = noopStepRecorder{}
+	}
+
 	// Meta-tool: activate tool categories (chat only).
 	if e.Categories != nil && name == activateToolCategoriesName {
 		result := e.Categories.ActivateFromToolCall(args)
