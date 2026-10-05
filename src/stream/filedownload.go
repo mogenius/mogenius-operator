@@ -37,6 +37,8 @@ const (
 	fdsClosedByPeerFrame  = "CLOSE_CONNECTION_FROM_PEER"
 	fdsInitialWindowBytes = 8 << 20
 	fdsChunkBytes         = 256 << 10
+	// how long the final close handshake may take before the socket is dropped
+	fdsCloseHandshakeTimeout = 10 * time.Second
 )
 
 // FileDownloadStreamRequest names the stream socket to open: the channel the
@@ -82,8 +84,10 @@ func FileDownloadStream(request FileDownloadStreamRequest, produce func(ctx cont
 
 	// Control frames from the API: credits grow the window, a close ends
 	// everything. The channel closes when the socket does (oncloseWs).
+	readerDone := make(chan struct{})
 	go func() {
 		defer cancel()
+		defer close(readerDone)
 		for message := range *readMessages {
 			if message.Err != nil {
 				return
@@ -127,6 +131,17 @@ func FileDownloadStream(request FileDownloadStreamRequest, produce func(ctx cont
 		closeReason = closeReason[:100]
 	}
 	_ = send(websocket.CloseMessage, websocket.FormatCloseMessage(websocket.CloseNormalClosure, closeReason))
+	// Wait for the gateway to answer the close before tearing the socket
+	// down. Closing right away while credit frames are still unread makes
+	// the kernel send a RST instead of a FIN, and a RST discards whatever of
+	// our last frames (and END) is still in flight: the browser then got a
+	// file short by a few hundred KB. The peer's close frame proves it has
+	// read everything we sent before it.
+	select {
+	case <-readerDone:
+	case <-time.After(fdsCloseHandshakeTimeout):
+		streamLogger.Warn("[FileDownloadStream] gateway did not answer the close in time", "channelId", request.WsConnection.ChannelId)
+	}
 	_ = conn.Close()
 }
 
