@@ -1,8 +1,10 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"mogenius-operator/src/ai"
 	argocd "mogenius-operator/src/argocd"
@@ -991,6 +993,40 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (services.FilesDownloadResponse, error) {
 				return services.DownloadV2(request.File, request.PostTo)
+			},
+		)
+	}
+
+	{
+		// Streaming variant (MOG-4735): the answer carries the metadata the
+		// browser's headers need, the bytes follow on a dedicated stream
+		// socket under a credit window. files/v2/download stays for API
+		// versions that still collect the file through the callback POST.
+		type Request struct {
+			File         dtos.PvcFileRequestDto    `json:"file" validate:"required"`
+			WsConnection xterm.WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+		}
+
+		RegisterPatternHandler(
+			PatternHandle{self, "files/v2/download-stream"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request Request) (services.FilesDownloadStreamInfo, error) {
+				info, err := services.DownloadStreamInfoV2(request.File)
+				if err != nil {
+					return info, err
+				}
+				go xterm.FileDownloadStream(
+					xterm.FileDownloadStreamRequest{
+						WsConnection: request.WsConnection,
+						Namespace:    info.Namespace,
+						Pod:          info.Pod,
+						Container:    info.Container,
+					},
+					func(ctx context.Context, w io.Writer) error {
+						return services.DownloadToWriterV2(ctx, request.File, w)
+					},
+				)
+				return info, nil
 			},
 		)
 	}
