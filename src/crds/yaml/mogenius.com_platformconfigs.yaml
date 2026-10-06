@@ -59,6 +59,67 @@ spec:
               creates at startup — an empty spec that only carries the GitOps status —
               passes schema validation.
             properties:
+              agentSandboxes:
+                description: |-
+                  AgentSandboxesConfig installs the mogenius agent-sandbox stack: an isolated
+                  namespace where untrusted agent code runs, the mogenius-provided default
+                  SandboxTemplate/WarmPool objects, and the network isolation around them.
+
+                  It reuses the existing mogenius-agent-sandbox Helm chart as the install unit;
+                  Namespace and NetworkPolicy template into that chart's values (see
+                  reconcileAgentSandboxes). Runtime-class / gVisor installation is intentionally
+                  not modelled here yet — it is a cluster/node-specific follow-up.
+                properties:
+                  chart:
+                    properties:
+                      chart:
+                        type: string
+                      name:
+                        description: name of the HelmRelease resource to apply
+                        type: string
+                      namespace:
+                        type: string
+                      repository:
+                        type: string
+                      version:
+                        type: string
+                    type: object
+                  enabled:
+                    type: boolean
+                  namespace:
+                    description: |-
+                      Namespace the sandbox workloads run in. Falls back to the chart default
+                      ("agent-sandbox") when empty.
+                    type: string
+                  networkPolicy:
+                    description: NetworkPolicy configures the egress isolation around
+                      sandbox pods.
+                    properties:
+                      additionalBlockedCidrs:
+                        description: |-
+                          AdditionalBlockedCidrs are extra egress-blocked CIDRs on top of the RFC1918
+                          clusters (GKE) sits outside RFC1918 and must be listed explicitly.
+                        items:
+                          type: string
+                        type: array
+                      managed:
+                        description: |-
+                          Managed toggles whether the sandbox controller creates a per-sandbox
+                          NetworkPolicy. A pointer so leaving it unset keeps the chart default (true).
+                          The default rule set already denies RFC1918 and link-local egress — the
+                          latter covering the 169.254.169.254 metadata endpoint, the classic
+                          SSRF/exfil vector for untrusted agent code.
+                        type: boolean
+                    type: object
+                  patches:
+                    items:
+                      properties:
+                        name:
+                          description: name of the PlatformPatch resource to apply
+                          type: string
+                      type: object
+                    type: array
+                type: object
               alloy:
                 properties:
                   chart:
