@@ -1466,6 +1466,23 @@ func (self *socketApi) registerPatterns() {
 	)
 
 	RegisterPatternHandler(
+		PatternHandle{self, "service/exec-stream-connection-request"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request services.ExecStreamRequest) (Void, error) {
+			// Identity from the datagram's user field, as for exec-request.
+			request.UserEmail = datagram.User.Email
+			go self.execStreamConnection(request)
+			// Audited like a shell: the request, since the outcome is only
+			// known once the stream ends.
+			_, err := store.AddToAuditLog(datagram, self.logger, any(nil), nil, nil, nil)
+			if err != nil {
+				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+			}
+			return nil, nil
+		},
+	)
+
+	RegisterPatternHandler(
 		PatternHandle{self, "service/log-stream-connection-request"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request stream.PodCmdConnectionRequest) (Void, error) {
@@ -3486,6 +3503,24 @@ func (self *socketApi) execShConnection(podCmdConnectionRequest stream.PodCmdCon
 		podCmdConnectionRequest.Container,
 		cmd,
 		nil,
+	)
+}
+
+// execStreamConnection runs one command and relays its output live over a
+// stream socket (MOG-4691). The stream owns the socket and the framing, the
+// services layer owns identity, limits and the exec itself.
+func (self *socketApi) execStreamConnection(request services.ExecStreamRequest) {
+	stream.ExecStream(
+		stream.ExecStreamRequest{
+			WsConnection: request.WsConnection,
+			Namespace:    request.Namespace,
+			Pod:          request.Pod,
+			Container:    request.Container,
+		},
+		services.ExecOutputCap(),
+		func(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) (stream.ExecStreamOutcome, error) {
+			return services.StreamCommand(ctx, request.ExecRequest, stdin, stdout, stderr)
+		},
 	)
 }
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"os/exec"
+	"runtime"
 	"strings"
 	"syscall"
 	"testing"
@@ -209,5 +210,71 @@ func TestTimedOut(t *testing.T) {
 		if got := TimedOut(tc.err, tc.code, tc.elapsed, limit); got != tc.want {
 			t.Errorf("%s: TimedOut = %v, want %v", tc.name, got, tc.want)
 		}
+	}
+}
+
+// A streamed command must end on its own terms: the watchdog holds the stdin
+// pipe, but neither it nor an open pipe may keep the wrapper alive once the
+// command has exited.
+func TestStreamShellCommandExitsWithoutWaitingForStdin(t *testing.T) {
+	argv := BuildStreamShellCommand("sh", "echo out; echo err >&2; exit 3", "", nil, 0)
+	cmd := exec.Command(argv[0], argv[1:]...)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer stdin.Close()
+	var out, errOut bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &errOut
+
+	done := make(chan error, 1)
+	go func() { done <- cmd.Run() }()
+	select {
+	case err = <-done:
+	case <-time.After(5 * time.Second):
+		_ = cmd.Process.Kill()
+		t.Fatal("the wrapper kept running after the command exited")
+	}
+	var exitErr *exec.ExitError
+	if !errors.As(err, &exitErr) || exitErr.ExitCode() != 3 {
+		t.Fatalf("exit = %v, want code 3", err)
+	}
+	if out.String() != "out\n" || errOut.String() != "err\n" {
+		t.Errorf("stdout = %q, stderr = %q", out.String(), errOut.String())
+	}
+}
+
+// The acceptance case from MOG-4691: when the client goes away the operator
+// closes the command's stdin, and the command — children included — is gone
+// within seconds, not when its own timeout runs out.
+func TestStreamShellCommandDiesWhenStdinCloses(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("the watchdog walks /proc")
+	}
+	argv := BuildStreamShellCommand("sh", "sleep 30; echo late", "", nil, 0)
+	cmd := exec.Command(argv[0], argv[1:]...)
+	stdin, err := cmd.StdinPipe()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	if err := cmd.Start(); err != nil {
+		t.Fatal(err)
+	}
+	time.Sleep(300 * time.Millisecond)
+	_ = stdin.Close()
+
+	done := make(chan error, 1)
+	go func() { done <- cmd.Wait() }()
+	select {
+	case <-done:
+	case <-time.After(5 * time.Second):
+		_ = cmd.Process.Kill()
+		t.Fatal("the command survived the closed stdin")
+	}
+	if strings.Contains(out.String(), "late") {
+		t.Errorf("the command ran to its end: %q", out.String())
 	}
 }

@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"path"
 	"strings"
 	"time"
 
 	"mogenius-operator/src/debugcontainer"
 	"mogenius-operator/src/k8sexec"
+	"mogenius-operator/src/stream"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -108,16 +110,126 @@ func (r ExecResponse) AuditSummary() ExecAuditSummary {
 // target's PID namespace; the working directory is then resolved under
 // /proc/1/root so paths still refer to the target's filesystem.
 func ExecuteCommand(request ExecRequest) (ExecResponse, error) {
+	ctx := context.Background()
+	plan, err := prepareExec(ctx, request)
+	if err != nil {
+		return ExecResponse{}, err
+	}
+
+	argv := k8sexec.BuildShellCommand(plan.shell, request.Command, plan.cwd, request.Env, plan.timeout)
+	runCtx, cancel := context.WithTimeout(ctx, plan.timeout+k8sexec.RunGrace)
+	defer cancel()
+
+	start := time.Now()
+	result, runErr := k8sexec.Run(runCtx, plan.clients, k8sexec.RunRequest{
+		Namespace:      request.Namespace,
+		Pod:            request.Pod,
+		Container:      plan.container,
+		Command:        argv,
+		MaxOutputBytes: plan.maxOutput,
+	})
+	elapsed := time.Since(start)
+
+	if k8sexec.TimedOut(runErr, result.ExitCode, elapsed, plan.timeout) {
+		serviceLogger.Info("exec-request timed out", "namespace", request.Namespace, "pod", request.Pod, "container", plan.container, "timeout", plan.timeout)
+		return ExecResponse{}, fmt.Errorf("exec: command timed out after %s: %w", plan.timeout, context.DeadlineExceeded)
+	}
+	if runErr != nil {
+		return ExecResponse{}, fmt.Errorf("exec in %s/%s (%s): %w", request.Namespace, request.Pod, plan.container, runErr)
+	}
+
+	return ExecResponse{
+		ExitCode:   result.ExitCode,
+		Stdout:     result.Stdout,
+		Stderr:     result.Stderr,
+		Truncated:  result.Truncated,
+		Container:  plan.container,
+		DurationMs: elapsed.Milliseconds(),
+	}, nil
+}
+
+// ExecStreamRequest is the payload of `service/exec-stream-connection-request`
+// (MOG-4691): the same command as ExecRequest, but its output is relayed live
+// over a stream socket instead of answered in one piece. The platform opens
+// the client side; wsConnectionRequest names the channel to meet it on.
+type ExecStreamRequest struct {
+	ExecRequest
+	WsConnection stream.WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+}
+
+// ExecOutputCap is the configured per-stream output cap, for a stream's
+// writers to enforce where Run's buffers would otherwise.
+func ExecOutputCap() int {
+	_, maxOutput := execRequestLimits()
+	return maxOutput
+}
+
+// StreamCommand is ExecuteCommand for a stream: the command's output goes to
+// the writers as it is produced and only the outcome is returned. stdin is
+// the pipe whose closing stops the command (see k8sexec.BuildStreamShellCommand);
+// ctx ending (the client is gone) ends the exec stream and closes that pipe
+// too. A timeout is an outcome here, not an error: the client has the
+// output already and is told what ended the command.
+func StreamCommand(ctx context.Context, request ExecRequest, stdin io.Reader, stdout, stderr io.Writer) (stream.ExecStreamOutcome, error) {
+	plan, err := prepareExec(ctx, request)
+	if err != nil {
+		return stream.ExecStreamOutcome{}, err
+	}
+
+	argv := k8sexec.BuildStreamShellCommand(plan.shell, request.Command, plan.cwd, request.Env, plan.timeout)
+	runCtx, cancel := context.WithTimeout(ctx, plan.timeout+k8sexec.RunGrace)
+	defer cancel()
+
+	start := time.Now()
+	exitCode, runErr := k8sexec.Stream(runCtx, plan.clients, k8sexec.RunRequest{
+		Namespace: request.Namespace,
+		Pod:       request.Pod,
+		Container: plan.container,
+		Command:   argv,
+	}, stdin, stdout, stderr)
+	elapsed := time.Since(start)
+
+	if k8sexec.TimedOut(runErr, exitCode, elapsed, plan.timeout) {
+		serviceLogger.Info("exec-stream timed out", "namespace", request.Namespace, "pod", request.Pod, "container", plan.container, "timeout", plan.timeout)
+		if runErr != nil {
+			// the operator-side deadline cut the stream: the in-container
+			// kill, had it happened, would have reported this code
+			exitCode = k8sexec.KilledExitCode
+		}
+		return stream.ExecStreamOutcome{ExitCode: exitCode, TimedOut: true}, nil
+	}
+	if runErr != nil {
+		return stream.ExecStreamOutcome{}, fmt.Errorf("exec in %s/%s (%s): %w", request.Namespace, request.Pod, plan.container, runErr)
+	}
+	return stream.ExecStreamOutcome{ExitCode: exitCode}, nil
+}
+
+// execPlan is a command ready to run: the requester's clients, the container
+// and shell to run in, the working directory as the container sees it, and
+// the bounds the cluster puts on it.
+type execPlan struct {
+	clients   *k8sexec.Clients
+	shell     string
+	container string
+	cwd       string
+	timeout   time.Duration
+	maxOutput int
+}
+
+// prepareExec validates the request, binds it to the requester's identity
+// and settles where and how the command runs. Shared by the one-shot and the
+// streamed exec so both follow the same rules.
+func prepareExec(ctx context.Context, request ExecRequest) (*execPlan, error) {
 	if strings.TrimSpace(request.Command) == "" {
-		return ExecResponse{}, errors.New("exec: command must not be empty")
+		return nil, errors.New("exec: command must not be empty")
 	}
 	if err := k8sexec.ValidateEnv(request.Env); err != nil {
-		return ExecResponse{}, fmt.Errorf("exec: %w", err)
+		return nil, fmt.Errorf("exec: %w", err)
 	}
 	maxTimeout, maxOutput := execRequestLimits()
 	timeout, err := resolveExecTimeout(request.TimeoutSeconds, maxTimeout)
 	if err != nil {
-		return ExecResponse{}, fmt.Errorf("exec: %w", err)
+		return nil, fmt.Errorf("exec: %w", err)
 	}
 
 	allowAdminBypass, _ := config.TryGetBool(execAdminBypassConfigKey)
@@ -126,50 +238,26 @@ func ExecuteCommand(request ExecRequest) (ExecResponse, error) {
 		IsAdmin: request.IsAdmin || request.IsClusterAdmin,
 	})
 	if err != nil {
-		return ExecResponse{}, fmt.Errorf("exec: %w", err)
+		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	ctx := context.Background()
 	// Deliberately the requester's client: reading the pod is itself a read
 	// the user must be allowed, and it settles which container to use.
 	container, err := resolveExecContainer(ctx, clients.Clientset, request.Namespace, request.Pod, request.Container)
 	if err != nil {
-		return ExecResponse{}, fmt.Errorf("exec: %w", err)
+		return nil, fmt.Errorf("exec: %w", err)
 	}
 	shell, execContainer, cwd, err := prepareExecTarget(ctx, clients, request.Namespace, request.Pod, container, request.Cwd)
 	if err != nil {
-		return ExecResponse{}, fmt.Errorf("exec: %w", err)
+		return nil, fmt.Errorf("exec: %w", err)
 	}
-
-	argv := k8sexec.BuildShellCommand(shell, request.Command, cwd, request.Env, timeout)
-	runCtx, cancel := context.WithTimeout(ctx, timeout+k8sexec.RunGrace)
-	defer cancel()
-
-	start := time.Now()
-	result, runErr := k8sexec.Run(runCtx, clients, k8sexec.RunRequest{
-		Namespace:      request.Namespace,
-		Pod:            request.Pod,
-		Container:      execContainer,
-		Command:        argv,
-		MaxOutputBytes: maxOutput,
-	})
-	elapsed := time.Since(start)
-
-	if k8sexec.TimedOut(runErr, result.ExitCode, elapsed, timeout) {
-		serviceLogger.Info("exec-request timed out", "namespace", request.Namespace, "pod", request.Pod, "container", execContainer, "timeout", timeout)
-		return ExecResponse{}, fmt.Errorf("exec: command timed out after %s: %w", timeout, context.DeadlineExceeded)
-	}
-	if runErr != nil {
-		return ExecResponse{}, fmt.Errorf("exec in %s/%s (%s): %w", request.Namespace, request.Pod, execContainer, runErr)
-	}
-
-	return ExecResponse{
-		ExitCode:   result.ExitCode,
-		Stdout:     result.Stdout,
-		Stderr:     result.Stderr,
-		Truncated:  result.Truncated,
-		Container:  execContainer,
-		DurationMs: elapsed.Milliseconds(),
+	return &execPlan{
+		clients:   clients,
+		shell:     shell,
+		container: execContainer,
+		cwd:       cwd,
+		timeout:   timeout,
+		maxOutput: maxOutput,
 	}, nil
 }
 

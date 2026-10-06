@@ -44,8 +44,9 @@ const (
 // wrapper cannot be turned into something other than an assignment.
 var envKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
 
-// RunRequest is one non-interactive command in a container: no TTY, no
-// stdin, stdout and stderr captured separately.
+// RunRequest is one non-interactive command in a container: no TTY, stdout
+// and stderr kept apart. Run captures them, Stream hands them on as they
+// come.
 type RunRequest struct {
 	Namespace string
 	Pod       string
@@ -77,11 +78,30 @@ type RunResult struct {
 // that need the process gone wrap the command with BuildShellCommand, whose
 // script uses the container's `timeout` when it has one.
 func Run(ctx context.Context, clients *Clients, req RunRequest) (RunResult, error) {
+	stdout := newCappedBuffer(req.MaxOutputBytes)
+	stderr := newCappedBuffer(req.MaxOutputBytes)
+	exitCode, err := Stream(ctx, clients, req, nil, stdout, stderr)
+	return RunResult{
+		ExitCode:  exitCode,
+		Stdout:    stdout.String(),
+		Stderr:    stderr.String(),
+		Truncated: stdout.truncated || stderr.truncated,
+	}, err
+}
+
+// Stream executes req.Command in the container and writes stdout and stderr
+// to the writers as the command produces them, so a caller can relay a long
+// run live instead of after the fact. A non-nil stdin is connected to the
+// command's standard input and the exec API closes the container's stdin
+// when it ends — which is the signal the wrapper of BuildStreamShellCommand
+// waits for to stop the command. The exit code and error contract are those
+// of Run; a failing writer ends the exec.
+func Stream(ctx context.Context, clients *Clients, req RunRequest, stdin io.Reader, stdout, stderr io.Writer) (int, error) {
 	if clients == nil || clients.Clientset == nil || clients.RestConfig == nil {
-		return RunResult{}, errors.New("exec: no kubernetes clients")
+		return 0, errors.New("exec: no kubernetes clients")
 	}
 	if len(req.Command) == 0 {
-		return RunResult{}, errors.New("exec: empty command")
+		return 0, errors.New("exec: empty command")
 	}
 
 	request := clients.Clientset.CoreV1().RESTClient().
@@ -92,7 +112,7 @@ func Run(ctx context.Context, clients *Clients, req RunRequest) (RunResult, erro
 		SubResource("exec").
 		Param("container", req.Container).
 		Param("stdout", "true").
-		Param("stdin", "false").
+		Param("stdin", strconv.FormatBool(stdin != nil)).
 		Param("stderr", "true").
 		Param("tty", "false")
 	for _, arg := range req.Command {
@@ -100,33 +120,24 @@ func Run(ctx context.Context, clients *Clients, req RunRequest) (RunResult, erro
 	}
 	executor, err := remotecommand.NewSPDYExecutor(clients.RestConfig, "POST", request.URL())
 	if err != nil {
-		return RunResult{}, fmt.Errorf("exec: create executor: %w", err)
+		return 0, fmt.Errorf("exec: create executor: %w", err)
 	}
 
-	stdout := newCappedBuffer(req.MaxOutputBytes)
-	stderr := newCappedBuffer(req.MaxOutputBytes)
-	err = executor.StreamWithContext(ctx, remotecommand.StreamOptions{Stdout: stdout, Stderr: stderr})
-
-	result := RunResult{
-		Stdout:    stdout.String(),
-		Stderr:    stderr.String(),
-		Truncated: stdout.truncated || stderr.truncated,
-	}
+	err = executor.StreamWithContext(ctx, remotecommand.StreamOptions{Stdin: stdin, Stdout: stdout, Stderr: stderr})
 	if err == nil {
-		return result, nil
+		return 0, nil
 	}
 	var codeErr utilexec.CodeExitError
 	if errors.As(err, &codeErr) {
-		result.ExitCode = codeErr.Code
-		return result, nil
+		return codeErr.Code, nil
 	}
 	if errors.Is(err, io.EOF) {
-		return result, nil
+		return 0, nil
 	}
 	if ctxErr := ctx.Err(); ctxErr != nil {
-		return result, ctxErr
+		return 0, ctxErr
 	}
-	return result, err
+	return 0, err
 }
 
 // ValidateEnv rejects environment variable names a POSIX shell would not
@@ -166,16 +177,60 @@ if [ "$__mo_timeout" -gt 0 ] 2>/dev/null && command -v timeout >/dev/null 2>&1; 
 fi
 eval "$__mo_cmd"`
 
+// streamPrelude runs ahead of runScript when the command is streamed. The
+// exec API has no signal to send a non-TTY process once its stream is gone,
+// so the wrapper watches its own stdin instead: the operator keeps that pipe
+// open for as long as the client is connected and closes it when the client
+// goes away or the command has ended. The watchdog subshell then kills the
+// wrapper's whole process tree, children first, by walking /proc — present
+// in every Linux container, where `pkill` or `setsid` are not. Each process
+// is stopped before its children are visited, so a shell cannot run on to
+// its next command while its child dies under it; a stopped process still
+// dies of KILL. The command itself gets /dev/null as stdin, so it neither
+// competes with the watchdog for the pipe nor blocks on input nobody sends.
+// The subshell writes to /dev/null so the exec's output streams close with
+// the command, not with the watchdog. Without job control a shell gives a
+// background list /dev/null as stdin, hence the explicit copy of fd 0 the
+// subshell reads instead. `local` is not POSIX but every shell DetectShell
+// can pick (bash, dash, ash) has it.
+const streamPrelude = `__mo_kill_tree() {
+  local __mo_root=$1 __mo_p __mo_stat
+  kill -STOP "$__mo_root" 2>/dev/null
+  for __mo_p in /proc/[0-9]*; do
+    __mo_p=${__mo_p#/proc/}
+    [ "$__mo_p" = "$__mo_self" ] && continue
+    read -r __mo_stat < "/proc/$__mo_p/stat" 2>/dev/null || continue
+    set -- ${__mo_stat##*) }
+    [ "$2" = "$__mo_root" ] && __mo_kill_tree "$__mo_p"
+  done
+  kill -KILL "$__mo_root" 2>/dev/null
+}
+exec 3<&0
+( exec 3<&-; read -r __mo_self _ < /proc/self/stat; cat >/dev/null 2>&1; __mo_kill_tree $$ ) <&3 >/dev/null 2>&1 &
+exec 3<&- </dev/null
+`
+
 // BuildShellCommand turns a command line into the argv Run expects: the
 // shell, the wrapper script and the script's positional inputs. env is
 // emitted in sorted key order so identical requests produce identical argv.
 // Callers validate env with ValidateEnv first.
 func BuildShellCommand(shell, command, cwd string, env map[string]string, timeout time.Duration) []string {
+	return buildShellCommand(runScript, shell, command, cwd, env, timeout)
+}
+
+// BuildStreamShellCommand is BuildShellCommand for a command run through
+// Stream with a stdin pipe: the wrapper additionally stops the command when
+// that pipe closes (see streamPrelude).
+func BuildStreamShellCommand(shell, command, cwd string, env map[string]string, timeout time.Duration) []string {
+	return buildShellCommand(streamPrelude+runScript, shell, command, cwd, env, timeout)
+}
+
+func buildShellCommand(script, shell, command, cwd string, env map[string]string, timeout time.Duration) []string {
 	seconds := 0
 	if timeout > 0 {
 		seconds = int(math.Ceil(timeout.Seconds()))
 	}
-	argv := []string{shell, "-c", runScript, shell, cwd, strconv.Itoa(seconds), command}
+	argv := []string{shell, "-c", script, shell, cwd, strconv.Itoa(seconds), command}
 
 	keys := make([]string, 0, len(env))
 	for key := range env {
