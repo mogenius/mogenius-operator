@@ -149,20 +149,6 @@ func TestSplitStatRecordsAcceptsPlainLines(t *testing.T) {
 	}
 }
 
-func TestHeaderFilename(t *testing.T) {
-	cases := map[string]string{
-		`plain.txt`:         `plain.txt`,
-		`it's "quoted".txt`: `it's \"quoted\".txt`,
-		"new\nline.txt":     `new_line.txt`,
-		`back\slash`:        `back\\slash`,
-	}
-	for in, want := range cases {
-		if got := headerFilename(in); got != want {
-			t.Errorf("headerFilename(%q) = %q, want %q", in, got, want)
-		}
-	}
-}
-
 func TestDownloadNameAndType(t *testing.T) {
 	cases := []struct {
 		name        string

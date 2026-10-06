@@ -7,12 +7,10 @@ import (
 	"fmt"
 	"io"
 	"mime"
-	"mime/multipart"
 	"mogenius-operator/src/dtos"
 	mokubernetes "mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/utils"
 	"net/http"
-	"net/textproto"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -72,14 +70,6 @@ func Info(r dtos.PvcFileRequestDto) (dtos.PersistentFileDto, error) {
 		return dtos.PersistentFileDto{}, err
 	}
 	return infoImpl(target, r.Path)
-}
-
-func Download(pfile dtos.PvcFileRequestDto, postTo string) (FilesDownloadResponse, error) {
-	target, err := resolveFileTarget(pfile)
-	if err != nil {
-		return FilesDownloadResponse{Error: err.Error()}, err
-	}
-	return downloadImpl(target, pfile.Path, postTo)
 }
 
 func Uploaded(tempZipFileSrc string, fileReq FilesUploadRequest) error {
@@ -480,83 +470,6 @@ func downloadNameAndType(info dtos.PersistentFileDto) (string, string) {
 	return filename, contentType
 }
 
-func downloadImpl(target fileExecTarget, requestPath string, postTo string) (FilesDownloadResponse, error) {
-	result := FilesDownloadResponse{}
-
-	containerPath, err := resolvePath(target.MountRoot, requestPath)
-	if err != nil {
-		result.Error = err.Error()
-		return result, err
-	}
-
-	info, err := infoImpl(target, requestPath)
-	if err != nil {
-		result.Error = err.Error()
-		return result, err
-	}
-
-	buf := new(bytes.Buffer)
-	multiPartWriter := multipart.NewWriter(buf)
-
-	// CreateFormFile would stamp every part application/octet-stream; the
-	// platform passes the part's Content-Type straight through to the browser.
-	filename, contentType := downloadNameAndType(info)
-	partHeader := make(textproto.MIMEHeader)
-	partHeader.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, headerFilename(filename)))
-	partHeader.Set("Content-Type", contentType)
-
-	w, err := multiPartWriter.CreatePart(partHeader)
-	if err != nil {
-		result.Error = err.Error()
-		return result, err
-	}
-
-	if info.Type == "directory" {
-		err = mokubernetes.ExecInPodToWriter(
-			target.Namespace, target.Pod, target.Container,
-			[]string{"tar", "czf", "-", "-C", path.Dir(containerPath), path.Base(containerPath)},
-			nil, w,
-		)
-	} else {
-		err = mokubernetes.ExecInPodToWriter(
-			target.Namespace, target.Pod, target.Container,
-			[]string{"cat", containerPath},
-			nil, w,
-		)
-	}
-	if err != nil {
-		result.Error = err.Error()
-		return result, err
-	}
-
-	result.SizeInBytes = int64(buf.Len())
-	_ = multiPartWriter.Close()
-
-	serviceLogger.Debug("Uploading file", "size", result.SizeInBytes, "filename", filename, "postTo", postTo)
-	req, err := http.NewRequest("POST", postTo, buf)
-	if err != nil {
-		result.Error = err.Error()
-		return result, err
-	}
-	req.Header = utils.HttpHeader("")
-	req.Header.Set("Content-Type", multiPartWriter.FormDataContentType())
-
-	client := &http.Client{}
-	response, err := client.Do(req)
-	if err != nil {
-		result.Error = err.Error()
-		return result, err
-	}
-	defer func() { _ = response.Body.Close() }()
-
-	if response.StatusCode < 200 || response.StatusCode > 299 {
-		serviceLogger.Error("Error sending request", "status", response.Status)
-		result.Error = fmt.Sprintf("%s - '%s'.", postTo, response.Status)
-	}
-
-	return result, nil
-}
-
 func uploadedImpl(target fileExecTarget, tempZipFileSrc string, requestPath string, sizeInBytes int64) error {
 	containerPath, err := resolvePath(target.MountRoot, requestPath)
 	if err != nil {
@@ -732,11 +645,6 @@ func validateOwnerPart(value string) error {
 
 // ── types ─────────────────────────────────────────────────────────────────────
 
-type FilesDownloadResponse struct {
-	SizeInBytes int64  `json:"sizeInBytes"`
-	Error       string `json:"error,omitempty"`
-}
-
 type FilesUploadRequest struct {
 	File        dtos.PvcFileRequestDto `json:"file"`
 	SizeInBytes int64                  `json:"sizeInBytes"`
@@ -783,19 +691,6 @@ func resolvePath(mountRoot, requestPath string) (string, error) {
 }
 
 // parseStatLine parses one line of `stat -c '%n\t%F\t%s\t%u\t%g\t%a\t%Y'` output.
-// headerFilename makes a file name safe for a Content-Disposition header:
-// quotes and backslashes are escaped, control characters (a newline would end
-// the header and lose the whole part) become underscores.
-func headerFilename(name string) string {
-	cleaned := strings.Map(func(r rune) rune {
-		if r < 0x20 || r == 0x7f {
-			return '_'
-		}
-		return r
-	}, name)
-	return strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(cleaned)
-}
-
 func parseStatLine(rootContainerPath, line string) (dtos.PersistentFileDto, error) {
 	parts := strings.Split(line, "\t")
 	if len(parts) < 7 {

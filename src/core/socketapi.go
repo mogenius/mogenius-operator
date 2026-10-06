@@ -864,25 +864,9 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
-		type Request struct {
-			File   dtos.PvcFileRequestDto `json:"file" validate:"required"`
-			PostTo string                 `json:"postTo" validate:"required"`
-		}
-
-		RegisterPatternHandler(
-			PatternHandle{self, "files/v2/download"},
-			PatternConfig{},
-			func(datagram structs.Datagram, request Request) (services.FilesDownloadResponse, error) {
-				return services.Download(request.File, request.PostTo)
-			},
-		)
-	}
-
-	{
-		// Streaming variant (MOG-4735): the answer carries the metadata the
+		// Streamed download (MOG-4735): the answer carries the metadata the
 		// browser's headers need, the bytes follow on a dedicated stream
-		// socket under a credit window. files/v2/download stays for API
-		// versions that still collect the file through the callback POST.
+		// socket under a credit window.
 		type Request struct {
 			File         dtos.PvcFileRequestDto     `json:"file" validate:"required"`
 			WsConnection stream.WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
