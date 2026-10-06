@@ -71,7 +71,7 @@ func TestStreamFileInChunksDeliversExactBytes(t *testing.T) {
 		content := randomContent(t, size)
 		f := &fakeFile{content: content}
 		var out bytes.Buffer
-		if err := streamFileInChunks(context.Background(), int64(size), chunk, f.read, &out); err != nil {
+		if err := streamFileInChunks(context.Background(), 0, int64(size), chunk, f.read, &out); err != nil {
 			t.Fatalf("size %d: unexpected error: %v", size, err)
 		}
 		if !bytes.Equal(out.Bytes(), content) {
@@ -83,7 +83,7 @@ func TestStreamFileInChunksDeliversExactBytes(t *testing.T) {
 func TestStreamFileInChunksEmptyFileReadsNothing(t *testing.T) {
 	f := &fakeFile{}
 	var out bytes.Buffer
-	if err := streamFileInChunks(context.Background(), 0, downloadChunkBytes, f.read, &out); err != nil {
+	if err := streamFileInChunks(context.Background(), 0, 0, downloadChunkBytes, f.read, &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if out.Len() != 0 || len(f.calls) != 0 {
@@ -105,7 +105,7 @@ func TestStreamFileInChunksRereadsShortAndFailedChunks(t *testing.T) {
 		return false, nil
 	}}
 	var out bytes.Buffer
-	if err := streamFileInChunks(context.Background(), int64(len(content)), chunk, f.read, &out); err != nil {
+	if err := streamFileInChunks(context.Background(), 0, int64(len(content)), chunk, f.read, &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if !bytes.Equal(out.Bytes(), content) {
@@ -124,7 +124,7 @@ func TestStreamFileInChunksFailsWithoutForwardingAShortChunk(t *testing.T) {
 		return offset == 2*chunk, nil // the last chunk never comes back whole
 	}}
 	var out bytes.Buffer
-	err := streamFileInChunks(context.Background(), int64(len(content)), chunk, f.read, &out)
+	err := streamFileInChunks(context.Background(), 0, int64(len(content)), chunk, f.read, &out)
 	if err == nil {
 		t.Fatal("expected an error for a chunk that stays short")
 	}
@@ -143,7 +143,7 @@ func TestStreamFileInChunksCutsAFileThatGrew(t *testing.T) {
 	announced := int64(len(content)) - 1000 // stat ran before the file grew
 	f := &fakeFile{content: content}
 	var out bytes.Buffer
-	if err := streamFileInChunks(context.Background(), announced, chunk, f.read, &out); err != nil {
+	if err := streamFileInChunks(context.Background(), 0, announced, chunk, f.read, &out); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if int64(out.Len()) != announced || !bytes.Equal(out.Bytes(), content[:announced]) {
@@ -171,7 +171,7 @@ func TestStreamFileInChunksStopsReadingWhenTheWriterFails(t *testing.T) {
 		reads.Add(1)
 		return f.read(ctx, offset, length, dst)
 	}
-	err := streamFileInChunks(context.Background(), int64(len(content)), chunk, read, &failingWriter{after: 2})
+	err := streamFileInChunks(context.Background(), 0, int64(len(content)), chunk, read, &failingWriter{after: 2})
 	if err == nil {
 		t.Fatal("expected the writer's error")
 	}
@@ -193,14 +193,14 @@ func TestStreamFileInChunksHonoursCancellation(t *testing.T) {
 		}
 		return false, nil
 	}}
-	err := streamFileInChunks(ctx, int64(len(content)), chunk, f.read, io.Discard)
+	err := streamFileInChunks(ctx, 0, int64(len(content)), chunk, f.read, io.Discard)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("expected context.Canceled, got %v", err)
 	}
 }
 
 func TestStreamFileInChunksRejectsUnalignedChunkSize(t *testing.T) {
-	if err := streamFileInChunks(context.Background(), 10, downloadBlockBytes+1, (&fakeFile{}).read, io.Discard); err == nil {
+	if err := streamFileInChunks(context.Background(), 0, 10, downloadBlockBytes+1, (&fakeFile{}).read, io.Discard); err == nil {
 		t.Fatal("expected an error for a chunk size that is not a block multiple")
 	}
 }
@@ -219,5 +219,83 @@ func TestDdChunkCommand(t *testing.T) {
 	// a last chunk shorter than a block still asks for one whole block
 	if last := ddChunkCommand("/f", 0, 10); last[4] != "count=1" {
 		t.Fatalf("expected count=1 for a 10-byte tail, got %q", last)
+	}
+}
+
+func TestStreamFileInChunksStartsAtAnOffset(t *testing.T) {
+	withQuietLogger(t)
+	chunk := 4 * downloadBlockBytes
+	content := randomContent(t, 5*int(chunk)+777)
+	size := int64(len(content))
+	for _, start := range []int64{1, downloadBlockBytes - 1, downloadBlockBytes, chunk + 12345, 3*chunk + downloadBlockBytes + 5, size - 1} {
+		f := &fakeFile{content: content}
+		var out bytes.Buffer
+		if err := streamFileInChunks(context.Background(), start, size, chunk, f.read, &out); err != nil {
+			t.Fatalf("start %d: unexpected error: %v", start, err)
+		}
+		if !bytes.Equal(out.Bytes(), content[start:]) {
+			t.Fatalf("start %d: got %d bytes, want the %d from the offset on", start, out.Len(), size-start)
+		}
+		// the first read starts at the block that contains start
+		for offset := range f.calls {
+			if offset < start-start%downloadBlockBytes {
+				t.Fatalf("start %d: read offset %d lies before the containing block", start, offset)
+			}
+		}
+	}
+}
+
+func TestStreamFileInChunksOffsetBounds(t *testing.T) {
+	var out bytes.Buffer
+	if err := streamFileInChunks(context.Background(), 10, 10, downloadChunkBytes, (&fakeFile{}).read, &out); err != nil || out.Len() != 0 {
+		t.Fatalf("start == size should write nothing, got %v and %d bytes", err, out.Len())
+	}
+	for _, start := range []int64{-1, 11} {
+		if err := streamFileInChunks(context.Background(), start, 10, downloadChunkBytes, (&fakeFile{}).read, &out); err == nil {
+			t.Fatalf("start %d: expected an error", start)
+		}
+	}
+}
+
+func TestApplyDownloadRange(t *testing.T) {
+	file := func() FilesDownloadStreamInfo {
+		return FilesDownloadStreamInfo{SizeInBytes: 1000, Resumable: true, ETag: `"1000-1700000000"`}
+	}
+	cases := []struct {
+		name      string
+		info      FilesDownloadStreamInfo
+		offset    int64
+		ifRange   string
+		wantStart int64
+		want416   bool
+	}{
+		{"no range", file(), 0, "", 0, false},
+		{"plain range", file(), 400, "", 400, false},
+		{"range with matching If-Range", file(), 400, `"1000-1700000000"`, 400, false},
+		{"If-Range names another version", file(), 400, `"999-1"`, 0, false},
+		{"offset at the end", file(), 1000, "", 0, true},
+		{"offset beyond the end", file(), 5000, "", 0, true},
+		{"negative offset", file(), -5, "", 0, false},
+		{"folder ignores the range", FilesDownloadStreamInfo{SizeInBytes: -1, IsDirectory: true}, 400, "", 0, false},
+		{"symlink ignores the range", FilesDownloadStreamInfo{SizeInBytes: 12}, 4, "", 0, false},
+	}
+	for _, c := range cases {
+		info := c.info
+		applyDownloadRange(&info, c.offset, c.ifRange)
+		if info.Offset != c.wantStart || info.RangeNotSatisfiable != c.want416 {
+			t.Fatalf("%s: got offset %d / 416 %v, want %d / %v", c.name, info.Offset, info.RangeNotSatisfiable, c.wantStart, c.want416)
+		}
+	}
+}
+
+func TestDownloadETag(t *testing.T) {
+	if got := downloadETag(2147483649, "2026-10-06T05:48:00Z"); got != `"2147483649-1791265680"` {
+		t.Fatalf("unexpected etag %s", got)
+	}
+	if downloadETag(1, "2026-10-06T05:48:00Z") == downloadETag(2, "2026-10-06T05:48:00Z") {
+		t.Fatal("size must change the etag")
+	}
+	if downloadETag(1, "not a time") != "" {
+		t.Fatal("an unparsable time gives no etag")
 	}
 }

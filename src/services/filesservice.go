@@ -287,30 +287,43 @@ func listImpl(target fileExecTarget, requestPath string, maxDepth int) ([]dtos.P
 }
 
 func infoImpl(target fileExecTarget, requestPath string) (dtos.PersistentFileDto, error) {
-	containerPath, err := resolvePath(target.MountRoot, requestPath)
+	info, regular, err := statImpl(target, requestPath)
 	if err != nil {
 		return dtos.PersistentFileDto{}, err
 	}
+	// only regular files are sniffed: `head` on a fifo or a device would block
+	// the exec, and the exec has no deadline
+	if regular {
+		containerPath, err := resolvePath(target.MountRoot, requestPath)
+		if err != nil {
+			return dtos.PersistentFileDto{}, err
+		}
+		info.MimeType, info.ContentType = detectContentType(target, containerPath)
+	}
+	return info, nil
+}
 
+// statImpl stats one path and reports whether it is a regular file: only
+// those have a length a download can be checked and resumed against.
+func statImpl(target fileExecTarget, requestPath string) (dtos.PersistentFileDto, bool, error) {
+	containerPath, err := resolvePath(target.MountRoot, requestPath)
+	if err != nil {
+		return dtos.PersistentFileDto{}, false, err
+	}
 	output, err := mokubernetes.ExecInPod(
 		target.Namespace, target.Pod, target.Container,
 		[]string{"stat", "-c", statFormat, containerPath},
 		nil,
 	)
 	if err != nil {
-		return dtos.PersistentFileDto{}, err
+		return dtos.PersistentFileDto{}, false, err
 	}
 	line := strings.TrimSpace(output)
 	info, err := parseStatLine(target.MountRoot, line)
 	if err != nil {
-		return dtos.PersistentFileDto{}, err
+		return dtos.PersistentFileDto{}, false, err
 	}
-	// only regular files are sniffed: `head` on a fifo or a device would block
-	// the exec, and the exec has no deadline
-	if isRegularFileStatLine(line) {
-		info.MimeType, info.ContentType = detectContentType(target, containerPath)
-	}
-	return info, nil
+	return info, isRegularFileStatLine(line), nil
 }
 
 // isRegularFileStatLine reports whether the %F field of a statFormat line is
@@ -359,6 +372,19 @@ type FilesDownloadStreamInfo struct {
 	// -1 for a directory: its tar.gz size is only known at the end.
 	SizeInBytes int64 `json:"sizeInBytes"`
 	IsDirectory bool  `json:"isDirectory"`
+	// ModifiedAt (RFC 3339) and ETag identify this version of a regular file;
+	// both stay empty for anything that cannot be resumed.
+	ModifiedAt string `json:"modifiedAt,omitempty"`
+	ETag       string `json:"etag,omitempty"`
+	// Resumable: a regular file, so a later request may start at an offset.
+	Resumable bool `json:"resumable"`
+	// Offset is where the stream really starts: the requested offset, or 0
+	// when it does not apply (not resumable, or If-Range named another
+	// version). The API answers 206 only when it got its offset back.
+	Offset int64 `json:"offset"`
+	// RangeNotSatisfiable: the requested offset lies at or beyond the end of
+	// the file; no stream is started.
+	RangeNotSatisfiable bool `json:"rangeNotSatisfiable,omitempty"`
 
 	Namespace string `json:"-"`
 	Pod       string `json:"-"`
@@ -369,14 +395,25 @@ type FilesDownloadStreamInfo struct {
 // download can fail with before its first byte (pod gone, path missing, no
 // exec tooling) surfaces here, so the API can answer the browser with a
 // status code instead of a broken stream.
-func DownloadStreamInfo(pfile dtos.PvcFileRequestDto) (FilesDownloadStreamInfo, error) {
+//
+// offset and ifRange carry an HTTP range request (MOG-4747): offset applies
+// only to a regular file whose ETag still equals ifRange (or when ifRange is
+// empty); otherwise the download starts from the first byte.
+func DownloadStreamInfo(pfile dtos.PvcFileRequestDto, offset int64, ifRange string) (FilesDownloadStreamInfo, error) {
 	target, err := resolveFileTarget(pfile)
 	if err != nil {
 		return FilesDownloadStreamInfo{}, err
 	}
-	info, err := infoImpl(target, pfile.Path)
+	info, regular, err := statImpl(target, pfile.Path)
 	if err != nil {
 		return FilesDownloadStreamInfo{}, err
+	}
+	if regular {
+		containerPath, err := resolvePath(target.MountRoot, pfile.Path)
+		if err != nil {
+			return FilesDownloadStreamInfo{}, err
+		}
+		info.MimeType, info.ContentType = detectContentType(target, containerPath)
 	}
 	name, contentType := downloadNameAndType(info)
 	result := FilesDownloadStreamInfo{
@@ -384,6 +421,7 @@ func DownloadStreamInfo(pfile dtos.PvcFileRequestDto) (FilesDownloadStreamInfo, 
 		ContentType: contentType,
 		SizeInBytes: info.SizeInBytes,
 		IsDirectory: info.Type == "directory",
+		Resumable:   regular,
 		Namespace:   target.Namespace,
 		Pod:         target.Pod,
 		Container:   target.Container,
@@ -391,7 +429,39 @@ func DownloadStreamInfo(pfile dtos.PvcFileRequestDto) (FilesDownloadStreamInfo, 
 	if result.IsDirectory {
 		result.SizeInBytes = -1
 	}
+	if regular {
+		result.ModifiedAt = info.ModifiedAt
+		result.ETag = downloadETag(info.SizeInBytes, info.ModifiedAt)
+	}
+	applyDownloadRange(&result, offset, ifRange)
 	return result, nil
+}
+
+// applyDownloadRange decides where the stream starts. A negative offset is a
+// caller bug and treated like no range at all.
+func applyDownloadRange(info *FilesDownloadStreamInfo, offset int64, ifRange string) {
+	info.Offset = 0
+	if offset <= 0 || !info.Resumable {
+		return
+	}
+	if ifRange != "" && ifRange != info.ETag {
+		return
+	}
+	if offset >= info.SizeInBytes {
+		info.RangeNotSatisfiable = true
+		return
+	}
+	info.Offset = offset
+}
+
+// downloadETag is a strong validator for one version of a regular file: its
+// size and its modification time (seconds, as stat reports them).
+func downloadETag(size int64, modifiedAt string) string {
+	modified, err := time.Parse(time.RFC3339, modifiedAt)
+	if err != nil {
+		return ""
+	}
+	return fmt.Sprintf("\"%d-%d\"", size, modified.Unix())
 }
 
 // downloadNameAndType is the file name and content type a download carries:

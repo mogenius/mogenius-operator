@@ -9,7 +9,6 @@ import (
 	mokubernetes "mogenius-operator/src/kubernetes"
 	"path"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -39,11 +38,13 @@ const (
 // offset, into dst.
 type downloadChunkReader func(ctx context.Context, offset, length int64, dst *bytes.Buffer) error
 
-// DownloadToWriter streams the file or the folder (`tar czf -`) into w.
+// DownloadToWriter streams what info describes into w, from info.Offset on.
 // Regular files go in verified chunks; folders and anything else that is not
 // a regular file (symlink, fifo, device) stay one exec, because their output
-// has no length to check against. Cancelling ctx ends the running exec.
-func DownloadToWriter(ctx context.Context, pfile dtos.PvcFileRequestDto, w io.Writer) error {
+// has no length to check against. The size from info is what the browser was
+// promised, so a file that grew since is cut there. Cancelling ctx ends the
+// running exec.
+func DownloadToWriter(ctx context.Context, pfile dtos.PvcFileRequestDto, info FilesDownloadStreamInfo, w io.Writer) error {
 	target, err := resolveFileTarget(pfile)
 	if err != nil {
 		return err
@@ -52,25 +53,12 @@ func DownloadToWriter(ctx context.Context, pfile dtos.PvcFileRequestDto, w io.Wr
 	if err != nil {
 		return err
 	}
-	output, err := mokubernetes.ExecInPod(
-		target.Namespace, target.Pod, target.Container,
-		[]string{"stat", "-c", statFormat, containerPath},
-		nil,
-	)
-	if err != nil {
-		return err
-	}
-	line := strings.TrimSpace(output)
-	info, err := parseStatLine(target.MountRoot, line)
-	if err != nil {
-		return err
-	}
 
 	switch {
-	case info.Type == "directory":
+	case info.IsDirectory:
 		command := []string{"tar", "czf", "-", "-C", path.Dir(containerPath), path.Base(containerPath)}
 		return mokubernetes.ExecInPodToWriterContext(ctx, target.Namespace, target.Pod, target.Container, command, nil, w)
-	case !isRegularFileStatLine(line):
+	case !info.Resumable:
 		return mokubernetes.ExecInPodToWriterContext(ctx, target.Namespace, target.Pod, target.Container, []string{"cat", containerPath}, nil, w)
 	}
 
@@ -80,7 +68,7 @@ func DownloadToWriter(ctx context.Context, pfile dtos.PvcFileRequestDto, w io.Wr
 			ddChunkCommand(containerPath, offset, length), nil, dst,
 		)
 	}
-	return streamFileInChunks(ctx, info.SizeInBytes, downloadChunkBytes, readChunk, w)
+	return streamFileInChunks(ctx, info.Offset, info.SizeInBytes, downloadChunkBytes, readChunk, w)
 }
 
 // ddChunkCommand reads length bytes from offset; offset must be a multiple of
@@ -97,11 +85,16 @@ func ddChunkCommand(containerPath string, offset, length int64) []string {
 	}
 }
 
-// streamFileInChunks writes exactly size bytes into w, read chunk by chunk.
-// A reader goroutine fills the next chunk while the current one is written;
-// it stops as soon as the writer gives up or ctx ends.
-func streamFileInChunks(ctx context.Context, size, chunkBytes int64, readChunk downloadChunkReader, w io.Writer) error {
-	if size <= 0 {
+// streamFileInChunks writes the bytes from start up to size into w, read
+// chunk by chunk. Chunks stay on block boundaries; when start lies inside a
+// block, the first chunk begins at that block and its leading bytes are
+// dropped. A reader goroutine fills the next chunk while the current one is
+// written; it stops as soon as the writer gives up or ctx ends.
+func streamFileInChunks(ctx context.Context, start, size, chunkBytes int64, readChunk downloadChunkReader, w io.Writer) error {
+	if start < 0 || start > size {
+		return fmt.Errorf("download start %d is outside the file (%d bytes)", start, size)
+	}
+	if start == size {
 		return nil
 	}
 	if chunkBytes <= 0 || chunkBytes%downloadBlockBytes != 0 {
@@ -111,8 +104,9 @@ func streamFileInChunks(ctx context.Context, size, chunkBytes int64, readChunk d
 	defer cancel()
 
 	type chunk struct {
-		buf *bytes.Buffer
-		err error
+		buf  *bytes.Buffer
+		skip int
+		err  error
 	}
 	free := make(chan *bytes.Buffer, downloadChunkBuffers)
 	for range downloadChunkBuffers {
@@ -122,7 +116,7 @@ func streamFileInChunks(ctx context.Context, size, chunkBytes int64, readChunk d
 
 	go func() {
 		defer close(ready)
-		for offset := int64(0); offset < size; offset += chunkBytes {
+		for offset := start - start%downloadBlockBytes; offset < size; offset += chunkBytes {
 			var buf *bytes.Buffer
 			select {
 			case buf = <-free:
@@ -131,7 +125,7 @@ func streamFileInChunks(ctx context.Context, size, chunkBytes int64, readChunk d
 			}
 			err := readChunkVerified(ctx, readChunk, offset, min(chunkBytes, size-offset), buf)
 			select {
-			case ready <- chunk{buf: buf, err: err}:
+			case ready <- chunk{buf: buf, skip: int(max(0, start-offset)), err: err}:
 			case <-ctx.Done():
 				return
 			}
@@ -146,7 +140,7 @@ func streamFileInChunks(ctx context.Context, size, chunkBytes int64, readChunk d
 		if c.err != nil {
 			return c.err
 		}
-		n, err := w.Write(c.buf.Bytes())
+		n, err := w.Write(c.buf.Bytes()[c.skip:])
 		written += int64(n)
 		if err != nil {
 			return err
@@ -156,8 +150,8 @@ func streamFileInChunks(ctx context.Context, size, chunkBytes int64, readChunk d
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	if written != size {
-		return fmt.Errorf("download wrote %d of %d bytes", written, size)
+	if written != size-start {
+		return fmt.Errorf("download wrote %d of %d bytes", written, size-start)
 	}
 	return nil
 }

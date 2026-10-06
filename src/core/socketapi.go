@@ -886,15 +886,24 @@ func (self *socketApi) registerPatterns() {
 		type Request struct {
 			File         dtos.PvcFileRequestDto     `json:"file" validate:"required"`
 			WsConnection stream.WsConnectionRequest `json:"wsConnectionRequest" validate:"required"`
+			// HTTP range request (MOG-4747): start at Offset if the file is
+			// still the version IfRange names (or IfRange is empty). Older
+			// APIs send neither and get the whole file as before.
+			Offset  int64  `json:"offset"`
+			IfRange string `json:"ifRange"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "files/v2/download-stream"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (services.FilesDownloadStreamInfo, error) {
-				info, err := services.DownloadStreamInfo(request.File)
+				info, err := services.DownloadStreamInfo(request.File, request.Offset, request.IfRange)
 				if err != nil {
 					return info, err
+				}
+				if info.RangeNotSatisfiable {
+					// the API answers 416; nothing to stream
+					return info, nil
 				}
 				go stream.FileDownloadStream(
 					stream.FileDownloadStreamRequest{
@@ -904,7 +913,7 @@ func (self *socketApi) registerPatterns() {
 						Container:    info.Container,
 					},
 					func(ctx context.Context, w io.Writer) error {
-						return services.DownloadToWriter(ctx, request.File, w)
+						return services.DownloadToWriter(ctx, request.File, info, w)
 					},
 				)
 				return info, nil
