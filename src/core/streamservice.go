@@ -16,6 +16,7 @@ import (
 
 	"encoding/json"
 
+	"github.com/gorilla/websocket"
 	"github.com/valkey-io/valkey-go"
 )
 
@@ -97,8 +98,15 @@ func (self *streamService) LiveStreamConnection(conReq stream.WsConnectionReques
 
 	listener := NewMessageCallback(datagram, func(message any) {
 		if conn != nil {
+			// Metrics JSON is payload, so it goes out as a binary frame like
+			// every other stream payload (MOG-4754); control messages stay text.
+			payload, err := json.Marshal(message)
+			if err != nil {
+				logger.Error("Marshal Broadcast", "error", err)
+				return
+			}
 			connWriteLock.Lock()
-			err := conn.WriteJSON(message)
+			err = conn.WriteMessage(websocket.BinaryMessage, payload)
 			connWriteLock.Unlock()
 			if err != nil {
 				logger.Error("WriteMessage Broadcast", "error", err)

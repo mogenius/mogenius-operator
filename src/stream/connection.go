@@ -220,6 +220,9 @@ func GenerateWsConnection(
 		headers.Add("x-pod-name", podName)
 		headers.Add("x-container", container)
 		headers.Add("x-type", "k8s")
+		// Stream frames of either type are read as bytes here, so the relay may
+		// pass the peer's frames through unchanged.
+		headers.Add("x-binary", "1")
 
 		dialer := &websocket.Dialer{}
 		if strings.ToLower(os.Getenv("MO_SKIP_TLS_VERIFICATION")) == "true" {

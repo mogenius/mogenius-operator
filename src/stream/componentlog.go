@@ -67,6 +67,9 @@ func ComponentStreamConnection(
 		streamLogger.Error("Error getting last 50 logs", "error", err)
 	}
 
+	// Log lines and the "no entries" notices are what the viewer shows, so
+	// they go out as binary payload like PTY output (MOG-4754); only the
+	// stream's control messages are text.
 	logEntriesWritten := false
 	for _, v := range slices.Backward(data) {
 
@@ -76,7 +79,7 @@ func ComponentStreamConnection(
 		}
 
 		connWriteLock.Lock()
-		err = conn.WriteMessage(websocket.TextMessage, []byte(messageStr))
+		err = conn.WriteMessage(websocket.BinaryMessage, []byte(messageStr))
 		logEntriesWritten = true
 		if err != nil {
 			streamLogger.Error("WriteMessage", "error", err)
@@ -87,9 +90,9 @@ func ComponentStreamConnection(
 	if !logEntriesWritten {
 		connWriteLock.Lock()
 		if component == "helm" {
-			err = conn.WriteMessage(websocket.TextMessage, []byte("📝 No Log Entries Found\n🔍 This may occur due to the decentralized nature of Helm.\nIf the Helm chart was applied from a different machine, logs might not be available here.\n"))
+			err = conn.WriteMessage(websocket.BinaryMessage, []byte("📝 No Log Entries Found\n🔍 This may occur due to the decentralized nature of Helm.\nIf the Helm chart was applied from a different machine, logs might not be available here.\n"))
 		} else {
-			err = conn.WriteMessage(websocket.TextMessage, fmt.Appendf(nil, "[INFO] %s No recent log entries found.\n", utils.FormatJsonTimePrettyFromTime(time.Now())))
+			err = conn.WriteMessage(websocket.BinaryMessage, fmt.Appendf(nil, "[INFO] %s No recent log entries found.\n", utils.FormatJsonTimePrettyFromTime(time.Now())))
 		}
 		if err != nil {
 			streamLogger.Error("WriteMessage", "error", err)
@@ -112,7 +115,7 @@ func ComponentStreamConnection(
 			}
 
 			connWriteLock.Lock()
-			err = conn.WriteMessage(websocket.TextMessage, []byte(messageStr))
+			err = conn.WriteMessage(websocket.BinaryMessage, []byte(messageStr))
 			connWriteLock.Unlock()
 			if err != nil {
 				if strings.Contains(err.Error(), "broken pipe") {
