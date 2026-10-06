@@ -812,7 +812,7 @@ func (self *socketApi) registerPatterns() {
 			File dtos.PvcFileRequestDto `json:"file" validate:"required"`
 			// Recursive removes folders with their contents. Absent means true,
 			// which is what the storage UI has always done; the sandbox toolbox
-			// passes false for Daytona's default.
+			// passes false for the SDK default.
 			Recursive *bool `json:"recursive"`
 		}
 
@@ -826,7 +826,7 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	// text search in file contents below Folder.Path (Daytona findFiles)
+	// text search in file contents below Folder.Path (SDK findFiles)
 	{
 		type Request struct {
 			Folder     dtos.PvcFileRequestDto `json:"folder" validate:"required"`
@@ -843,7 +843,7 @@ func (self *socketApi) registerPatterns() {
 		)
 	}
 
-	// literal text replacement in the named files (Daytona replaceInFiles);
+	// literal text replacement in the named files (SDK replaceInFiles);
 	// Target names pod or volume, its path is not used
 	{
 		type Request struct {

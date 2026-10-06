@@ -18,7 +18,7 @@ import (
 
 const (
 	// DefaultRunTimeout applies when a request names no timeout. It matches
-	// what Daytona's executeCommand assumes, so a ported client sees the same
+	// what the SDK's executeCommand assumes, so a ported client sees the same
 	// behaviour.
 	DefaultRunTimeout = 10 * time.Second
 

@@ -117,7 +117,7 @@ func Chmod(file dtos.PvcFileRequestDto, mode string) error {
 }
 
 // Delete removes the path. recursive=false removes only a file or an empty
-// folder, as Daytona's deleteFile does by default.
+// folder, as the SDK's deleteFile does by default.
 func Delete(file dtos.PvcFileRequestDto, recursive bool) error {
 	target, err := resolveFileTarget(file)
 	if err != nil {
@@ -179,7 +179,7 @@ type FilesSearchResult struct {
 // lost+found is skipped like the listing does.
 // searchFindArgs builds the name search: a case-insensitive substring match
 // by default, or the query as a shell glob (`*.py`, `data-??.csv`) when glob
-// is set — Daytona's searchFiles passes globs.
+// is set — the SDK's searchFiles passes globs.
 func searchFindArgs(containerPath, query string, glob bool) []string {
 	nameTest := []string{"-iname", "*" + query + "*"}
 	if glob {

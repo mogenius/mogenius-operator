@@ -64,7 +64,7 @@ func TestNormalizeMode(t *testing.T) {
 	}
 }
 
-// Daytona hands owner and group as names; numeric ids and root (0) stay valid,
+// The SDK hands owner and group as names; numeric ids and root (0) stay valid,
 // and nothing that could be read as an option or shell syntax passes.
 func TestValidateOwnerPart(t *testing.T) {
 	for _, ok := range []string{"0", "1000", "coder", "www-data", "_apt", "svc$", "a.b"} {

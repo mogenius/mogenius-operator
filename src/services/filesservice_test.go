@@ -115,7 +115,7 @@ func TestSearchFindArgs(t *testing.T) {
 	})
 }
 
-// Daytona's searchFiles passes shell globs; with glob set the query is the
+// The SDK's searchFiles passes shell globs; with glob set the query is the
 // whole -name test, so `*.py` does not also match `x.pyc`.
 func TestSearchFindArgsGlob(t *testing.T) {
 	joined := strings.Join(searchFindArgs("/data", "*.py", true), " ")

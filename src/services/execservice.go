@@ -38,7 +38,7 @@ const (
 )
 
 // ExecRequest is the payload of `service/exec-request`: run one command line
-// in a pod's container and return its outcome. It mirrors what Daytona's
+// in a pod's container and return its outcome. It mirrors what the SDK's
 // executeCommand accepts so the platform can pass the SDK's parameters on
 // unchanged.
 type ExecRequest struct {

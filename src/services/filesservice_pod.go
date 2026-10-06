@@ -18,7 +18,7 @@ import (
 
 // Pod-addressed file operations: the files/v2 patterns on a running pod's own
 // filesystem rather than on a volume. This is what the sandbox toolbox uses
-// (Daytona's fs.*). Everything below shares the exec substrate and the
+// (the SDK's fs.*). Everything below shares the exec substrate and the
 // *Impl functions of filesservice.go; only how the target is found differs.
 
 const (
