@@ -570,7 +570,10 @@ func (s *podSession) command(id string) (*sessionCommand, error) {
 // exec writes the command to the shell between its markers. The command
 // travels base64-encoded inside one line, so any quoting, newline or
 // unfinished construct in it is confined to the eval and cannot leave the
-// shell waiting for more input with the end marker swallowed.
+// shell waiting for more input with the end marker swallowed. `command eval`
+// rather than plain eval: a syntax error in a special builtin ends a
+// non-interactive POSIX shell (dash, busybox ash), `command` takes that
+// special property away; `exit` still ends it.
 func (s *podSession) exec(commandLine string) (*sessionCommand, error) {
 	if s.tty {
 		return nil, ErrSessionIsTerminal
@@ -593,7 +596,7 @@ func (s *podSession) exec(commandLine string) (*sessionCommand, error) {
 
 	encoded := base64.StdEncoding.EncodeToString([]byte(commandLine))
 	line := fmt.Sprintf(
-		"printf '%s%s%s\\n'; eval \"$(printf %%s '%s' | base64 -d)\"; printf '%s%s_%%d%s\\n' \"$?\"\n",
+		"printf '%s%s%s\\n'; command eval \"$(printf %%s '%s' | base64 -d)\"; printf '%s%s_%%d%s\\n' \"$?\"\n",
 		sessionMarkerBegin, command.id, sessionMarkerTail,
 		encoded,
 		sessionMarkerEnd, command.id, sessionMarkerTail,
@@ -618,6 +621,18 @@ func (s *podSession) input(cmdId, data string) error {
 	}
 	s.lastUsed = time.Now()
 	s.mu.Unlock()
+	// Until the begin marker is out the shell may not have read the command
+	// line yet, and dash or ash read stdin in blocks: input sent now would
+	// land in the shell's own buffer and be run as commands instead of
+	// reaching the command.
+	select {
+	case <-current.running:
+	case <-s.done:
+		return ErrSessionEnded
+	}
+	if current.info().ExitCode != nil {
+		return ErrSessionIdle
+	}
 	_, err := io.WriteString(s.stdin, data)
 	return err
 }
@@ -715,6 +730,12 @@ func (s *podSession) handleStdoutLine(line []byte, newline bool) {
 	if strings.HasPrefix(text, sessionMarkerBegin) && strings.HasSuffix(text, sessionMarkerTail) {
 		// the command's own output starts after this line; whatever the shell
 		// printed before it (nothing, normally) is not the command's
+		s.mu.Lock()
+		command, ok := s.byId[strings.TrimSuffix(strings.TrimPrefix(text, sessionMarkerBegin), sessionMarkerTail)]
+		s.mu.Unlock()
+		if ok {
+			command.markRunning()
+		}
 		return
 	}
 	if at := strings.Index(text, sessionMarkerEnd); at >= 0 && strings.HasSuffix(text, sessionMarkerTail) {
@@ -805,10 +826,27 @@ type sessionCommand struct {
 	// changed closes whenever output arrives or the command ends, and is
 	// replaced right away; a waiter takes the current one under the lock
 	changed chan struct{}
+	// running closes once the shell has started the command (its begin
+	// marker is out) or the command has ended without
+	running chan struct{}
 }
 
 func newSessionCommand(id, command string, limit int) *sessionCommand {
-	return &sessionCommand{id: id, command: command, startedAt: time.Now(), limit: limit, changed: make(chan struct{})}
+	return &sessionCommand{id: id, command: command, startedAt: time.Now(), limit: limit, changed: make(chan struct{}), running: make(chan struct{})}
+}
+
+func (c *sessionCommand) markRunning() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.markRunningLocked()
+}
+
+func (c *sessionCommand) markRunningLocked() {
+	select {
+	case <-c.running:
+	default:
+		close(c.running)
+	}
 }
 
 func (c *sessionCommand) notifyLocked() {
@@ -852,6 +890,7 @@ func (c *sessionCommand) finish(exitCode int) {
 	now := time.Now()
 	c.exitCode = &exitCode
 	c.finishedAt = &now
+	c.markRunningLocked()
 	c.notifyLocked()
 }
 
