@@ -14,12 +14,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Both jobs are pinned to amd64: the runner label `self-hosted` matches both the
-  # amd64 and arm64 ARC sets, and the Go build cache is per-architecture — so a
-  # random split across the two halved the cache hit rate and made test and lint
-  # compile the same dependency tree twice.
+  # Pinned to amd64: the runner label `self-hosted` matches both the amd64 and
+  # arm64 ARC sets, and the Go build cache is per-architecture — so a random
+  # split across the two halved the cache hit rate.
   test-lint:
-    needs: [pull_request, push]
     runs-on: [arc-runner-set-amd64]
     timeout-minutes: 20
     defaults:
@@ -37,7 +35,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: '1.24.0'
+          go-version-file: go.mod
           cache: false
 
       - name: Restore Go build cache
@@ -55,13 +53,13 @@ jobs:
         run: find ~/.cache/go-build -type f -exec touch -m -d '2 hours ago' {} +
 
       - name: Test
-        run: go test -race ./...
+        run: go test ./src/...
 
       - name: golangci-lint
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: 'v2.14.0'
-          working-directory: .
+          args: --config=.golangci.yml ./src
 
       - name: Prune unused build cache entries
         if: success() && steps.go-cache.outputs.cache-hit != 'true'
