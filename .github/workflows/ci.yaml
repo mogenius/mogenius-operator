@@ -18,13 +18,60 @@ jobs:
   # amd64 and arm64 ARC sets, and the Go build cache is per-architecture — so a
   # random split across the two halved the cache hit rate and made test and lint
   # compile the same dependency tree twice.
-  test:
-    uses: mogenius/github-actions/.github/workflows/go-test.yml@21c1d9b81bf90ab1435ca5369ea700e96371c966 # v1.8.6
-    with:
-      path: src
-      runner: arc-runner-set-amd64
-  lint:
-    uses: mogenius/github-actions/.github/workflows/golangci-lint.yml@21c1d9b81bf90ab1435ca5369ea700e96371c966 # v1.8.6
-    with:
-      args: --config=.golangci.yml ./src
-      runner: arc-runner-set-amd64
+  test-lint:
+    needs: [pull_request, push]
+    runs-on: [arc-runner-set-amd64]
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: .
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare Go cache dir
+        run: mkdir -p ~/.cache/go-build
+
+      - name: Set up Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: '1.24.0'
+          cache: false
+
+      - name: Restore Go build cache
+        id: go-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/go-build
+          key: go-build-ci-${{ runner.os }}-${{ runner.arch }}-${{ github.ref }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-build-ci-${{ runner.os }}-${{ runner.arch }}-${{ github.ref }}-
+            go-build-ci-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Mark restored build cache entries as unused
+        if: steps.go-cache.outputs.cache-hit != 'true'
+        run: find ~/.cache/go-build -type f -exec touch -m -d '2 hours ago' {} +
+
+      - name: Test
+        run: go test -race ./...
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
+        with:
+          version: 'v2.14.0'
+          working-directory: .
+
+      - name: Prune unused build cache entries
+        if: success() && steps.go-cache.outputs.cache-hit != 'true'
+        run: |
+          find ~/.cache/go-build -type f -mmin +60 -delete
+          du -sh ~/.cache/go-build
+
+      - name: Save Go build cache
+        if: success() && steps.go-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/go-build
+          key: ${{ steps.go-cache.outputs.cache-primary-key }}
