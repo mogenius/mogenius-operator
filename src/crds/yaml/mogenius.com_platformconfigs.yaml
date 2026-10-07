@@ -97,9 +97,12 @@ spec:
                     properties:
                       additionalBlockedCidrs:
                         description: |-
-                          AdditionalBlockedCidrs are extra egress-blocked CIDRs on top of the RFC1918
-                          clusters (GKE) sits outside RFC1918 and must be listed explicitly.
+                          AdditionalBlockedCidrs are extra egress-blocked CIDRs on top of the
+                          RFC1918 and link-local defaults — e.g. the kube-apiserver service CIDR,
+                          which on some clusters (GKE) sits outside RFC1918 and must be listed
+                          explicitly.
                         items:
+                          format: cidr
                           type: string
                         type: array
                       managed:

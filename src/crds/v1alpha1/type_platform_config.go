@@ -224,10 +224,12 @@ type AgentSandboxNetworkPolicyConfig struct {
 	// SSRF/exfil vector for untrusted agent code.
 	// +optional
 	Managed *bool `json:"managed,omitempty"`
-	// AdditionalBlockedCidrs are extra egress-blocked CIDRs on top of the RFC1918
-	// + link-local defaults — e.g. the kube-apiserver service CIDR, which on some
-	// clusters (GKE) sits outside RFC1918 and must be listed explicitly.
+	// AdditionalBlockedCidrs are extra egress-blocked CIDRs on top of the
+	// RFC1918 and link-local defaults — e.g. the kube-apiserver service CIDR,
+	// which on some clusters (GKE) sits outside RFC1918 and must be listed
+	// explicitly.
 	// +optional
+	// +kubebuilder:validation:items:Format=cidr
 	AdditionalBlockedCidrs []string `json:"additionalBlockedCidrs,omitempty"`
 }
 

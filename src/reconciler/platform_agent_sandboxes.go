@@ -2,7 +2,9 @@ package reconciler
 
 import (
 	"context"
+	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
+	"net"
 	"mogenius-operator/src/gitops"
 )
 
@@ -37,7 +39,7 @@ func (d *reconcilerModule) reconcileAgentSandboxes(ctx context.Context, spec v1a
 			return []any{}, nil
 		},
 		func(ctx context.Context) (map[string]any, error) {
-			return buildAgentSandboxValues(c), nil
+			return buildAgentSandboxValues(c)
 		},
 	)
 }
@@ -46,7 +48,11 @@ func (d *reconcilerModule) reconcileAgentSandboxes(ctx context.Context, spec v1a
 // tree. Only keys the spec actually sets are written, so an unset field keeps the
 // chart / platform-defaults default instead of being forced to its zero value.
 // Returns nil when there is nothing to override.
-func buildAgentSandboxValues(c *v1alpha1.AgentSandboxesConfig) map[string]any {
+//
+// The CRD schema already rejects malformed CIDRs; the check here covers an
+// apiserver that does not enforce the format and fails the component with a
+// readable reason instead of handing the engine a NetworkPolicy it cannot apply.
+func buildAgentSandboxValues(c *v1alpha1.AgentSandboxesConfig) (map[string]any, error) {
 	sandboxes := map[string]any{}
 
 	if c.Namespace != "" {
@@ -58,6 +64,11 @@ func buildAgentSandboxValues(c *v1alpha1.AgentSandboxesConfig) map[string]any {
 		if np.Managed != nil {
 			networkPolicy["managed"] = *np.Managed
 		}
+		for _, cidr := range np.AdditionalBlockedCidrs {
+			if _, _, err := net.ParseCIDR(cidr); err != nil {
+				return nil, fmt.Errorf("agentSandboxes.networkPolicy.additionalBlockedCidrs: invalid CIDR %q: %w", cidr, err)
+			}
+		}
 		if len(np.AdditionalBlockedCidrs) > 0 {
 			networkPolicy["additionalBlockedCidrs"] = np.AdditionalBlockedCidrs
 		}
@@ -67,7 +78,7 @@ func buildAgentSandboxValues(c *v1alpha1.AgentSandboxesConfig) map[string]any {
 	}
 
 	if len(sandboxes) == 0 {
-		return nil
+		return nil, nil
 	}
-	return map[string]any{"sandboxes": sandboxes}
+	return map[string]any{"sandboxes": sandboxes}, nil
 }
