@@ -254,6 +254,11 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_API_CA_CERT_FILE",
+		DefaultValue: new(""),
+		Description:  new("Path to a CA certificate file (PEM) used to verify platform WebSocket connections, optional"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS",
 		DefaultValue: new("false"),
 		Description:  new("Allow port-forward tunnels to dial arbitrary hosts/IPs on the operator's network (kind=host), not just Kubernetes workloads. Off by default (SSRF surface into the node LAN)."),

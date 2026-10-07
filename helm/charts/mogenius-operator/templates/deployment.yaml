@@ -105,6 +105,9 @@ spec:
             {{- if eq (include "externalKvs.clientCertEnabled" .) "true" }}
             {{- include "externalKvs.clientCertVolumeMount" . | nindent 12 }}
             {{- end }}
+            {{- if eq (include "platformTLS.caEnabled" .) "true" }}
+            {{- include "platformTLS.caVolumeMount" . | nindent 12 }}
+            {{- end }}
           ports:
             - containerPort: 1337
               name: http
@@ -175,4 +178,7 @@ spec:
       {{- end }}
       {{- if eq (include "externalKvs.clientCertEnabled" .) "true" }}
       {{- include "externalKvs.clientCertVolume" . | nindent 6 }}
+      {{- end }}
+      {{- if eq (include "platformTLS.caEnabled" .) "true" }}
+      {{- include "platformTLS.caVolume" . | nindent 6 }}
       {{- end }}

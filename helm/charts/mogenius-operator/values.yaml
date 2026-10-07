@@ -158,6 +158,16 @@ metrics:
     # -- additional relabelings appended after the default instance relabeling
     relabelings: []
 
+# -- TLS settings for the connection to the mogenius platform WebSocket API.
+platformTLS:
+  # -- reference to an existing secret holding a CA certificate used to verify the platform API server.
+  # -- Leave name empty to use the system trust store (e.g. for publicly-trusted endpoints).
+  caCertSecret:
+    # -- name of the existing secret holding the CA certificate
+    name: ""
+    # -- key within the existing secret that holds the CA certificate (PEM)
+    key: ca.crt
+
 # -- use an external Redis/Valkey-compatible key-value store instead of the bundled valkey.
 # -- When enabled, set valkey.enabled to false.
 externalKeyValueStore:
