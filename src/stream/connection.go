@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"io"
 	"log/slog"
+	"mogenius-operator/src/config"
 	"mogenius-operator/src/k8sexec"
 	"mogenius-operator/src/logging"
 	mirrorStore "mogenius-operator/src/store"
@@ -35,10 +36,18 @@ const GatewayPath = "/xterm-stream"
 
 var streamLogger *slog.Logger
 var store valkeyclient.ValkeyClient
+var platformTLSConfig *tls.Config
 
-func Setup(logManagerModule logging.SlogManager, storeModule valkeyclient.ValkeyClient) {
+func Setup(logManagerModule logging.SlogManager, storeModule valkeyclient.ValkeyClient, configModule config.ConfigModule) {
 	streamLogger = logManagerModule.CreateLogger("stream")
 	store = storeModule
+
+	skipTLS, _ := configModule.TryGetBool("MO_SKIP_TLS_VERIFICATION")
+	tlsCfg, err := utils.BuildPlatformTLSConfig(skipTLS, configModule.Get("MO_API_CA_CERT_FILE"))
+	if err != nil {
+		streamLogger.Error("failed to build platform TLS config", "error", err)
+	}
+	platformTLSConfig = tlsCfg
 }
 
 const (
@@ -233,10 +242,7 @@ func GenerateWsConnection(
 		// pass the peer's frames through unchanged.
 		headers.Add("x-binary", "1")
 
-		dialer := &websocket.Dialer{}
-		if strings.ToLower(os.Getenv("MO_SKIP_TLS_VERIFICATION")) == "true" {
-			dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
-		}
+		dialer := &websocket.Dialer{TLSClientConfig: platformTLSConfig}
 		conn, _, err := dialer.Dial(u.String(), headers)
 		connWriteLock := &sync.Mutex{}
 		connReadLock := &sync.Mutex{}

@@ -12,8 +12,6 @@ import (
 	"net"
 	"net/http"
 	"net/url"
-	"os"
-	"strings"
 	"sync/atomic"
 	"syscall"
 	"time"
@@ -317,6 +315,9 @@ type websocketClient struct {
 	ctx       context.Context
 	ctxCancel context.CancelFunc
 
+	// TLS config for outbound connections; nil means use Go's default (system CA pool, verify on)
+	tlsConfig *tls.Config
+
 	// internally managed websocket connection
 	connection *gorillaWebsocket.Conn
 
@@ -388,7 +389,7 @@ type websocketReadMessageOutput struct {
 	err         error
 }
 
-func NewWebsocketClient(logger *slog.Logger, name string) WebsocketClient {
+func NewWebsocketClient(logger *slog.Logger, name string, tlsConfig *tls.Config) WebsocketClient {
 	self := &websocketClient{}
 
 	self.readLogger = logger.With("scope", "read")
@@ -396,6 +397,7 @@ func NewWebsocketClient(logger *slog.Logger, name string) WebsocketClient {
 	self.runtimeLogger = logger.With("scope", "runtime")
 	self.apiLogger = logger.With("scope", "api")
 
+	self.tlsConfig = tlsConfig
 	self.connection = nil
 	self.name = name
 	metrics.SetWebsocketConnected(name, false) // initialize series to 0
@@ -520,16 +522,14 @@ func (self *websocketClient) startRuntime() {
 				self.apiConnectRx <- fmt.Errorf("already connected")
 				continue
 			}
-			dialer := gorillaWebsocket.DefaultDialer
 			// permessage-deflate is intentionally OFF: large payloads are
 			// already zlib-compressed at the application layer (see
 			// handlePatternRequest), so transport-level deflate would just burn
 			// CPU re-compressing incompressible (already-compressed or base64)
 			// bytes.
-			dialer.EnableCompression = false
-			skipTlsVerification := strings.ToLower(os.Getenv("MO_SKIP_TLS_VERIFICATION"))
-			if skipTlsVerification == "true" {
-				dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
+			dialer := &gorillaWebsocket.Dialer{
+				EnableCompression: false,
+				TLSClientConfig:   self.tlsConfig,
 			}
 			conn, _, err := dialer.Dial(connectionUrl.String(), *header)
 			if err != nil {

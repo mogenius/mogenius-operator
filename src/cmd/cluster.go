@@ -80,6 +80,10 @@ func initializeClusterSystems(
 	watcherModule := watcher.NewWatcher(logManagerModule.CreateLogger("watcher"), base.clientProvider)
 	shutdown.Add(watcherModule.UnwatchAll)
 
+	skipTLS, _ := configModule.TryGetBool("MO_SKIP_TLS_VERIFICATION")
+	platformTLSCfg, tlsErr := utils.BuildPlatformTLSConfig(skipTLS, configModule.Get("MO_API_CA_CERT_FILE"))
+	assert.Assert(tlsErr == nil, "failed to build platform TLS config", tlsErr)
+
 	numApiClients, err := strconv.Atoi(configModule.Get("MO_API_SERVER_CLIENTS"))
 	assert.Assert(err == nil, "MO_API_SERVER_CLIENTS must be a valid integer", err)
 	if numApiClients < 1 {
@@ -90,12 +94,14 @@ func initializeClusterSystems(
 		jobClients[i] = websocket.NewWebsocketClient(
 			logManagerModule.CreateLogger(fmt.Sprintf("websocket-job-client-%d", i)),
 			fmt.Sprintf("job_%d", i),
+			platformTLSCfg,
 		)
 		shutdown.Add(jobClients[i].Terminate)
 	}
 	eventConnectionClient := websocket.NewWebsocketClient(
 		logManagerModule.CreateLogger("websocket-events-client"),
 		"events",
+		platformTLSCfg,
 	)
 	shutdown.Add(eventConnectionClient.Terminate)
 
@@ -161,7 +167,7 @@ func initializeClusterSystems(
 		})
 	}
 	structs.Setup(logManagerModule)
-	stream.Setup(logManagerModule, base.valkeyClient)
+	stream.Setup(logManagerModule, base.valkeyClient, configModule)
 	allowExternalHosts, _ := configModule.TryGetBool("MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS")
 	sshGatewayEnabled, _ := configModule.TryGetBool("MO_SSH_GATEWAY_ENABLED")
 	allowAdminBypass, _ := configModule.TryGetBool("MO_SSH_GATEWAY_ALLOW_ADMIN_BYPASS")

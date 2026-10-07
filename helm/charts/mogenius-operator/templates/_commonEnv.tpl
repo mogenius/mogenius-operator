@@ -99,4 +99,8 @@ silently disabled that mechanism.
 - name: GOGC
   value: {{ . | quote }}
 {{- end }}
+{{- if eq (include "platformTLS.caEnabled" .) "true" }}
+- name: MO_API_CA_CERT_FILE
+  value: "/etc/platform-tls/{{ .Values.platformTLS.caCertSecret.key }}"
+{{- end }}
 {{- end }}
