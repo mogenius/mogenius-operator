@@ -29,7 +29,7 @@ type componentDeclaration struct {
 // platform-defaults files, the spec fields are Go names, and a mapping that
 // guesses between the two breaks silently when either side is renamed.
 func declaredComponents(spec v1alpha1.PlatformConfigSpec) map[string]componentDeclaration {
-	declared := make(map[string]componentDeclaration, 11)
+	declared := make(map[string]componentDeclaration, 12)
 
 	if spec.GitOps != nil {
 		if spec.GitOps.FluxCD != nil {
@@ -71,6 +71,9 @@ func declaredComponents(spec v1alpha1.PlatformConfigSpec) map[string]componentDe
 	}
 	if spec.ExternalSecretsOperator != nil {
 		declared[componentExternalSecretsOperator] = componentDeclaration{declared: true, enabled: spec.ExternalSecretsOperator.Enabled}
+	}
+	if spec.AgentSandboxes != nil {
+		declared[componentAgentSandboxes] = componentDeclaration{declared: true, enabled: spec.AgentSandboxes.Enabled}
 	}
 
 	return declared

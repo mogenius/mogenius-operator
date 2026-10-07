@@ -39,6 +39,7 @@ const (
 	componentAlloy                   = "alloy"
 	componentRenovateOperator        = "renovate-operator"
 	componentExternalSecretsOperator = "external-secrets-operator"
+	componentAgentSandboxes          = "agent-sandboxes"
 	// Not a Helm chart like the others: the condition reports whether the
 	// objects that make the engine sync spec.gitOps.repositories are in place.
 	componentPlatformRepositories = "platform-repositories"
@@ -171,11 +172,11 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		result *ReconcileResult
 	}
 
-	// Capacity: the eight non-engine components plus the engine, when the spec
+	// Capacity: the nine non-engine components plus the engine, when the spec
 	// asks mogenius to install one. It goes first and blocks until the engine
 	// answers, because everything after it is delivered as a custom resource
 	// that engine has to pick up.
-	components := make([]componentResult, 0, 9)
+	components := make([]componentResult, 0, 10)
 	switch specEngine {
 	case gitOpsEngineArgoCD:
 		components = append(components, componentResult{name: componentArgoCD, result: d.reconcileArgoCD(ctx, platformConfig.Spec, installer, detection)})
@@ -202,6 +203,7 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		componentResult{componentLoki, d.reconcileLoki(ctx, platformConfig.Spec, installer, op)},
 		componentResult{componentAlloy, d.reconcileAlloy(ctx, platformConfig.Spec, installer, op)},
 		componentResult{componentRenovateOperator, d.reconcileRenovateOperator(ctx, platformConfig.Spec, installer, op)},
+		componentResult{componentAgentSandboxes, d.reconcileAgentSandboxes(ctx, platformConfig.Spec, installer, op)},
 	)
 
 	// Index existing conditions so LastTransitionTime is preserved when status hasn't changed.

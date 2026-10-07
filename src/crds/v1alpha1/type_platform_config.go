@@ -57,6 +57,7 @@ type PlatformConfigSpec struct {
 	Alloy                   *AlloyConfig                   `json:"alloy,omitempty"`
 	RenovateOperator        *RenovateOperatorConfig        `json:"renovateOperator,omitempty"`
 	ExternalSecretsOperator *ExternalSecretsOperatorConfig `json:"externalSecretsOperator,omitempty"`
+	AgentSandboxes          *AgentSandboxesConfig          `json:"agentSandboxes,omitempty"`
 }
 type GitOpsConfig struct {
 	ArgoCD       *ArgoCDInstallConfig     `json:"argocd,omitempty"`
@@ -191,6 +192,45 @@ type AlloyConfig struct {
 	Enabled bool                           `json:"enabled,omitempty"`
 	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
 	Chart   *HelmChartReference            `json:"chart,omitempty"`
+}
+
+// AgentSandboxesConfig installs the mogenius agent-sandbox stack: an isolated
+// namespace where untrusted agent code runs, the mogenius-provided default
+// SandboxTemplate/WarmPool objects, and the network isolation around them.
+//
+// It reuses the existing mogenius-agent-sandbox Helm chart as the install unit;
+// Namespace and NetworkPolicy template into that chart's values (see
+// reconcileAgentSandboxes). Runtime-class / gVisor installation is intentionally
+// not modelled here yet — it is a cluster/node-specific follow-up.
+type AgentSandboxesConfig struct {
+	Enabled bool                           `json:"enabled,omitempty"`
+	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
+	Chart   *HelmChartReference            `json:"chart,omitempty"`
+	// Namespace the sandbox workloads run in. Falls back to the chart default
+	// ("agent-sandbox") when empty.
+	Namespace string `json:"namespace,omitempty"`
+	// NetworkPolicy configures the egress isolation around sandbox pods.
+	NetworkPolicy *AgentSandboxNetworkPolicyConfig `json:"networkPolicy,omitempty"`
+}
+
+// AgentSandboxNetworkPolicyConfig configures the egress isolation the sandbox
+// controller applies to each sandbox pod. It maps onto the chart's
+// sandboxes.networkPolicy values.
+type AgentSandboxNetworkPolicyConfig struct {
+	// Managed toggles whether the sandbox controller creates a per-sandbox
+	// NetworkPolicy. A pointer so leaving it unset keeps the chart default (true).
+	// The default rule set already denies RFC1918 and link-local egress — the
+	// latter covering the 169.254.169.254 metadata endpoint, the classic
+	// SSRF/exfil vector for untrusted agent code.
+	// +optional
+	Managed *bool `json:"managed,omitempty"`
+	// AdditionalBlockedCidrs are extra egress-blocked CIDRs on top of the
+	// RFC1918 and link-local defaults — e.g. the kube-apiserver service CIDR,
+	// which on some clusters (GKE) sits outside RFC1918 and must be listed
+	// explicitly.
+	// +optional
+	// +kubebuilder:validation:items:Format=cidr
+	AdditionalBlockedCidrs []string `json:"additionalBlockedCidrs,omitempty"`
 }
 
 type RenovateOperatorConfig struct {

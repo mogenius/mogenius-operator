@@ -120,6 +120,14 @@ func componentCases() []componentCase {
 			disabled:  v1alpha1.PlatformConfigSpec{ExternalSecretsOperator: &v1alpha1.ExternalSecretsOperatorConfig{Enabled: false}},
 			enabled:   v1alpha1.PlatformConfigSpec{ExternalSecretsOperator: &v1alpha1.ExternalSecretsOperatorConfig{Enabled: true}},
 		},
+		{
+			name:      "agentSandboxes",
+			component: componentAgentSandboxes,
+			reconcile: (*reconcilerModule).reconcileAgentSandboxes,
+			absent:    v1alpha1.PlatformConfigSpec{},
+			disabled:  v1alpha1.PlatformConfigSpec{AgentSandboxes: &v1alpha1.AgentSandboxesConfig{Enabled: false}},
+			enabled:   v1alpha1.PlatformConfigSpec{AgentSandboxes: &v1alpha1.AgentSandboxesConfig{Enabled: true}},
+		},
 	}
 }
 
