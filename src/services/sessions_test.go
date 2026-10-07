@@ -390,3 +390,44 @@ func TestSessionRejectsAnInvalidId(t *testing.T) {
 		}
 	}
 }
+
+// stdout and stderr arrive in no fixed order: stderr that comes in after the
+// stdout end marker still belongs to the command, in either marker order.
+func TestSessionStderrAfterTheStdoutEndMarker(t *testing.T) {
+	for _, stderrMarkerFirst := range []bool{false, true} {
+		session := &podSession{byId: map[string]*sessionCommand{}}
+		command := newSessionCommand("c1", "broken", 0)
+		session.byId[command.id] = command
+		session.current = command
+
+		session.feedStdout([]byte(sessionMarkerBegin + "c1" + sessionMarkerTail + "\n"))
+		if stderrMarkerFirst {
+			session.feedStderr([]byte("syntax error\n" + sessionMarkerEnd + "c1" + sessionMarkerTail + "\n"))
+			session.feedStdout([]byte(sessionMarkerEnd + "c1_2" + sessionMarkerTail + "\n"))
+		} else {
+			session.feedStdout([]byte(sessionMarkerEnd + "c1_2" + sessionMarkerTail + "\n"))
+			if command.info().ExitCode != nil {
+				t.Fatal("finished before its stderr was in")
+			}
+			session.feedStderr([]byte("syntax error\n" + sessionMarkerEnd + "c1" + sessionMarkerTail + "\n"))
+		}
+		info := command.info()
+		if info.ExitCode == nil || *info.ExitCode != 2 {
+			t.Fatalf("stderr marker first = %v: exit = %v", stderrMarkerFirst, info.ExitCode)
+		}
+		if logs := command.logs(); logs.Stderr != "syntax error\n" || logs.Stdout != "" {
+			t.Errorf("stderr marker first = %v: stdout = %q stderr = %q", stderrMarkerFirst, logs.Stdout, logs.Stderr)
+		}
+	}
+}
+
+// A command that closes its stderr never prints the stderr end marker; it
+// finishes after the grace all the same.
+func TestSessionFinishesWithoutStderr(t *testing.T) {
+	useLocalShell(t)
+	ref := createTestSession(t, "nostderr")
+	response := execSync(t, ref, "exec 2>&-; echo hi")
+	if response.ExitCode == nil || *response.ExitCode != 0 || deref(response.Output) != "hi\n" {
+		t.Errorf("output = %q exit = %v", deref(response.Output), response.ExitCode)
+	}
+}
