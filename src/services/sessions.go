@@ -44,6 +44,10 @@ const (
 	sessionMarkerBegin = "__MO_B_"
 	sessionMarkerEnd   = "__MO_E_"
 	sessionMarkerTail  = "__"
+	// sessionStderrGrace is how long a command whose stdout end marker is
+	// out waits for the one on stderr, which a command that closed its
+	// stderr never prints.
+	sessionStderrGrace = time.Second
 )
 
 // sessionIdPattern is what a session may be called — the platform's DTOs and
@@ -473,11 +477,18 @@ type podSession struct {
 	commands []*sessionCommand
 	byId     map[string]*sessionCommand
 	// current is the command the shell is running; stdout lines between its
-	// markers and stderr meanwhile belong to it
+	// markers and stderr up to its stderr end marker belong to it
 	current *sessionCommand
-	ended   bool
-	// partial is the start of a stdout line whose end has not arrived yet
-	partial []byte
+	// currentExit is current's exit status once its stdout end marker is
+	// in, currentStderrDone whether its stderr end marker is; it finishes
+	// with both, whichever comes first
+	currentExit       *int
+	currentStderrDone bool
+	ended             bool
+	// stdoutPartial and stderrPartial are the start of a line whose end has
+	// not arrived yet
+	stdoutPartial []byte
+	stderrPartial []byte
 
 	// tty sessions only
 	tty bool
@@ -591,14 +602,19 @@ func (s *podSession) exec(commandLine string) (*sessionCommand, error) {
 	s.commands = append(s.commands, command)
 	s.byId[command.id] = command
 	s.current = command
+	s.currentExit = nil
+	s.currentStderrDone = false
 	s.lastUsed = time.Now()
 	s.mu.Unlock()
 
 	encoded := base64.StdEncoding.EncodeToString([]byte(commandLine))
+	// stdout and stderr arrive as separate streams in no fixed order, so the
+	// end marker goes out on both: only then is all of the command's output in
 	line := fmt.Sprintf(
-		"printf '%s%s%s\\n'; command eval \"$(printf %%s '%s' | base64 -d)\"; printf '%s%s_%%d%s\\n' \"$?\"\n",
+		"printf '%s%s%s\\n'; command eval \"$(printf %%s '%s' | base64 -d)\"; printf '%s%s_%%d%s\\n' \"$?\"; printf '%s%s%s\\n' >&2\n",
 		sessionMarkerBegin, command.id, sessionMarkerTail,
 		encoded,
+		sessionMarkerEnd, command.id, sessionMarkerTail,
 		sessionMarkerEnd, command.id, sessionMarkerTail,
 	)
 	if _, err := io.WriteString(s.stdin, line); err != nil {
@@ -684,9 +700,18 @@ func (s *podSession) finish(command *sessionCommand, exitCode int) {
 // marker, so a prompt without a newline (`read -p`) reaches the client right
 // away.
 func (s *podSession) feedStdout(p []byte) {
+	s.feedLines(p, &s.stdoutPartial, s.handleStdoutLine)
+}
+
+// feedStderr does the same for stderr, whose only marker is the end marker.
+func (s *podSession) feedStderr(p []byte) {
+	s.feedLines(p, &s.stderrPartial, s.handleStderrLine)
+}
+
+func (s *podSession) feedLines(p []byte, partial *[]byte, handle func(line []byte, newline bool)) {
 	s.mu.Lock()
-	data := append(s.partial, p...)
-	s.partial = nil
+	data := append(*partial, p...)
+	*partial = nil
 	s.mu.Unlock()
 
 	for {
@@ -694,7 +719,7 @@ func (s *podSession) feedStdout(p []byte) {
 		if newline < 0 {
 			break
 		}
-		s.handleStdoutLine(data[:newline], true)
+		handle(data[:newline], true)
 		data = data[newline+1:]
 	}
 	if len(data) == 0 {
@@ -713,11 +738,11 @@ func (s *podSession) feedStdout(p []byte) {
 		}
 	}
 	if hold > 0 {
-		s.handleStdoutLine(data[:hold], false)
+		handle(data[:hold], false)
 	}
 	if hold < len(data) {
 		s.mu.Lock()
-		s.partial = append([]byte(nil), data[hold:]...)
+		*partial = append([]byte(nil), data[hold:]...)
 		s.mu.Unlock()
 	}
 }
@@ -744,40 +769,78 @@ func (s *podSession) handleStdoutLine(line []byte, newline bool) {
 			if exitCode, err := strconv.Atoi(body[split+1:]); err == nil {
 				// output that ended without a newline shares the line with the marker
 				if at > 0 {
-					s.appendToCurrent([]byte(text[:at]))
+					s.appendToCurrent(stream.ExecStreamTagStdout, []byte(text[:at]))
 				}
-				s.mu.Lock()
-				command, ok := s.byId[body[:split]]
-				s.mu.Unlock()
-				if ok {
-					s.finish(command, exitCode)
-				}
+				s.stdoutEnded(body[:split], exitCode)
 				return
 			}
 		}
 	}
 	if newline {
-		s.appendToCurrent(append(append([]byte(nil), line...), '\n'))
+		s.appendToCurrent(stream.ExecStreamTagStdout, append(append([]byte(nil), line...), '\n'))
 	} else {
-		s.appendToCurrent(append([]byte(nil), line...))
+		s.appendToCurrent(stream.ExecStreamTagStdout, append([]byte(nil), line...))
 	}
 }
 
-func (s *podSession) appendToCurrent(data []byte) {
+func (s *podSession) handleStderrLine(line []byte, newline bool) {
+	text := string(line)
+	if at := strings.Index(text, sessionMarkerEnd); at >= 0 && strings.HasSuffix(text, sessionMarkerTail) {
+		if at > 0 {
+			s.appendToCurrent(stream.ExecStreamTagStderr, []byte(text[:at]))
+		}
+		s.stderrEnded(strings.TrimSuffix(text[at+len(sessionMarkerEnd):], sessionMarkerTail))
+		return
+	}
+	if newline {
+		s.appendToCurrent(stream.ExecStreamTagStderr, append(append([]byte(nil), line...), '\n'))
+	} else {
+		s.appendToCurrent(stream.ExecStreamTagStderr, append([]byte(nil), line...))
+	}
+}
+
+// stdoutEnded takes the exit status from the stdout end marker. The command
+// finishes once the stderr end marker is in as well, or after the grace.
+func (s *podSession) stdoutEnded(cmdId string, exitCode int) {
+	s.mu.Lock()
+	command := s.current
+	if command == nil || command.id != cmdId {
+		s.mu.Unlock()
+		return
+	}
+	s.currentExit = &exitCode
+	stderrDone := s.currentStderrDone
+	s.mu.Unlock()
+	if stderrDone {
+		s.finish(command, exitCode)
+		return
+	}
+	time.AfterFunc(sessionStderrGrace, func() { s.finish(command, exitCode) })
+}
+
+// stderrEnded finishes the running command if its stdout end marker is in,
+// and otherwise leaves that to stdoutEnded.
+func (s *podSession) stderrEnded(cmdId string) {
+	s.mu.Lock()
+	command := s.current
+	if command == nil || command.id != cmdId {
+		s.mu.Unlock()
+		return
+	}
+	s.currentStderrDone = true
+	exitCode := s.currentExit
+	s.mu.Unlock()
+	if exitCode != nil {
+		s.finish(command, *exitCode)
+	}
+}
+
+func (s *podSession) appendToCurrent(tag byte, data []byte) {
 	s.mu.Lock()
 	current := s.current
 	s.mu.Unlock()
 	if current != nil {
-		current.append(stream.ExecStreamTagStdout, data)
-	}
-}
-
-func (s *podSession) feedStderr(p []byte) {
-	s.mu.Lock()
-	current := s.current
-	s.mu.Unlock()
-	if current != nil {
-		current.append(stream.ExecStreamTagStderr, p)
+		current.append(tag, data)
 	}
 }
 
