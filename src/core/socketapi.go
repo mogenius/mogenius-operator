@@ -1440,6 +1440,7 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "service/exec-sh-connection-request"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request stream.PodCmdConnectionRequest) (Void, error) {
+			request.UserEmail = datagram.User.Email
 			go self.execShConnection(request)
 			_, err := store.AddToAuditLog(datagram, self.logger, any(nil), nil, nil, nil)
 			if err != nil {
@@ -1478,6 +1479,97 @@ func (self *socketApi) registerPatterns() {
 			if err != nil {
 				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
 			}
+			return nil, nil
+		},
+	)
+
+	// Pod sessions (MOG-4692): a long-lived shell per sessionId. Identity
+	// comes from the datagram's user field throughout, as for exec-request;
+	// the session is bound to that user.
+	RegisterPatternHandler(
+		PatternHandle{self, "service/session-create"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request services.SessionCreateRequest) (services.SessionInfo, error) {
+			request.UserEmail = datagram.User.Email
+			info, err := services.CreateSession(request)
+			_, err = store.AddToAuditLog(datagram, self.logger, info, err, nil, nil)
+			return info, err
+		},
+	)
+	RegisterPatternHandler(
+		PatternHandle{self, "service/session-list"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request services.SessionPodRequest) ([]services.SessionInfo, error) {
+			request.UserEmail = datagram.User.Email
+			return services.ListSessions(request), nil
+		},
+	)
+	RegisterPatternHandler(
+		PatternHandle{self, "service/session-get"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request services.SessionRequest) (services.SessionInfo, error) {
+			request.UserEmail = datagram.User.Email
+			return services.GetSession(request)
+		},
+	)
+	RegisterPatternHandler(
+		PatternHandle{self, "service/session-delete"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request services.SessionRequest) (Void, error) {
+			request.UserEmail = datagram.User.Email
+			err := services.DeleteSession(request)
+			_, err = store.AddToAuditLog(datagram, self.logger, any(nil), err, nil, nil)
+			return nil, err
+		},
+	)
+	RegisterPatternHandler(
+		PatternHandle{self, "service/session-exec"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request services.SessionExecRequest) (services.SessionExecResponse, error) {
+			request.UserEmail = datagram.User.Email
+			result, err := services.ExecSessionCommand(context.Background(), request)
+			// the command, not its output, goes to the audit log
+			_, err = store.AddToAuditLog(datagram, self.logger, services.SessionAuditSummary{
+				SessionId: request.SessionId, CmdId: result.CmdId, ExitCode: result.ExitCode,
+			}, err, nil, nil)
+			return result, err
+		},
+	)
+	RegisterPatternHandler(
+		PatternHandle{self, "service/session-command"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request services.SessionCommandRequest) (services.SessionCommandInfo, error) {
+			request.UserEmail = datagram.User.Email
+			return services.GetSessionCommand(request)
+		},
+	)
+	RegisterPatternHandler(
+		PatternHandle{self, "service/session-logs"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request services.SessionCommandRequest) (services.SessionLogsResponse, error) {
+			request.UserEmail = datagram.User.Email
+			return services.GetSessionCommandLogs(request)
+		},
+	)
+	RegisterPatternHandler(
+		PatternHandle{self, "service/session-input"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request services.SessionInputRequest) (Void, error) {
+			request.UserEmail = datagram.User.Email
+			return nil, services.SendSessionInput(request)
+		},
+	)
+	RegisterPatternHandler(
+		PatternHandle{self, "service/session-log-stream-connection-request"},
+		PatternConfig{},
+		func(datagram structs.Datagram, request services.SessionLogStreamRequest) (Void, error) {
+			request.UserEmail = datagram.User.Email
+			// the session is checked before the socket is opened, so a bad
+			// id is answered on the datagram and not as a dangling stream
+			if _, err := services.GetSessionCommand(request.SessionCommandRequest); err != nil {
+				return nil, err
+			}
+			go self.sessionLogStreamConnection(request)
 			return nil, nil
 		},
 	)
@@ -3464,6 +3556,39 @@ func (self *socketApi) upgradeK8sManager(command string) (*structs.Job, error) {
 }
 
 func (self *socketApi) execShConnection(podCmdConnectionRequest stream.PodCmdConnectionRequest) {
+	if podCmdConnectionRequest.SessionId != "" {
+		// A terminal session (MOG-4759): the shell is the session's and runs on
+		// after this connection; attaching creates it when it does not exist.
+		attachment, attachErr := services.AttachTerminalSession(services.SessionCreateRequest{
+			SessionRequest: services.SessionRequest{
+				SessionPodRequest: services.SessionPodRequest{
+					Namespace:      podCmdConnectionRequest.Namespace,
+					Pod:            podCmdConnectionRequest.Pod,
+					IsAdmin:        podCmdConnectionRequest.IsAdmin,
+					IsClusterAdmin: podCmdConnectionRequest.IsClusterAdmin,
+					UserEmail:      podCmdConnectionRequest.UserEmail,
+				},
+				SessionId: podCmdConnectionRequest.SessionId,
+			},
+			Container:      podCmdConnectionRequest.Container,
+			Tty:            true,
+			DebugContainer: podCmdConnectionRequest.DebugContainer,
+		})
+		var session stream.TerminalSession
+		if attachment != nil {
+			session = attachment
+		}
+		stream.AttachedTerminalConnection(
+			podCmdConnectionRequest.WsConnection,
+			podCmdConnectionRequest.Namespace,
+			podCmdConnectionRequest.Controller,
+			podCmdConnectionRequest.Pod,
+			podCmdConnectionRequest.Container,
+			session,
+			attachErr,
+		)
+		return
+	}
 	// allows to execute itself without being in $PATH (e.g. while developing locally)
 	bin, err := os.Executable()
 	if err != nil {
@@ -3520,6 +3645,24 @@ func (self *socketApi) execStreamConnection(request services.ExecStreamRequest) 
 		services.ExecOutputCap(),
 		func(ctx context.Context, stdin io.Reader, stdout, stderr io.Writer) (stream.ExecStreamOutcome, error) {
 			return services.StreamCommand(ctx, request.ExecRequest, stdin, stdout, stderr)
+		},
+	)
+}
+
+// sessionLogStreamConnection follows one session command over a stream
+// socket with the exec stream's frames (MOG-4692): the buffered output
+// first, then live until the command ends. The buffer is capped already, so
+// the stream's own cap is off.
+func (self *socketApi) sessionLogStreamConnection(request services.SessionLogStreamRequest) {
+	stream.ExecStream(
+		stream.ExecStreamRequest{
+			WsConnection: request.WsConnection,
+			Namespace:    request.Namespace,
+			Pod:          request.Pod,
+		},
+		0,
+		func(ctx context.Context, _ io.Reader, stdout, stderr io.Writer) (stream.ExecStreamOutcome, error) {
+			return services.FollowSessionCommand(ctx, request.SessionCommandRequest, stdout, stderr)
 		},
 	)
 }

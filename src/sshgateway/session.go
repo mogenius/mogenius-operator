@@ -37,6 +37,34 @@ type subsystemMsg struct {
 	Name string
 }
 
+type envMsg struct {
+	Name, Value string
+}
+
+// sessionEnvName is the environment variable an SSH client sets
+// (`ssh -o SetEnv=MO_SESSION=dev …`) to attach to that terminal session of
+// the pod instead of getting a shell that ends with the connection
+// (MOG-4759). The shell survives the connection and is picked up again
+// under the same name, scrollback first.
+const sessionEnvName = "MO_SESSION"
+
+// TerminalSession is a terminal session as the gateway needs it; see
+// stream.TerminalSession. An interface here too, since the services layer
+// is not importable from this package.
+type TerminalSession interface {
+	Replay() []byte
+	Output() <-chan []byte
+	Done() <-chan struct{}
+	Ended() bool
+	Input(data []byte) error
+	Resize(cols, rows uint16)
+	Detach()
+}
+
+// AttachSession attaches to (or creates) a terminal session; wired at start
+// to the session manager of the services layer.
+var AttachSession func(user ConnectionUser, namespace, pod, container, sessionId string) (TerminalSession, error)
+
 type exitStatusMsg struct {
 	Status uint32
 }
@@ -80,13 +108,14 @@ func resolveContainer(clients *execClients, namespace string, podName string, us
 // net.Pipe the stall propagates into the shared tunnel read loop and freezes
 // every other sub-connection with it. Draining is also what makes terminal
 // resize work at all: window-change arrives while the exec is running.
-func handleSession(logger *slog.Logger, clients *execClients, channel ssh.Channel, requests <-chan *ssh.Request, namespace, podName, container string, containerNote string) {
+func handleSession(logger *slog.Logger, user ConnectionUser, clients *execClients, channel ssh.Channel, requests <-chan *ssh.Request, namespace, podName, container string, containerNote string) {
 	defer func() { _ = channel.Close() }()
 
 	var (
 		hasPty    bool
 		sizeQueue = newSizeQueue()
 		started   bool
+		sessionId string
 	)
 	defer sizeQueue.close()
 
@@ -126,8 +155,12 @@ func handleSession(logger *slog.Logger, clients *execClients, channel ssh.Channe
 				// window-change never wants a reply (req.WantReply is false).
 
 			case "env":
-				// Accepted but not forwarded — exec environments come from the
-				// container spec, not the SSH client.
+				// Exec environments come from the container spec, not the SSH
+				// client; the one variable read here names a terminal session.
+				var env envMsg
+				if err := ssh.Unmarshal(req.Payload, &env); err == nil && env.Name == sessionEnvName {
+					sessionId = env.Value
+				}
 				replyErr(req, true)
 
 			case "shell", "exec":
@@ -154,6 +187,13 @@ func handleSession(logger *slog.Logger, clients *execClients, channel ssh.Channe
 				// Copy the pty state: the loop keeps running and must not be
 				// read from the goroutine concurrently.
 				pty, interactive := hasPty, req.Type == "shell"
+				if sessionId != "" && interactive && pty {
+					id := sessionId
+					go func() {
+						finished <- attachSessionPayload(logger, user, channel, sizeQueue, namespace, podName, container, id)
+					}()
+					continue
+				}
 				go func() {
 					finished <- runShellPayload(logger, clients, channel, sizeQueue,
 						namespace, podName, container, containerNote, userCommand, pty, interactive)
@@ -175,6 +215,71 @@ func handleSession(logger *slog.Logger, clients *execClients, channel ssh.Channe
 			default:
 				replyErr(req, false)
 			}
+		}
+	}
+}
+
+// attachSessionPayload serves the SSH channel from a terminal session of the
+// pod (MOG-4759): scrollback first, then live; the channel's end only
+// detaches. The session's shell runs under the user's identity like a shell
+// of this connection would.
+func attachSessionPayload(logger *slog.Logger, user ConnectionUser, channel ssh.Channel, sizeQueue *sizeQueue, namespace, podName, container, sessionId string) int {
+	if AttachSession == nil {
+		_, _ = fmt.Fprintf(channel.Stderr(), "mogenius ssh gateway: terminal sessions are not available\r\n")
+		return 1
+	}
+	session, err := AttachSession(user, namespace, podName, container, sessionId)
+	if err != nil {
+		_, _ = fmt.Fprintf(channel.Stderr(), "mogenius ssh gateway: cannot attach to session %q: %v\r\n", sessionId, err)
+		return 1
+	}
+	defer session.Detach()
+	_, _ = fmt.Fprintf(channel, "mogenius: terminal session %q — it runs on when you disconnect; reconnect with the same MO_SESSION to pick it up\r\n", sessionId)
+	if replay := session.Replay(); len(replay) > 0 {
+		if _, err := channel.Write(replay); err != nil {
+			return 0
+		}
+	}
+	// sizes from pty-req and window-change go to the session's shell
+	go func() {
+		for {
+			size := sizeQueue.Next()
+			if size == nil {
+				return
+			}
+			session.Resize(size.Width, size.Height)
+		}
+	}()
+	// what the client types goes to the shell; EOF means the client left
+	clientGone := make(chan struct{})
+	go func() {
+		defer close(clientGone)
+		buf := make([]byte, 4096)
+		for {
+			n, err := channel.Read(buf)
+			if n > 0 {
+				if session.Input(append([]byte(nil), buf[:n]...)) != nil {
+					return
+				}
+			}
+			if err != nil {
+				return
+			}
+		}
+	}()
+	for {
+		select {
+		case data, ok := <-session.Output():
+			if !ok {
+				return 0
+			}
+			if _, err := channel.Write(data); err != nil {
+				return 0
+			}
+		case <-session.Done():
+			return 0
+		case <-clientGone:
+			return 0
 		}
 	}
 }

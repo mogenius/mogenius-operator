@@ -76,7 +76,7 @@ func startTestGateway(t *testing.T) *ssh.Client {
 			if err != nil {
 				return
 			}
-			go handleSession(slog.Default(), clients, channel, requests, "ns", "pod", "app", "")
+			go handleSession(slog.Default(), ConnectionUser{}, clients, channel, requests, "ns", "pod", "app", "")
 		}
 	}()
 

@@ -430,6 +430,20 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Type:         new(config.ConfigVariableTypeInt),
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_SESSION_IDLE_TIMEOUT_SECONDS",
+		DefaultValue: new("1800"),
+		Description:  new("How long a pod session (a long-lived shell for session commands) is kept without a running command before the operator closes it, in seconds."),
+		Envs:         []string{"SESSION_IDLE_TIMEOUT_SECONDS"},
+		Type:         new(config.ConfigVariableTypeInt),
+	})
+	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_SESSION_SCROLLBACK_BYTES",
+		DefaultValue: new("262144"),
+		Description:  new("How much of a terminal session's output is kept and replayed when a terminal re-attaches, in bytes."),
+		Envs:         []string{"SESSION_SCROLLBACK_BYTES"},
+		Type:         new(config.ConfigVariableTypeInt),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_EXEC_REQUEST_MAX_OUTPUT_BYTES",
 		DefaultValue: new("1048576"),
 		Description:  new("Cap per output stream (stdout and stderr each) of a service/exec-request, in bytes. Longer output is cut and the response is marked truncated."),

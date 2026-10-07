@@ -67,6 +67,15 @@ type PodCmdConnectionRequest struct {
 	// asks for this explicitly after the NO_SHELL_AVAILABLE signal; the API
 	// gates it more strictly than a plain exec because it mutates the pod spec.
 	DebugContainer bool `json:"debugContainer"`
+	// SessionId (exec-sh only, MOG-4759): attach to this terminal session of
+	// the pod instead of opening a shell of this connection's own; created
+	// when there is none yet. The shell then survives the connection.
+	SessionId string `json:"sessionId"`
+	// The platform's judgement about the requester, as for exec-request;
+	// only read for a session, whose shell runs under the user's identity.
+	IsAdmin        bool   `json:"isAdmin"`
+	IsClusterAdmin bool   `json:"isClusterAdmin"`
+	UserEmail      string `json:"-"`
 }
 
 type ComponentLogConnectionRequest struct {

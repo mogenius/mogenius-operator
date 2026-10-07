@@ -145,6 +145,21 @@ func initializeClusterSystems(
 		base.logger.Warn("failed to start Helm release secret watcher; release-list cache will rely on its TTL", "error", err)
 	}
 	services.Setup(logManagerModule, configModule, base.clientProvider)
+	// pod sessions idle out; the janitor stops with the operator
+	sessionJanitorCtx, stopSessionJanitor := context.WithCancel(context.Background())
+	go services.RunSessionJanitor(sessionJanitorCtx)
+	shutdown.Add(stopSessionJanitor)
+	// an SSH client attaches to a terminal session through the session manager
+	sshgateway.AttachSession = func(user sshgateway.ConnectionUser, namespace, pod, container, sessionId string) (sshgateway.TerminalSession, error) {
+		return services.AttachTerminalSession(services.SessionCreateRequest{
+			SessionRequest: services.SessionRequest{
+				SessionPodRequest: services.SessionPodRequest{Namespace: namespace, Pod: pod, IsAdmin: user.IsAdmin, UserEmail: user.Email},
+				SessionId:         sessionId,
+			},
+			Container: container,
+			Tty:       true,
+		})
+	}
 	structs.Setup(logManagerModule)
 	stream.Setup(logManagerModule, base.valkeyClient)
 	allowExternalHosts, _ := configModule.TryGetBool("MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS")

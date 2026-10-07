@@ -208,12 +208,17 @@ func StreamCommand(ctx context.Context, request ExecRequest, stdin io.Reader, st
 // and shell to run in, the working directory as the container sees it, and
 // the bounds the cluster puts on it.
 type execPlan struct {
-	clients   *k8sexec.Clients
-	shell     string
+	clients *k8sexec.Clients
+	shell   string
+	// container is where the shell runs: the target, or the debug container
+	// attached to it for an image without a shell
 	container string
-	cwd       string
-	timeout   time.Duration
-	maxOutput int
+	// targetContainer is the container the request is about (requested, or
+	// the pod's first); what a session reports as its own
+	targetContainer string
+	cwd             string
+	timeout         time.Duration
+	maxOutput       int
 }
 
 // prepareExec validates the request, binds it to the requester's identity
@@ -232,33 +237,61 @@ func prepareExec(ctx context.Context, request ExecRequest) (*execPlan, error) {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 
-	allowAdminBypass, _ := config.TryGetBool(execAdminBypassConfigKey)
-	clients, err := k8sexec.ResolveClients(serviceLogger, clientProvider, config.Get("MO_OWN_NAMESPACE"), allowAdminBypass, k8sexec.Identity{
+	clients, shell, targetContainer, execContainer, cwd, err := resolveTarget(ctx, k8sexec.Identity{
 		Email:   request.UserEmail,
 		IsAdmin: request.IsAdmin || request.IsClusterAdmin,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("exec: %w", err)
-	}
-
-	// Deliberately the requester's client: reading the pod is itself a read
-	// the user must be allowed, and it settles which container to use.
-	container, err := resolveExecContainer(ctx, clients.Clientset, request.Namespace, request.Pod, request.Container)
-	if err != nil {
-		return nil, fmt.Errorf("exec: %w", err)
-	}
-	shell, execContainer, cwd, err := prepareExecTarget(ctx, clients, request.Namespace, request.Pod, container, request.Cwd)
+	}, request.Namespace, request.Pod, request.Container, request.Cwd, debugFallbackAuto)
 	if err != nil {
 		return nil, fmt.Errorf("exec: %w", err)
 	}
 	return &execPlan{
-		clients:   clients,
-		shell:     shell,
-		container: execContainer,
-		cwd:       cwd,
-		timeout:   timeout,
-		maxOutput: maxOutput,
+		clients:         clients,
+		shell:           shell,
+		container:       execContainer,
+		targetContainer: targetContainer,
+		cwd:             cwd,
+		timeout:         timeout,
+		maxOutput:       maxOutput,
 	}, nil
+}
+
+// resolveTarget binds a request to the requester's identity and settles
+// where a shell can run: the container (requested or first), the shell the
+// image ships or the debug container attached for a shell-less image, and
+// the working directory as that container sees it. Shared by commands and
+// sessions so both follow the same rules.
+// debugFallback says what to do when the container ships no shell.
+type debugFallback int
+
+const (
+	// debugFallbackAuto attaches (or reuses) the debug container, as a
+	// one-off command does: the caller asked for a result, not a container.
+	debugFallbackAuto debugFallback = iota
+	// debugFallbackNever fails with stream.ErrNoShellAvailable; the client
+	// decides, because an ephemeral container stays on the pod.
+	debugFallbackNever
+	// debugFallbackAlways runs in the debug container even if the image has
+	// a shell: the client chose it.
+	debugFallbackAlways
+)
+
+func resolveTarget(ctx context.Context, identity k8sexec.Identity, namespace, pod, requestedContainer, cwd string, fallback debugFallback) (clients *k8sexec.Clients, shell, targetContainer, execContainer, execCwd string, err error) {
+	allowAdminBypass, _ := config.TryGetBool(execAdminBypassConfigKey)
+	clients, err = k8sexec.ResolveClients(serviceLogger, clientProvider, config.Get("MO_OWN_NAMESPACE"), allowAdminBypass, identity)
+	if err != nil {
+		return nil, "", "", "", "", err
+	}
+	// Deliberately the requester's client: reading the pod is itself a read
+	// the user must be allowed, and it settles which container to use.
+	container, err := resolveExecContainer(ctx, clients.Clientset, namespace, pod, requestedContainer)
+	if err != nil {
+		return nil, "", "", "", "", err
+	}
+	shell, execContainer, execCwd, err = prepareExecTarget(ctx, clients, namespace, pod, container, cwd, fallback)
+	if err != nil {
+		return nil, "", "", "", "", err
+	}
+	return clients, shell, container, execContainer, execCwd, nil
 }
 
 // execRequestLimits reads the configured bounds, falling back to the
@@ -327,21 +360,27 @@ func resolveExecContainer(ctx context.Context, client kubernetes.Interface, name
 }
 
 // prepareExecTarget finds a shell to run the command with. When the image
-// has none, it attaches (or reuses) a debug container targeting the
-// container and answers with that container's shell and the working
-// directory translated to the target's filesystem.
-func prepareExecTarget(ctx context.Context, clients *k8sexec.Clients, namespace, podName, container, cwd string) (shell, execContainer, execCwd string, err error) {
-	shell, shellErr := detectExecShell(clients, namespace, podName, container)
-	if shellErr == nil {
-		return shell, container, cwd, nil
+// has none, fallback decides: attach (or reuse) a debug container targeting
+// the container and answer with that container's shell and the working
+// directory translated to the target's filesystem, or report
+// stream.ErrNoShellAvailable and leave the choice to the client.
+func prepareExecTarget(ctx context.Context, clients *k8sexec.Clients, namespace, podName, container, cwd string, fallback debugFallback) (shell, execContainer, execCwd string, err error) {
+	var shellErr error
+	if fallback != debugFallbackAlways {
+		shell, shellErr = detectExecShell(clients, namespace, podName, container)
+		if shellErr == nil {
+			return shell, container, cwd, nil
+		}
+		if debugcontainer.IsDebugContainer(container) {
+			// Already the fallback; there is nothing further to attach to.
+			return "", "", "", shellErr
+		}
+		if fallback == debugFallbackNever {
+			return "", "", "", fmt.Errorf("%w: %v", stream.ErrNoShellAvailable, shellErr)
+		}
+		serviceLogger.Info("no shell in container; running the command in a debug container",
+			"namespace", namespace, "pod", podName, "container", container)
 	}
-	if debugcontainer.IsDebugContainer(container) {
-		// Already the fallback; there is nothing further to attach to.
-		return "", "", "", shellErr
-	}
-
-	serviceLogger.Info("no shell in container; running the command in a debug container",
-		"namespace", namespace, "pod", podName, "container", container)
 	ensureCtx, cancel := context.WithTimeout(ctx, execDebugContainerTimeout)
 	debugName, debugErr := debugcontainer.Ensure(ensureCtx, clients.Clientset, namespace, podName, debugcontainer.Options{
 		Image:           debugcontainer.ImageFromConfig(config),
@@ -350,7 +389,10 @@ func prepareExecTarget(ctx context.Context, clients *k8sexec.Clients, namespace,
 	})
 	cancel()
 	if debugErr != nil {
-		return "", "", "", fmt.Errorf("%v; %w", shellErr, debugErr)
+		if shellErr != nil {
+			return "", "", "", fmt.Errorf("%v; %w", shellErr, debugErr)
+		}
+		return "", "", "", debugErr
 	}
 
 	shell, err = detectExecShell(clients, namespace, podName, debugName)

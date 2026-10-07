@@ -140,6 +140,55 @@ func Stream(ctx context.Context, clients *Clients, req RunRequest, stdin io.Read
 	return 0, err
 }
 
+// StreamTTY executes req.Command behind a pseudo-terminal: the process gets a
+// TTY, stdin is connected, output (stdout and stderr merged by the TTY) goes
+// to output, and sizes feeds window-size changes. This is the shape of an
+// interactive shell; see Stream for the plain variant. Exit code and error
+// contract are those of Run; ending ctx ends the TTY, which hangs the shell
+// up, so a TTY process does stop with its stream.
+func StreamTTY(ctx context.Context, clients *Clients, req RunRequest, stdin io.Reader, output io.Writer, sizes remotecommand.TerminalSizeQueue) (int, error) {
+	if clients == nil || clients.Clientset == nil || clients.RestConfig == nil {
+		return 0, errors.New("exec: no kubernetes clients")
+	}
+	if len(req.Command) == 0 {
+		return 0, errors.New("exec: empty command")
+	}
+	request := clients.Clientset.CoreV1().RESTClient().
+		Post().
+		Resource("pods").
+		Name(req.Pod).
+		Namespace(req.Namespace).
+		SubResource("exec").
+		Param("container", req.Container).
+		Param("stdout", "true").
+		Param("stdin", "true").
+		// a TTY merges stderr into the terminal; the API rejects a separate stream
+		Param("stderr", "false").
+		Param("tty", "true")
+	for _, arg := range req.Command {
+		request = request.Param("command", arg)
+	}
+	executor, err := remotecommand.NewSPDYExecutor(clients.RestConfig, "POST", request.URL())
+	if err != nil {
+		return 0, fmt.Errorf("exec: create executor: %w", err)
+	}
+	err = executor.StreamWithContext(ctx, remotecommand.StreamOptions{Stdin: stdin, Stdout: output, Tty: true, TerminalSizeQueue: sizes})
+	if err == nil {
+		return 0, nil
+	}
+	var codeErr utilexec.CodeExitError
+	if errors.As(err, &codeErr) {
+		return codeErr.Code, nil
+	}
+	if errors.Is(err, io.EOF) {
+		return 0, nil
+	}
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return 0, ctxErr
+	}
+	return 0, err
+}
+
 // ValidateEnv rejects environment variable names a POSIX shell would not
 // accept. Values are not constrained: they travel as a separate argv entry
 // and are never interpreted by the wrapper.

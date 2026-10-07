@@ -245,7 +245,7 @@ func (s *Session) Handle(conn net.Conn, namespace string, podName string, reject
 				logger.Error("failed to accept session channel", "error", err)
 				continue
 			}
-			go handleSession(logger, clients, channel, requests, namespace, podName, container, containerNote)
+			go handleSession(logger, user, clients, channel, requests, namespace, podName, container, containerNote)
 		case "direct-tcpip":
 			// ssh -L to a pod-local port, and VS Code Remote-SSH's traffic to
 			// the server it installed in the container.
