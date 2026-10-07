@@ -12,7 +12,16 @@ import (
 	"time"
 )
 
-// The session manager against a local `sh`: the shell is plain POSIX and
+// localShell is dash where there is one, else `sh`: dash is stricter than
+// bash (which is `sh` on macOS) and closer to a container's shell.
+func localShell() string {
+	if _, err := exec.LookPath("dash"); err == nil {
+		return "dash"
+	}
+	return "sh"
+}
+
+// The session manager against a local shell: the shell is plain POSIX and
 // reads its commands from stdin, so everything but the exec transport is
 // exactly what runs in the container.
 func useLocalShell(t *testing.T) {
@@ -20,7 +29,7 @@ func useLocalShell(t *testing.T) {
 	oldTarget, oldShell, oldLogger := sessionTargetFn, sessionShellFn, serviceLogger
 	serviceLogger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	sessionTargetFn = func(context.Context, SessionCreateRequest) (*execPlan, error) {
-		return &execPlan{shell: "sh", container: "sandbox", targetContainer: "sandbox", maxOutput: 1 << 20}, nil
+		return &execPlan{shell: localShell(), container: "sandbox", targetContainer: "sandbox", maxOutput: 1 << 20}, nil
 	}
 	sessionShellFn = func(ctx context.Context, plan *execPlan, _, _ string, stdin io.Reader, stdout, stderr io.Writer) (int, error) {
 		cmd := exec.CommandContext(ctx, plan.shell)
@@ -354,7 +363,7 @@ func TestSessionOutputCapTruncates(t *testing.T) {
 	useLocalShell(t)
 	oldTarget := sessionTargetFn
 	sessionTargetFn = func(context.Context, SessionCreateRequest) (*execPlan, error) {
-		return &execPlan{shell: "sh", container: "sandbox", targetContainer: "sandbox", maxOutput: 8}, nil
+		return &execPlan{shell: localShell(), container: "sandbox", targetContainer: "sandbox", maxOutput: 8}, nil
 	}
 	t.Cleanup(func() { sessionTargetFn = oldTarget })
 	ref := createTestSession(t, "cap")
