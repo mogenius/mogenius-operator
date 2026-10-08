@@ -89,7 +89,29 @@ jobs:
         GO_BUILDER_IMAGE=ghcr.io/mogenius/go-builder:latest-arm64
         BPFTOOL_IMAGE=ghcr.io/mogenius/bpftool:latest-arm64
 
-  helm-chart:
+  # ============================================================================
+  # Publish Helm chart to GitHub Pages
+  # ============================================================================
+  helm-publish:
+    if: github.ref == 'refs/heads/main'
+    needs: [prepare, build-operator]
+    uses: mogenius/github-actions/.github/workflows/helm-publish.yml@c9e14582ad3aa99833671e46a2312bdd51a18770 # v1.9.1
+    secrets:
+      APP_ID: ${{ secrets.RELEASE_APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_SECRET }}
+    with:
+      chart-path: helm/charts/mogenius-operator
+      version: ${{ needs.prepare.outputs.version }}
+      app-version: ${{ needs.prepare.outputs.version }}
+      channel: public
+      pre-package: |
+        sed -i -e "s/repository: mogenius\/mogenius-operator/repository: mogenius\/mogenius-operator-dev/" values.yaml
+        sed -i -e "s/name: mogenius-operator/name: mogenius-operator-dev/" Chart.yaml
+
+  # ============================================================================
+  # Push Helm chart to OCI registry + sign
+  # ============================================================================
+  helm-oci:
     if: github.ref == 'refs/heads/main'
     needs: [prepare, build-operator]
     runs-on: [self-hosted]
@@ -105,7 +127,6 @@ jobs:
 
       - name: Install Helm
         uses: azure/setup-helm@9bc31f4ebc9c6b171d7bfbaa5d006ae7abdb4310 # v5.0.1
-        id: install
 
       - name: Import GPG Key
         run: |
@@ -114,12 +135,10 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad # v4.0.0
 
-      - name: Update Helm chart and values yaml-Files
+      - name: Update chart for dev
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
-          set -x
-
           cd ./helm/charts/mogenius-operator
           sed -i -e "s/repository: mogenius\/mogenius-operator/repository: mogenius\/mogenius-operator-dev/" values.yaml
           sed -i -e "s/name: mogenius-operator/name: mogenius-operator-dev/" Chart.yaml
@@ -131,7 +150,7 @@ jobs:
         with:
           chart-search-root: helm
 
-      - name: package and push
+      - name: Package, sign, and push to OCI
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
@@ -139,26 +158,13 @@ jobs:
 
           cd ./helm/charts/mogenius-operator
 
-          # Create keyring for Helm (legacy secring format)
           gpg --export-secret-keys > ~/.gnupg/secring.gpg
 
-          # Sign the Helm chart
-          echo "Packaging Helm chart"
           helm package . -d /tmp/ --version ${VERSION} --app-version ${VERSION} \
             --sign \
             --key "Helm Charts" \
             --keyring ~/.gnupg/secring.gpg
 
-          echo "Pushing to Mogenius Helm repo"
-          curl -XPOST -L -k --data-binary "@/tmp/${{ env.HELMNAME }}-${VERSION}.tgz" https://${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}@helm.mogenius.com/api/public/charts
-
-          # Upload provenance file
-          PROV_FILE="/tmp/${{ env.HELMNAME }}-${VERSION}.tgz.prov"
-          curl -u "${{ secrets.MO_HELMUSER }}:${{ secrets.MO_HELMPASS }}" \
-            --data-binary "@${PROV_FILE}" \
-            https://helm.mogenius.com/api/public/prov
-
-          echo "Pushing to OCI registry"
           echo ${{ secrets.GITHUB_TOKEN }} | helm registry login ghcr.io --username ${{ github.actor }} --password-stdin
           CHART_DIGEST=$(helm push /tmp/${{ env.HELMNAME }}-${VERSION}.tgz oci://ghcr.io/${{ github.repository_owner }}/helm-charts 2>&1 | grep "Digest: sha256:" | awk '{print $2}')
           if [ -z "$CHART_DIGEST" ]; then
@@ -167,6 +173,5 @@ jobs:
           fi
           echo "Chart digest: $CHART_DIGEST"
 
-          echo "Signing Helm chart with cosign"
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io --username ${{ github.actor }} --password-stdin
           cosign sign --yes ghcr.io/${{ github.repository_owner }}/helm-charts/${{ env.HELMNAME }}@${CHART_DIGEST}
