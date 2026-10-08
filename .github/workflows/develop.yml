@@ -95,7 +95,7 @@ jobs:
   helm-publish:
     if: github.ref == 'refs/heads/main'
     needs: [prepare, build-operator]
-    uses: mogenius/github-actions/.github/workflows/helm-publish.yml@c9e14582ad3aa99833671e46a2312bdd51a18770 # v1.9.1
+    uses: mogenius/github-actions/.github/workflows/helm-publish.yml@157683e012c4ba4e22e86fe4e00ddf295215c483 # v1.9.2
     secrets:
       APP_ID: ${{ secrets.RELEASE_APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_SECRET }}
