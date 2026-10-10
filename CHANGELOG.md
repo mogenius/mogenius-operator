@@ -1,5 +1,66 @@
 # Changelog
 
+## [2.31.0](https://github.com/mogenius/mogenius-operator/compare/v2.30.0...v2.31.0) (2026-10-10)
+
+
+### Features
+
+* add service/exec-request for non-interactive commands with time… ([78e45a1](https://github.com/mogenius/mogenius-operator/commit/78e45a1947d7096de16935e4440a8d44aacd8e26))
+* add service/exec-request for non-interactive commands with timeout and debug-container fallback ([aaed088](https://github.com/mogenius/mogenius-operator/commit/aaed088ba0b76ffa156a9c3d62909d73ff8c4513))
+* address pods in files/v2, add find and replace patterns for san… ([23618a5](https://github.com/mogenius/mogenius-operator/commit/23618a54f85506ff00fdcb48df5561d1af995559))
+* address pods in files/v2, add find and replace patterns for sandboxes ([0ab617a](https://github.com/mogenius/mogenius-operator/commit/0ab617adf9a338f6cd6bb52dc2404584f0ba5d12))
+* allow valkey connections to be configured via mTLS ([440a9f3](https://github.com/mogenius/mogenius-operator/commit/440a9f34d45d5ffaa55c315ca55b9f5bdb77840c))
+* **platformconfig:** add agentSandboxes component ([d74aa1b](https://github.com/mogenius/mogenius-operator/commit/d74aa1b12f222da8e7b30a8de3ba7e4e1b964f32))
+* **platformconfig:** add agentSandboxes component ([3ed7e67](https://github.com/mogenius/mogenius-operator/commit/3ed7e677e9de65aa8c80dee8729cc2cdf798d2a0))
+* **tls:** support setting custom ca certificates for platform endpoints ([935285e](https://github.com/mogenius/mogenius-operator/commit/935285e6a36d53969722ba6da3ecef2053a393cc))
+
+
+### Bug Fixes
+
+* **ai:** prevent operator panic on chat tool calls (MOG-4739) ([437e151](https://github.com/mogenius/mogenius-operator/commit/437e151f0ba7af804677e3de32b09c1550f32d3c))
+* always use server-side apply for argo cd syncs and flux helmreleases ([8a8ace3](https://github.com/mogenius/mogenius-operator/commit/8a8ace38540f6c1e058b9df7b7c6b3613933d487))
+* attach an ephemeral debug container to shell-less pods for web terminal and SSH ([0eb7336](https://github.com/mogenius/mogenius-operator/commit/0eb733642f2ff8d2a66362eb0efac88d1ae6b96d))
+* attribute session stderr that arrives after the stdout end marker ([006136f](https://github.com/mogenius/mogenius-operator/commit/006136fcc4557e09e5b10c94d2860bed53feabde))
+* **ci:** make the combined test-lint job valid again ([e8d0b28](https://github.com/mogenius/mogenius-operator/commit/e8d0b28fddcbb70d5c19d7c2eca4acbeb1865424))
+* **ci:** make the combined test-lint job valid again ([17abeb4](https://github.com/mogenius/mogenius-operator/commit/17abeb4fa14bc7501f43bde70f98e0b0c3e9a495))
+* **cluster-provider:** detect kind, evaluate every node, use spec.providerID ([1bc3227](https://github.com/mogenius/mogenius-operator/commit/1bc32270a0749d5cf4bb3184d2e4dd8f08eb8514))
+* complete the close handshake before dropping a download stream socket ([7ad4615](https://github.com/mogenius/mogenius-operator/commit/7ad4615099ca182d4f168a8c775513f235d9d6a7))
+* **deps:** update kubernetes monorepo to v0.37.1 ([#1284](https://github.com/mogenius/mogenius-operator/issues/1284)) ([582e6f7](https://github.com/mogenius/mogenius-operator/commit/582e6f783e765193f52bf043feb4be987fb9f909))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.74.0 ([86e5da3](https://github.com/mogenius/mogenius-operator/commit/86e5da34c18bd361860726aa5c53bf5746122488))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.75.0 ([#1281](https://github.com/mogenius/mogenius-operator/issues/1281)) ([35a84b7](https://github.com/mogenius/mogenius-operator/commit/35a84b774f483b316be3bdaa0536d2ca682276b9))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.78.0 ([b491d92](https://github.com/mogenius/mogenius-operator/commit/b491d920192fd47185612a94d2282aa9e0466c9b))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.79.1 ([#1311](https://github.com/mogenius/mogenius-operator/issues/1311)) ([16a85e8](https://github.com/mogenius/mogenius-operator/commit/16a85e828153ad209352f6f34802600f2473a28e))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.80.0 ([#1316](https://github.com/mogenius/mogenius-operator/issues/1316)) ([4078331](https://github.com/mogenius/mogenius-operator/commit/407833125b4e1df86ced0ba0265f1182d8f34854))
+* **deps:** update module github.com/go-playground/validator/v10 to v10.30.5 ([a93e7fc](https://github.com/mogenius/mogenius-operator/commit/a93e7fc4c2face94580ad3213bba027f16424c5b))
+* **deps:** update module github.com/ollama/ollama to v0.34.2 ([133cf0d](https://github.com/mogenius/mogenius-operator/commit/133cf0d5c6e4c0dd913c90e95545b464d8eaf7a0))
+* **deps:** update module github.com/ollama/ollama to v0.34.4 ([b502e70](https://github.com/mogenius/mogenius-operator/commit/b502e7094fd11228288ca303b5bdc1b2df48c49b))
+* **deps:** update module github.com/ollama/ollama to v0.35.1 ([559f7f4](https://github.com/mogenius/mogenius-operator/commit/559f7f48c5fb758052c28f9fe55bbc2440ce4901))
+* **deps:** update module github.com/ollama/ollama to v0.40.0 ([#1308](https://github.com/mogenius/mogenius-operator/issues/1308)) ([71c08fe](https://github.com/mogenius/mogenius-operator/commit/71c08fe6010b6b94c31947608c9e432fea052806))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.64.3 ([b14905c](https://github.com/mogenius/mogenius-operator/commit/b14905cda3dd6ebc51e6ee317703cef6cbc7b2a3))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.66.0 ([fac3997](https://github.com/mogenius/mogenius-operator/commit/fac399784a6c7e53289d6f1fbfc689fe290fedd9))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.71.1 ([82ec813](https://github.com/mogenius/mogenius-operator/commit/82ec813fe2a97533ad0599a03a977470cc2f4a81))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.74.0 ([#1314](https://github.com/mogenius/mogenius-operator/issues/1314)) ([81ce922](https://github.com/mogenius/mogenius-operator/commit/81ce922a6a1b41aa8498e2ec104f651d50019634))
+* **deps:** update module github.com/prometheus/client_golang to v1.25.0 ([#1315](https://github.com/mogenius/mogenius-operator/issues/1315)) ([517d4f7](https://github.com/mogenius/mogenius-operator/commit/517d4f74c610fc82f6b4f2159483c50fe71d9895))
+* **deps:** update module github.com/valkey-io/valkey-go to v1.0.78 ([b46231c](https://github.com/mogenius/mogenius-operator/commit/b46231c130c3c8bd1acb095739fc263c1acce85e))
+* **deps:** update module golang.org/x/term to v0.47.0 ([#1317](https://github.com/mogenius/mogenius-operator/issues/1317)) ([a6082bb](https://github.com/mogenius/mogenius-operator/commit/a6082bb004b5dfea9b8994f487c8c2c4477cfc20))
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.25.2 ([34c3263](https://github.com/mogenius/mogenius-operator/commit/34c3263bfb73e3e19fef3e8d836318b415fbbb3b))
+* describe the sandbox routes and types on their own terms ([f3351e3](https://github.com/mogenius/mogenius-operator/commit/f3351e3e483afc2874d428a7d69128dd9a4c0900))
+* drop the callback download path superseded by the streamed download (MOG-4735) ([934593b](https://github.com/mogenius/mogenius-operator/commit/934593b920d531dcd27a49444eaa3dfd119d84e7))
+* keep pod sessions alive in dash and ash shells ([bd9b133](https://github.com/mogenius/mogenius-operator/commit/bd9b13313e1a48b014fe9899468bea92bbb78cee))
+* **platformconfig:** null pointer dereference if patch does not exist ([6d3a20f](https://github.com/mogenius/mogenius-operator/commit/6d3a20fe358616f067ffc1a6e665793b2394549c))
+* **platformconfig:** validate agent sandbox blocked CIDRs ([c38ad33](https://github.com/mogenius/mogenius-operator/commit/c38ad335194687aeb12398fb75de15e340c872ea))
+* pod sessions — command sessions with buffered output and terminal sessions a shell or SSH ([b789127](https://github.com/mogenius/mogenius-operator/commit/b789127b7e9e8343e8d3d347f04ed9ee3a7f61d6))
+* push helm chart to github-pages ([062edd3](https://github.com/mogenius/mogenius-operator/commit/062edd3b79f3c3ba7a133bd8f4da6f2c261e0d2e))
+* read file downloads in verified chunks so a lost stdout tail cannot truncate them ([ce9d0ea](https://github.com/mogenius/mogenius-operator/commit/ce9d0ea1b0f3896616b8a3bc9970e8c1cead0b86))
+* remove files/storage v1 handlers and legacy NFS code, drop V2 suffix ([a5bfee9](https://github.com/mogenius/mogenius-operator/commit/a5bfee9afdadae450752e5ba2cf8856be8e27a37))
+* rename the xterm package to stream, it carries every stream socket ([f5661fd](https://github.com/mogenius/mogenius-operator/commit/f5661fdb0e6ff1d4fd10fff23bbe40f24ccee17d))
+* send component logs, pod events and metrics as binary frames ([4ae815f](https://github.com/mogenius/mogenius-operator/commit/4ae815fd6d89d684c88bb7eb79053cd44e0ee780))
+* serve download streams from an offset with an etag (resume download) ([dd7d680](https://github.com/mogenius/mogenius-operator/commit/dd7d680669c94a524fdde30feb777eb373ff663f))
+* stream file downloads over a credit-windowed stream socket ([ba8b910](https://github.com/mogenius/mogenius-operator/commit/ba8b910101d25a437db905c160153b135921e4d1))
+* stream one command without a TTY with stdout, stderr and exit code apart ([9a15248](https://github.com/mogenius/mogenius-operator/commit/9a152485984624af034ac204a5190d9b3c845c40))
+* tag/ref bug in platformconfig version ([a61f8fb](https://github.com/mogenius/mogenius-operator/commit/a61f8fb7667d83aedf29d65753d04fb79596549e))
+* **uiconfig:** adding missing crd enum values ([6142450](https://github.com/mogenius/mogenius-operator/commit/6142450c614472a540a5c277c1c6353dad555a76))
+
 ## [2.30.0](https://github.com/mogenius/mogenius-operator/compare/v2.29.0...v2.30.0) (2026-09-16)
 
 
