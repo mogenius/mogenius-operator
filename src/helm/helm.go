@@ -369,6 +369,10 @@ type HelmReleaseLinkRequest struct {
 	Namespace   string `json:"namespace" validate:"required"`
 	ReleaseName string `json:"releaseName" validate:"required"`
 	RepoName    string `json:"repoName" validate:"required"` // e.g. bitnami/nginx
+	// OCI specific fields — only used when RepoName is an "oci://" reference.
+	AuthHost string `json:"authHost,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
 }
 
 type HelmReleaseUnlinkRequest struct {
@@ -501,9 +505,9 @@ func parseHelmEntry(entry *repo.Entry) *HelmEntryWithoutPassword {
 func InitHelmConfig() error {
 	_repositoryCache, ok := os.LookupEnv("HELM_REPOSITORY_CACHE")
 	assert.Assert(ok)
-	_repositoryConfig, ok := os.LookupEnv("HELM_REGISTRY_CONFIG")
+	_registryConfig, ok := os.LookupEnv("HELM_REGISTRY_CONFIG")
 	assert.Assert(ok)
-	_registryConfig, ok := os.LookupEnv("HELM_REPOSITORY_CONFIG")
+	_repositoryConfig, ok := os.LookupEnv("HELM_REPOSITORY_CONFIG")
 	assert.Assert(ok)
 
 	repositoryCache = _repositoryCache
@@ -554,6 +558,10 @@ func InitHelmConfig() error {
 	}
 
 	_ = restoreRepositoryFileFromValkey()
+
+	if err := restoreRegistryConfigFromSecret(); err != nil {
+		helmLogger.Warn("failed to restore OCI registry credentials", "error", err)
+	}
 
 	return nil
 }
@@ -871,8 +879,8 @@ func HelmChartShow(data HelmChartShowRequest) (string, error) {
 			return "", fmt.Errorf("failed to create OCI registry client: %w", err)
 		}
 		if (data.Username != "" || data.Password != "") && data.AuthHost != "" {
-			if err := registryClient.Login(data.AuthHost, registry.LoginOptBasicAuth(data.Username, data.Password)); err != nil {
-				return "", fmt.Errorf("failed to login to OCI registry: %w", err)
+			if err := registryLogin(registryClient, data.AuthHost, data.Username, data.Password); err != nil {
+				return "", err
 			}
 		}
 		show.SetRegistryClient(registryClient)
@@ -1010,12 +1018,8 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 		return "", fmt.Errorf("failed to create OCI registry client: %w", err)
 	}
 	if (data.Username != "" || data.Password != "") && data.AuthHost != "" {
-		err = registryClient.Login(
-			data.AuthHost,
-			registry.LoginOptBasicAuth(data.Username, data.Password),
-		)
-		if err != nil {
-			return "", fmt.Errorf("failed to login to OCI registry: %w", err)
+		if err := registryLogin(registryClient, data.AuthHost, data.Username, data.Password); err != nil {
+			return "", err
 		}
 	} else {
 		helmLogger.Info("No OCI registry credentials provided, attempting anonymous access", "releaseName", data.Release, "namespace", data.Namespace)
@@ -1081,11 +1085,8 @@ func HelmOciChartVersion(data HelmChartOciVersionRequest) ([]HelmChartInfo, erro
 		return nil, fmt.Errorf("failed to create OCI registry client: %w", err)
 	}
 	if (data.Username != "" || data.Password != "") && data.AuthHost != "" {
-		if err := registryClient.Login(
-			data.AuthHost,
-			registry.LoginOptBasicAuth(data.Username, data.Password),
-		); err != nil {
-			return nil, fmt.Errorf("failed to login to OCI registry: %w", err)
+		if err := registryLogin(registryClient, data.AuthHost, data.Username, data.Password); err != nil {
+			return nil, err
 		}
 	}
 
@@ -1321,8 +1322,8 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 			return "", fmt.Errorf("failed to create OCI registry client: %w", err)
 		}
 		if (data.Username != "" || data.Password != "") && data.AuthHost != "" {
-			if err := registryClient.Login(data.AuthHost, registry.LoginOptBasicAuth(data.Username, data.Password)); err != nil {
-				return "", fmt.Errorf("failed to login to OCI registry: %w", err)
+			if err := registryLogin(registryClient, data.AuthHost, data.Username, data.Password); err != nil {
+				return "", err
 			}
 		} else {
 			helmLogger.Info("No OCI registry credentials provided, attempting anonymous access", "releaseName", data.Release, "namespace", data.Namespace)
@@ -2244,6 +2245,22 @@ func restoreRepositoryFileFromValkey() error {
 	}
 
 	return nil
+}
+
+// HelmReleaseLink records the repository a release was installed from. For an
+// OCI reference with credentials, the registry login happens first so the
+// link is only stored once the credentials are proven to work.
+func HelmReleaseLink(data HelmReleaseLinkRequest) error {
+	if registry.IsOCI(data.RepoName) && (data.Username != "" || data.Password != "") && data.AuthHost != "" {
+		registryClient, err := newRegistryClient(NewCli(), false)
+		if err != nil {
+			return fmt.Errorf("failed to create OCI registry client: %w", err)
+		}
+		if err := registryLogin(registryClient, data.AuthHost, data.Username, data.Password); err != nil {
+			return err
+		}
+	}
+	return SaveRepoNameToValkey(data.Namespace, data.ReleaseName, data.RepoName)
 }
 
 func SaveRepoNameToValkey(namespace, releaseName, repoName string) error {

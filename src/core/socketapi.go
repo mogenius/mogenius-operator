@@ -1291,7 +1291,7 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "cluster/helm-release-link"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request helm.HelmReleaseLinkRequest) (string, error) {
-			err := helm.SaveRepoNameToValkey(request.Namespace, request.ReleaseName, request.RepoName)
+			err := helm.HelmReleaseLink(request)
 			return store.AddToAuditLog(datagram, self.logger, "", err, nil, nil)
 		},
 	)
