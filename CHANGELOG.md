@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.32.0](https://github.com/mogenius/mogenius-operator/compare/v2.31.1...v2.32.0) (2026-10-17)
+
+
+### Features
+
+* stop idle agent sandboxes after their auto-stop interval ([7b51c40](https://github.com/mogenius/mogenius-operator/commit/7b51c403604db6b9e262720c69a5a8201d61fdf3))
+
+
+### Bug Fixes
+
+* check that a tunnel's pod still runs and move the tunnel when it is gone ([ce5de3c](https://github.com/mogenius/mogenius-operator/commit/ce5de3c3b362147bee061bb874bd5d83768e05fd))
+* cluster wide audit log is not getting displayed ([fe884ff](https://github.com/mogenius/mogenius-operator/commit/fe884ff8d37ab29ecd4ba6fa2c9ef380cdc8d968))
+* cluster wide autit log is not getting returned ([1e38e5e](https://github.com/mogenius/mogenius-operator/commit/1e38e5e72b5587c8765ce7f186fbe66995473ded))
+* **deps:** update module github.com/ollama/ollama to v0.40.5 ([#1333](https://github.com/mogenius/mogenius-operator/issues/1333)) ([0e6fb95](https://github.com/mogenius/mogenius-operator/commit/0e6fb952b34b4b006234fe5c10e6b16295618472))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.77.0 ([4235bd5](https://github.com/mogenius/mogenius-operator/commit/4235bd54d41efc98fa0912ada80e322c217f4bd4))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.77.0 ([13a25c4](https://github.com/mogenius/mogenius-operator/commit/13a25c4aef2db9aaedd4faa9385bd9d08e06468d))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.78.0 ([#1329](https://github.com/mogenius/mogenius-operator/issues/1329)) ([2f639b3](https://github.com/mogenius/mogenius-operator/commit/2f639b36d84892645a9a4e8c2283ba5bf953cb59))
+* **deps:** update module github.com/valkey-io/valkey-go to v1.0.79 ([#1331](https://github.com/mogenius/mogenius-operator/issues/1331)) ([d2244a0](https://github.com/mogenius/mogenius-operator/commit/d2244a0514cd4ed156a9f15c90c907ace4c32d11))
+* **deps:** update module helm.sh/helm/v4 to v4.3.1 ([#1330](https://github.com/mogenius/mogenius-operator/issues/1330)) ([e831505](https://github.com/mogenius/mogenius-operator/commit/e83150552ab07b24ed6822c0d69e7e51ce587332))
+* node-metrics reads /proc/$pid/stat only for reported pod containers ([909d358](https://github.com/mogenius/mogenius-operator/commit/909d358d97ab53bb5f0f7e36bf12300af89c3ae3))
+* node-metrics reads /proc/$pid/stat only for reported pod containers ([16aaa36](https://github.com/mogenius/mogenius-operator/commit/16aaa3643d4779a093b7199a2ac3bdb8a2597705))
+* re-resolve the target pod and restart the port-forward when a tunnel's pod goes away ([4d14159](https://github.com/mogenius/mogenius-operator/commit/4d141591441afe293ab65bb9d7f428e2bad18fc7))
+* redact the env of exec and session requests in the audit log und feat: env on pod sessions; deleting a session stops its running command ([f9dad98](https://github.com/mogenius/mogenius-operator/commit/f9dad9814c08b72348613dec45738768b12c24c0))
+* session commands keep 16 MiB of output (MO_SESSION_COMMAND_MAX_OUTPUT_BYTES) and report truncated ([3263790](https://github.com/mogenius/mogenius-operator/commit/3263790f17dddcb29613e35ba1f4a18cf07fd454))
+
 ## [2.31.1](https://github.com/mogenius/mogenius-operator/compare/v2.31.0...v2.31.1) (2026-10-13)
 
 
