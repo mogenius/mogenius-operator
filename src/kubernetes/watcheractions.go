@@ -70,8 +70,6 @@ var (
 )
 
 func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, eventClient websocket.WebsocketClient) error {
-	start := time.Now()
-
 	// function should not be called more often than every 5 seconds
 	// to avoid too many calls to the k8s api server
 	// which can lead to rate limiting
@@ -121,12 +119,20 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 		_, err := wm.Watch(res, watcher.WatchWeightStore, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			handleCRDAddition(wm, aiManager, eventClient, resource)
-			aiManager.ProcessObject(obj, "add", res)
 
-			// suppress the add events for the first 10 seconds (because all resources are added initially)
-			if time.Since(start) < 10*time.Second {
+			// Suppress AI processing and the add event until the store has
+			// completed its initial seed (every resource of every kind is
+			// delivered as an "add" during that sync, so without this
+			// ProcessObject's agent-matching logic would run for every object
+			// of every kind during the heaviest part of startup). This tracks
+			// the actual sync instead of guessing a fixed window: too short
+			// and a large cluster still floods ProcessObject after the
+			// window closes; too long and small clusters delay real events
+			// for no reason.
+			if !store.IsStoreReady() {
 				return
 			}
+			aiManager.ProcessObject(obj, "add", res)
 			sendEventServerEvent(eventClient, res.ApiVersion, resource.Kind, obj.GetName(), "add", obj)
 		}, func(resource utils.ResourceDescriptor, oldObj, newObj *unstructured.Unstructured) {
 			// Always refresh the Valkey entry so the TTL stays alive.
