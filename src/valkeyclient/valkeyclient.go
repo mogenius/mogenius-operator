@@ -10,7 +10,6 @@ import (
 	"mogenius-operator/src/config"
 	"net"
 	"os"
-	"path/filepath"
 	"slices"
 	"sort"
 	"strconv"
@@ -624,18 +623,19 @@ func (self *valkeyClient) DeleteMultiple(patterns ...string) error {
 		return nil
 	}
 
-	allKeys, err := self.scanKeys("*", scanKeysBatchSize)
-	if err != nil {
-		return err
-	}
-
-	matched := make([]string, 0, len(allKeys))
-	for _, key := range allKeys {
-		for _, pattern := range patterns {
-			if ok, _ := filepath.Match(pattern, key); ok {
-				matched = append(matched, key)
-				break
+	seen := make(map[string]struct{})
+	matched := make([]string, 0)
+	for _, pattern := range patterns {
+		keys, err := self.scanKeys(pattern, scanKeysBatchSize)
+		if err != nil {
+			return fmt.Errorf("error scanning keys for pattern %s: %w", pattern, err)
+		}
+		for _, key := range keys {
+			if _, dup := seen[key]; dup {
+				continue
 			}
+			seen[key] = struct{}{}
+			matched = append(matched, key)
 		}
 	}
 
