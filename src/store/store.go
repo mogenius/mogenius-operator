@@ -2158,6 +2158,27 @@ func listAuditLogIndexed(limit int, offset int, namespaces []string, clusterWide
 	client := valkeyClient.GetValkeyClient()
 	ctx := valkeyClient.GetContext()
 
+	// clusterWide with no search applies no namespace filter at all (see the
+	// candidate loop below, which lets every member through unconditionally
+	// in that case), so the ZSET's own order and cardinality ARE the final
+	// order and total count. The requested page can be read directly off the
+	// index - no reason to walk the whole thing to rebuild what ZCARD
+	// already knows.
+	//
+	// A namespace-scoped query (or a content search) can't take this
+	// shortcut: namespace lives in the entry key, which the ZSET score can't
+	// filter on, so there's no way to know the true matching total - or even
+	// guarantee enough matches exist for this page - without walking entries
+	// from the top. Bounding that walk to "just enough for this page" doesn't
+	// help in practice either: on any cluster busy enough for this to
+	// matter, newest entries interleave across namespaces, so a bounded
+	// window almost always comes up short and forces a full walk anyway,
+	// just with an extra wasted round trip first. So that path is left as
+	// the full ZREVRANGE below rather than pretending it is bounded.
+	if clusterWide && search == "" {
+		return listAuditLogIndexedClusterWidePage(client, ctx, offset, limit)
+	}
+
 	nsSet := make(map[string]struct{}, len(namespaces))
 	for _, ns := range namespaces {
 		nsSet[ns] = struct{}{}
@@ -2310,6 +2331,58 @@ func listAuditLogIndexed(limit int, offset int, namespaces []string, clusterWide
 			return entries[i].CreatedAt.After(entries[j].CreatedAt)
 		})
 		return entries, totalCount, nil
+	}
+	return nil, 0, fmt.Errorf("audit log index unstable after %d attempts: %w", maxAttempts, lastErr)
+}
+
+// listAuditLogIndexedClusterWidePage serves a clusterWide, non-search audit
+// log page. No namespace filter applies in that case (see the candidate loop
+// in listAuditLogIndexed), so the index's own ZREVRANGE order is the final
+// order and ZCARD is the exact total - the page can be read directly off the
+// ZSET without building or filtering a candidate list first.
+func listAuditLogIndexedClusterWidePage(client vgo.Client, ctx context.Context, offset, limit int) ([]AuditLogEntry, int, error) {
+	const maxAttempts = 3
+	var lastErr error
+	for range maxAttempts {
+		total, err := client.Do(ctx, client.B().Zcard().Key(auditLogIndexKey).Build()).AsInt64()
+		if err != nil {
+			return nil, 0, err
+		}
+		if int64(offset) >= total {
+			return []AuditLogEntry{}, int(total), nil
+		}
+
+		end := min(int64(offset+limit), total) - 1
+		members, err := client.Do(ctx,
+			client.B().Zrevrange().Key(auditLogIndexKey).Start(int64(offset)).Stop(end).Build()).AsStrSlice()
+		if err != nil {
+			return nil, 0, err
+		}
+
+		loaded, stale, err := mgetAuditEntries(members)
+		if err != nil {
+			return nil, 0, err
+		}
+		if len(stale) > 0 {
+			// A page member expired between ZREVRANGE and MGET; the index
+			// is clean now and the total has shifted, so recompute the page
+			// from scratch rather than return it short.
+			removeStaleAuditIndexMembers(stale)
+			lastErr = fmt.Errorf("audit log index contained %d stale members", len(stale))
+			continue
+		}
+
+		entries := make([]AuditLogEntry, 0, len(members))
+		for _, key := range members {
+			if entry, ok := loaded[key]; ok {
+				entries = append(entries, *entry)
+			}
+		}
+		// Defensive final ordering (index order should already match).
+		sort.Slice(entries, func(i, j int) bool {
+			return entries[i].CreatedAt.After(entries[j].CreatedAt)
+		})
+		return entries, int(total), nil
 	}
 	return nil, 0, fmt.Errorf("audit log index unstable after %d attempts: %w", maxAttempts, lastErr)
 }
