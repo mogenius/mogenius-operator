@@ -52,40 +52,49 @@ type GetWorkloadStatusRequest struct {
 	IgnoreDependentResources *bool `json:"ignoreDependentResources,omitempty"`
 }
 
-func getOrFetchReplicaSets(valkeyClient valkeyclient.ValkeyClient, cache map[string][]unstructured.Unstructured, namespace string) []unstructured.Unstructured {
-	if cachedSets, found := cache[namespace]; found {
-		return cachedSets
-	}
-	replicaSetsResults := store.GetResourceByKindAndNamespace(valkeyClient, utils.ReplicaSetResource.ApiVersion, utils.ReplicaSetResource.Kind, namespace, k8sLogger)
-	cache[namespace] = replicaSetsResults
-	return replicaSetsResults
-}
+// ownerIndex maps an owner's UID to the child resources whose ownerReferences
+// list it, so a parent's children can be looked up in O(1) instead of
+// rescanning every resource in the namespace for each parent.
+type ownerIndex map[types.UID][]unstructured.Unstructured
 
-func getOrFetchJobs(cache map[string][]unstructured.Unstructured, namespace string) []unstructured.Unstructured {
-	if cachedSets, found := cache[namespace]; found {
-		return cachedSets
-	}
-	jobResults := store.GetResourceByKindAndNamespace(valkeyClient, utils.JobResource.ApiVersion, utils.JobResource.Kind, namespace, k8sLogger)
-	cache[namespace] = jobResults
-	return jobResults
-}
-
-func getOrFetchPods(cache map[string][]unstructured.Unstructured, namespace string) []unstructured.Unstructured {
-	if cachedPods, found := cache[namespace]; found {
-		return cachedPods
-	}
-	podsResults := store.GetResourceByKindAndNamespace(valkeyClient, utils.PodResource.ApiVersion, utils.PodResource.Kind, namespace, k8sLogger)
-	cache[namespace] = podsResults
-	return podsResults
-}
-
-func hasOwnerReference(ownerReferences []metav1.OwnerReference, workloadUID types.UID) bool {
-	for _, ownerReference := range ownerReferences {
-		if ownerReference.UID == workloadUID {
-			return true
+func indexByOwnerUID(items []unstructured.Unstructured) ownerIndex {
+	index := make(ownerIndex, len(items))
+	for _, item := range items {
+		for _, owner := range item.GetOwnerReferences() {
+			index[owner.UID] = append(index[owner.UID], item)
 		}
 	}
-	return false
+	return index
+}
+
+func getOrFetchReplicaSetsByOwner(valkeyClient valkeyclient.ValkeyClient, cache map[string]ownerIndex, namespace string) ownerIndex {
+	if cachedIndex, found := cache[namespace]; found {
+		return cachedIndex
+	}
+	replicaSetsResults := store.GetResourceByKindAndNamespace(valkeyClient, utils.ReplicaSetResource.ApiVersion, utils.ReplicaSetResource.Kind, namespace, k8sLogger)
+	index := indexByOwnerUID(replicaSetsResults)
+	cache[namespace] = index
+	return index
+}
+
+func getOrFetchJobsByOwner(cache map[string]ownerIndex, namespace string) ownerIndex {
+	if cachedIndex, found := cache[namespace]; found {
+		return cachedIndex
+	}
+	jobResults := store.GetResourceByKindAndNamespace(valkeyClient, utils.JobResource.ApiVersion, utils.JobResource.Kind, namespace, k8sLogger)
+	index := indexByOwnerUID(jobResults)
+	cache[namespace] = index
+	return index
+}
+
+func getOrFetchPodsByOwner(cache map[string]ownerIndex, namespace string) ownerIndex {
+	if cachedIndex, found := cache[namespace]; found {
+		return cachedIndex
+	}
+	podsResults := store.GetResourceByKindAndNamespace(valkeyClient, utils.PodResource.ApiVersion, utils.PodResource.Kind, namespace, k8sLogger)
+	index := indexByOwnerUID(podsResults)
+	cache[namespace] = index
+	return index
 }
 
 // GetWorkloadStatusItems generates a list of WorkloadStatusItemDto for each provided workload object.
@@ -94,9 +103,9 @@ func GetWorkloadStatusItems(
 	workload unstructured.Unstructured,
 	eventsByUID map[types.UID][]v1.Event,
 	ignoreDependentResources bool,
-	replicaSetsCache map[string][]unstructured.Unstructured,
-	jobsCache map[string][]unstructured.Unstructured,
-	podsCache map[string][]unstructured.Unstructured,
+	replicaSetsByOwnerCache map[string]ownerIndex,
+	jobsByOwnerCache map[string]ownerIndex,
+	podsByOwnerCache map[string]ownerIndex,
 ) []WorkloadStatusItemDto {
 	// Initialize the output slice for workload status items.
 	var items []WorkloadStatusItemDto
@@ -165,44 +174,30 @@ func GetWorkloadStatusItems(
 	// Check the kind of workload and process dependent resources
 	switch workload.GetKind() {
 	case "Deployment":
-		// Get or fetch ReplicaSets relevant to the namespace.
-		replicaSets := getOrFetchReplicaSets(valkeyClient, replicaSetsCache, workload.GetNamespace())
+		// Get or fetch the ReplicaSet-by-owner index for the namespace.
+		replicaSetsByOwner := getOrFetchReplicaSetsByOwner(valkeyClient, replicaSetsByOwnerCache, workload.GetNamespace())
 
 		// Reuse the already-extracted replicas value instead of calling NestedInt64 again.
-		if replicaSets != nil && replicas != nil && *replicas > 0 {
-			for _, replicaset := range replicaSets {
-				if hasOwnerReference(replicaset.GetOwnerReferences(), workload.GetUID()) {
-					items = append(items, GetWorkloadStatusItems(replicaset, eventsByUID, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
-				}
+		if replicas != nil && *replicas > 0 {
+			for _, replicaset := range replicaSetsByOwner[workload.GetUID()] {
+				items = append(items, GetWorkloadStatusItems(replicaset, eventsByUID, ignoreDependentResources, replicaSetsByOwnerCache, jobsByOwnerCache, podsByOwnerCache)...)
 			}
 		}
 
 	case "CronJob":
-		// Get or fetch Jobs relevant to the namespace.
-		jobs := getOrFetchJobs(jobsCache, workload.GetNamespace())
+		// Get or fetch the Job-by-owner index for the namespace.
+		jobsByOwner := getOrFetchJobsByOwner(jobsByOwnerCache, workload.GetNamespace())
 
-		for _, job := range jobs {
-			if hasOwnerReference(job.GetOwnerReferences(), workload.GetUID()) {
-				items = append(items, GetWorkloadStatusItems(job, eventsByUID, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
-			}
+		for _, job := range jobsByOwner[workload.GetUID()] {
+			items = append(items, GetWorkloadStatusItems(job, eventsByUID, ignoreDependentResources, replicaSetsByOwnerCache, jobsByOwnerCache, podsByOwnerCache)...)
 		}
 
-	case "ReplicaSet":
-		fallthrough
-	case "StatefulSet":
-		fallthrough
-	case "DaemonSet":
-		fallthrough
-	case "Job":
-		fallthrough
-	case "ReplicationController":
-		// Get or fetch Pods relevant to the namespace.
-		pods := getOrFetchPods(podsCache, workload.GetNamespace())
+	case "ReplicaSet", "StatefulSet", "DaemonSet", "Job", "ReplicationController":
+		// Get or fetch the Pod-by-owner index for the namespace.
+		podsByOwner := getOrFetchPodsByOwner(podsByOwnerCache, workload.GetNamespace())
 
-		for _, pod := range pods {
-			if hasOwnerReference(pod.GetOwnerReferences(), workload.GetUID()) {
-				items = append(items, GetWorkloadStatusItems(pod, eventsByUID, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)...)
-			}
+		for _, pod := range podsByOwner[workload.GetUID()] {
+			items = append(items, GetWorkloadStatusItems(pod, eventsByUID, ignoreDependentResources, replicaSetsByOwnerCache, jobsByOwnerCache, podsByOwnerCache)...)
 		}
 
 	}
@@ -373,10 +368,10 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 
 	var results []WorkloadStatusDto
 
-	// Initialize caches for ReplicaSets, Jobs, and Pods
-	replicaSetsCache := map[string][]unstructured.Unstructured{}
-	jobsCache := map[string][]unstructured.Unstructured{}
-	podsCache := map[string][]unstructured.Unstructured{}
+	// Initialize owner-UID indexes for ReplicaSets, Jobs, and Pods
+	replicaSetsByOwnerCache := map[string]ownerIndex{}
+	jobsByOwnerCache := map[string]ownerIndex{}
+	podsByOwnerCache := map[string]ownerIndex{}
 
 	ignoreDependentResources := false
 
@@ -401,10 +396,13 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 				rs := store.GetResourceByKindAndNamespace(valkeyClient, utils.ReplicaSetResource.ApiVersion, utils.ReplicaSetResource.Kind, ns, k8sLogger)
 				pods := store.GetResourceByKindAndNamespace(valkeyClient, utils.PodResource.ApiVersion, utils.PodResource.Kind, ns, k8sLogger)
 				jobs := store.GetResourceByKindAndNamespace(valkeyClient, utils.JobResource.ApiVersion, utils.JobResource.Kind, ns, k8sLogger)
+				rsIndex := indexByOwnerUID(rs)
+				podsIndex := indexByOwnerUID(pods)
+				jobsIndex := indexByOwnerUID(jobs)
 				cachesMu.Lock()
-				replicaSetsCache[ns] = rs
-				podsCache[ns] = pods
-				jobsCache[ns] = jobs
+				replicaSetsByOwnerCache[ns] = rsIndex
+				podsByOwnerCache[ns] = podsIndex
+				jobsByOwnerCache[ns] = jobsIndex
 				cachesMu.Unlock()
 			})
 		}
@@ -417,7 +415,7 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 		if completedWorkloads[string(workload.GetUID())] {
 			continue
 		}
-		items := GetWorkloadStatusItems(workload, eventsByUID, ignoreDependentResources, replicaSetsCache, jobsCache, podsCache)
+		items := GetWorkloadStatusItems(workload, eventsByUID, ignoreDependentResources, replicaSetsByOwnerCache, jobsByOwnerCache, podsByOwnerCache)
 		completedWorkloads[string(workload.GetUID())] = true
 		results = append(results, WorkloadStatusDto{Items: items})
 	}
