@@ -219,6 +219,61 @@ func TestSearchByGroupKindNameNamespace(t *testing.T) {
 	assert.Empty(t, items)
 }
 
+// GetResourcesByWhitelistPaginated reads every surviving shard's ZCARD and
+// member page via two batched DoMulti round trips instead of one ZCARD and
+// one ZRANGE per shard. This exercises that merge across more than one
+// shard (two namespaces), both by-name and by-creation sort, and that
+// offset/limit page correctly across the shard boundary.
+func TestGetResourcesByWhitelistPaginatedMergesAcrossShards(t *testing.T) {
+	newIndexTestStore(t)
+
+	writeResource(t, utils.PodResource, "team-a", "drop-a2")
+	writeResource(t, utils.PodResource, "team-a", "keep-a1")
+	writeResource(t, utils.PodResource, "team-b", "drop-b2")
+	writeResource(t, utils.PodResource, "team-b", "keep-b1")
+
+	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
+	whitelist := []*utils.ResourceDescriptor{&utils.PodResource}
+
+	names := func(page PaginatedResources) []string {
+		out := make([]string, 0, len(page.Items))
+		for _, item := range page.Items {
+			out = append(out, item.GetName())
+		}
+		return out
+	}
+
+	// Ascending by name: drop-a2, drop-b2, keep-a1, keep-b1.
+	page1, err := GetResourcesByWhitelistPaginated(
+		valkeyClient, whitelist, nil, nil, 0, 2, "name", "asc", nil, logger)
+	require.NoError(t, err)
+	assert.Equal(t, 4, page1.TotalCount)
+	assert.Equal(t, []string{"drop-a2", "drop-b2"}, names(page1))
+
+	page2, err := GetResourcesByWhitelistPaginated(
+		valkeyClient, whitelist, nil, nil, 2, 2, "name", "asc", nil, logger)
+	require.NoError(t, err)
+	assert.Equal(t, 4, page2.TotalCount)
+	assert.Equal(t, []string{"keep-a1", "keep-b1"}, names(page2))
+
+	// Namespace-scoped whitelist excludes the other shard entirely.
+	scoped, err := GetResourcesByWhitelistPaginated(
+		valkeyClient, whitelist, nil, []string{"team-a"}, 0, 10, "name", "asc", nil, logger)
+	require.NoError(t, err)
+	assert.Equal(t, 2, scoped.TotalCount)
+	assert.Equal(t, []string{"drop-a2", "keep-a1"}, names(scoped))
+
+	// An active search pulls every member of every surviving shard (not just
+	// the page window), then filters by name across both shards, dropping
+	// one member from each.
+	searchGroups := BuildSearchFilterGroups("keep", nil, nil)
+	searched, err := GetResourcesByWhitelistPaginated(
+		valkeyClient, whitelist, nil, nil, 0, 10, "name", "asc", searchGroups, logger)
+	require.NoError(t, err)
+	assert.Equal(t, 2, searched.TotalCount)
+	assert.Equal(t, []string{"keep-a1", "keep-b1"}, names(searched))
+}
+
 func TestGetResourcesByNamespaceAndKindsFiltersKinds(t *testing.T) {
 	newIndexTestStore(t)
 

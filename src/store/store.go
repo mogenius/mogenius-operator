@@ -766,8 +766,15 @@ func GetResourcesByWhitelistPaginated(
 	pullAll := limit <= 0
 	searching := len(searchGroups) > 0
 
-	all := make([]rankedMember, 0)
-	total := 0
+	// Resolve the per-shard query up front (shard-scoped search criteria can
+	// drop a shard entirely) so the two Valkey round trips below cover
+	// exactly the shards that survive, no more.
+	type shardQuery struct {
+		shard        indexShard
+		indexKey     string
+		memberGroups []SearchFilterGroup
+	}
+	queries := make([]shardQuery, 0, len(shards))
 	for _, shard := range shards {
 		var memberGroups []SearchFilterGroup
 		if searching {
@@ -777,24 +784,85 @@ func GetResourcesByWhitelistPaginated(
 				continue
 			}
 		}
+		queries = append(queries, shardQuery{
+			shard:        shard,
+			indexKey:     resourceIndexKey(shard.apiVersion, shard.kind, shard.namespace, sortType),
+			memberGroups: memberGroups,
+		})
+	}
 
-		indexKey := resourceIndexKey(shard.apiVersion, shard.kind, shard.namespace, sortType)
+	all := make([]rankedMember, 0)
+	total := 0
+	if len(queries) == 0 {
+		return PaginatedResources{Items: []unstructured.Unstructured{}, TotalCount: 0}, nil
+	}
 
-		// an active search must see every member: matches can sit anywhere in
-		// the shard order, and totalCount has to count the filtered set
-		members, shardTotal, err := readShardTopMembers(valkey, indexKey, sortOrder, perShardCount, pullAll || searching, useNameSort)
+	client := valkey.GetValkeyClient()
+	ctx := valkey.GetContext()
+
+	// Batch 1: ZCARD every surviving shard in a single pipelined round trip
+	// instead of one ZCARD per shard.
+	cardCmds := make([]vgo.Completed, len(queries))
+	for i, q := range queries {
+		cardCmds[i] = client.B().Zcard().Key(q.indexKey).Build()
+	}
+	cardResults := client.DoMulti(ctx, cardCmds...)
+
+	// an active search must see every member: matches can sit anywhere in
+	// the shard order, and totalCount has to count the filtered set.
+	pullAllPerShard := pullAll || searching
+
+	shardTotals := make([]int, len(queries))
+	rangeCmds := make([]vgo.Completed, 0, len(queries))
+	rangeQueries := make([]int, 0, len(queries)) // rangeCmds index -> queries index
+
+	for i, resp := range cardResults {
+		totalI64, err := resp.AsInt64()
 		if err != nil {
-			logger.Warn("failed to read shard for paginated index",
-				"indexKey", indexKey, "error", err)
+			logger.Warn("failed to read shard cardinality for paginated index",
+				"indexKey", queries[i].indexKey, "error", err)
 			continue
 		}
+		shardTotal := int(totalI64)
+		shardTotals[i] = shardTotal
+		if shardTotal == 0 {
+			continue
+		}
+		count := perShardCount
+		if pullAllPerShard || count > shardTotal {
+			count = shardTotal
+		}
+		if count <= 0 {
+			continue
+		}
+
+		rangeQueries = append(rangeQueries, i)
+		rangeCmds = append(rangeCmds, shardRangeCmd(client, queries[i].indexKey, sortOrder, count, useNameSort))
+	}
+
+	// Batch 2: pull every shard's member page in a second pipelined round
+	// trip instead of one ZRANGE/ZRANGEBYLEX per shard.
+	rangeResults := client.DoMulti(ctx, rangeCmds...)
+
+	for pos, resp := range rangeResults {
+		i := rangeQueries[pos]
+		q := queries[i]
+
+		members, err := parseShardRangeResp(resp, useNameSort)
+		if err != nil {
+			logger.Warn("failed to read shard for paginated index",
+				"indexKey", q.indexKey, "error", err)
+			continue
+		}
+
+		shardTotal := shardTotals[i]
 		if searching {
-			members = filterMembersByGroups(members, memberGroups, shard)
+			members = filterMembersByGroups(members, q.memberGroups, q.shard)
 			shardTotal = len(members)
 		}
 		total += shardTotal
 		for _, m := range members {
-			all = append(all, rankedMember{shard: shard, member: m.Member, score: m.Score})
+			all = append(all, rankedMember{shard: q.shard, member: m.Member, score: m.Score})
 		}
 	}
 
@@ -818,12 +886,11 @@ func GetResourcesByWhitelistPaginated(
 		keys = append(keys, CreateResourceKey(rm.shard.apiVersion, rm.shard.kind, rm.shard.namespace, rm.member))
 	}
 
-	client := valkey.GetValkeyClient()
 	cmds := make([]vgo.Completed, len(keys))
 	for i, key := range keys {
 		cmds[i] = client.B().Get().Key(key).Build()
 	}
-	values := client.DoMulti(valkey.GetContext(), cmds...)
+	values := client.DoMulti(ctx, cmds...)
 
 	items := make([]unstructured.Unstructured, 0, len(values))
 	// Members whose primary key is gone (TTL expiry, or a delete event the
@@ -1377,67 +1444,47 @@ func filterMembersByGroups(members []vgo.ZScore, groups []SearchFilterGroup, sha
 	return kept
 }
 
-func readShardTopMembers(
-	valkey valkeyclient.ValkeyClient,
-	indexKey string,
-	sortOrder string,
-	count int,
-	pullAll bool,
-	useNameSort bool,
-) ([]vgo.ZScore, int, error) {
-	client := valkey.GetValkeyClient()
-	ctx := valkey.GetContext()
-
-	totalI64, err := client.Do(ctx, client.B().Zcard().Key(indexKey).Build()).AsInt64()
-	if err != nil {
-		return nil, 0, fmt.Errorf("zcard: %w", err)
-	}
-	total := int(totalI64)
-	if total == 0 {
-		return nil, 0, nil
-	}
-	if pullAll || count > total {
-		count = total
-	}
-	if count <= 0 {
-		return nil, total, nil
-	}
-
+// shardRangeCmd builds the member-page command for one shard, sized to
+// count. It does not issue the command - callers batch it across shards via
+// DoMulti - so it mirrors the per-shard logic a sequential ZRANGE/ZRANGEBYLEX
+// call would have used, just as an unissued command.
+func shardRangeCmd(client vgo.Client, indexKey string, sortOrder string, count int, useNameSort bool) vgo.Completed {
 	if useNameSort {
 		// score is always 0 in the by-name index; we don't need WITHSCORES,
 		// the merge will sort lex on Member. Use ZRANGEBYLEX with LIMIT to
 		// only pull the slice we need from each shard.
-		desc := sortOrder == sortOrderDesc
-		var cmd vgo.Completed
-		if desc {
-			cmd = client.B().Zrevrangebylex().Key(indexKey).Max("+").Min("-").Limit(0, int64(count)).Build()
-		} else {
-			cmd = client.B().Zrangebylex().Key(indexKey).Min("-").Max("+").Limit(0, int64(count)).Build()
+		if sortOrder == sortOrderDesc {
+			return client.B().Zrevrangebylex().Key(indexKey).Max("+").Min("-").Limit(0, int64(count)).Build()
 		}
-		names, err := client.Do(ctx, cmd).AsStrSlice()
+		return client.B().Zrangebylex().Key(indexKey).Min("-").Max("+").Limit(0, int64(count)).Build()
+	}
+
+	// creationTimestamp index: default desc (newest first) when no order given.
+	if sortOrder != sortOrderAsc {
+		return client.B().Zrevrange().Key(indexKey).Start(0).Stop(int64(count - 1)).Withscores().Build()
+	}
+	return client.B().Zrange().Key(indexKey).Min("0").Max(strconv.Itoa(count - 1)).Withscores().Build()
+}
+
+// parseShardRangeResp reads the response of a command built by shardRangeCmd.
+func parseShardRangeResp(resp vgo.ValkeyResult, useNameSort bool) ([]vgo.ZScore, error) {
+	if useNameSort {
+		names, err := resp.AsStrSlice()
 		if err != nil {
-			return nil, total, fmt.Errorf("zrangebylex: %w", err)
+			return nil, fmt.Errorf("zrangebylex: %w", err)
 		}
 		out := make([]vgo.ZScore, 0, len(names))
 		for _, n := range names {
 			out = append(out, vgo.ZScore{Member: n, Score: 0})
 		}
-		return out, total, nil
+		return out, nil
 	}
 
-	// creationTimestamp index: default desc (newest first) when no order given.
-	desc := sortOrder != sortOrderAsc
-	var cmd vgo.Completed
-	if desc {
-		cmd = client.B().Zrevrange().Key(indexKey).Start(0).Stop(int64(count - 1)).Withscores().Build()
-	} else {
-		cmd = client.B().Zrange().Key(indexKey).Min("0").Max(strconv.Itoa(count - 1)).Withscores().Build()
-	}
-	scores, err := client.Do(ctx, cmd).AsZScores()
+	scores, err := resp.AsZScores()
 	if err != nil {
-		return nil, total, fmt.Errorf("zrange withscores: %w", err)
+		return nil, fmt.Errorf("zrange withscores: %w", err)
 	}
-	return scores, total, nil
+	return scores, nil
 }
 
 // sortRankedMembers orders the merged member list in place using the same
