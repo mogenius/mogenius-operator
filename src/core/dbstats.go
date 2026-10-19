@@ -195,11 +195,17 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 }
 
 func (self *valkeyStatsDb) ReplaceCniData(data []structs.CniData) {
+	if len(data) == 0 {
+		return
+	}
+
+	items := make(map[string]structs.CniData, len(data))
 	for _, v := range data {
-		err := self.valkey.SetObject(data, liveStatsTTL, DB_STATS_CNI_BUCKET_NAME, v.Node)
-		if err != nil {
-			self.logger.Error("Error adding cni data", "node", v.Node, "error", err)
-		}
+		items[strings.Join([]string{DB_STATS_CNI_BUCKET_NAME, v.Node}, ":")] = v
+	}
+
+	if err := valkeyclient.SetObjectsForKeys(self.valkey, liveStatsTTL, items); err != nil {
+		self.logger.Error("Error adding cni data", "error", err)
 	}
 }
 
@@ -818,17 +824,23 @@ func findSmallest(m map[string]float64) (string, float64, bool) {
 }
 
 func (self *valkeyStatsDb) GetMachineStatsForNodes(nodes []string) []structs.MachineStats {
-	result := make([]structs.MachineStats, 0, len(nodes))
+	if len(nodes) == 0 {
+		return []structs.MachineStats{}
+	}
 
-	for _, node := range nodes {
-		stat, err := self.GetMachineStatsForNode(node)
-		if err != nil {
-			self.logger.Error("failed to get machine stats for node", "node", node, "error", err)
-			continue
-		}
-		if stat != nil {
-			result = append(result, *stat)
-		}
+	keyList := make([]string, len(nodes))
+	for i, node := range nodes {
+		keyList[i] = strings.Join([]string{DB_STATS_MACHINE_STATS_BUCKET_NAME, node}, ":")
+	}
+
+	pairs, err := valkeyclient.GetKeyedObjectsForKeys[structs.MachineStats](self.valkey, keyList)
+	if err != nil {
+		self.logger.Error("failed to get machine stats for nodes", "error", err)
+	}
+
+	result := make([]structs.MachineStats, 0, len(pairs))
+	for _, p := range pairs {
+		result = append(result, p.Object)
 	}
 
 	return result

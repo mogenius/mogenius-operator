@@ -95,6 +95,28 @@ func TestDeleteMultipleOnlyDeletesMatchingPatterns(t *testing.T) {
 	assert.Equal(t, []string{"resources:v1:Node::node-a"}, keys)
 }
 
+func TestSetObjectsForKeysWritesEachValueUnderItsOwnKey(t *testing.T) {
+	self, _ := newTestClient(t)
+
+	type stat struct {
+		Value int `json:"value"`
+	}
+
+	assert.NoError(t, SetObjectsForKeys(self, time.Minute, map[string]stat{
+		"machine-stats:node-a": {Value: 1},
+		"machine-stats:node-b": {Value: 2},
+	}))
+
+	pairs, err := GetKeyedObjectsForKeys[stat](self, []string{"machine-stats:node-a", "machine-stats:node-b"})
+	assert.NoError(t, err)
+
+	byKey := make(map[string]int, len(pairs))
+	for _, p := range pairs {
+		byKey[p.Key] = p.Object.Value
+	}
+	assert.Equal(t, map[string]int{"machine-stats:node-a": 1, "machine-stats:node-b": 2}, byKey)
+}
+
 // writeSelfSignedCert generates a self-signed certificate/key pair and writes
 // both as PEM files under the test's temp dir, returning their paths.
 func writeSelfSignedCert(t *testing.T, dir, name string) (certFile, keyFile string) {

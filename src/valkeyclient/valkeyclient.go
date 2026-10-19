@@ -848,6 +848,36 @@ func GetKeyedObjectsForKeys[T any](store ValkeyClient, keyList []string) ([]Keye
 	return result, nil
 }
 
+// SetObjectsForKeys writes multiple JSON objects to their own keys in one
+// pipelined round trip via DoMulti, rather than one SET call per key.
+func SetObjectsForKeys[T any](store ValkeyClient, expiration time.Duration, items map[string]T) error {
+	if len(items) == 0 {
+		return nil
+	}
+
+	client := store.GetValkeyClient()
+	cmds := make([]valkeyclient.Completed, 0, len(items))
+	for key, value := range items {
+		objStr, err := json.Marshal(value)
+		if err != nil {
+			return fmt.Errorf("error marshalling object for key %s: %w", key, err)
+		}
+		cmd := client.B().Set().Key(key).Value(string(objStr))
+		if expiration != time.Duration(0) {
+			cmd.Ex(expiration)
+		}
+		cmds = append(cmds, cmd.Build())
+	}
+
+	for _, resp := range client.DoMulti(store.GetContext(), cmds...) {
+		if err := resp.Error(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 func GetObjectsByPrefix[T any](store ValkeyClient, order SortOrder, keys ...string) ([]T, error) {
 	pattern := createKey(keys...)
 
