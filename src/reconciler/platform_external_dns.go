@@ -55,7 +55,7 @@ func (d *reconcilerModule) reconcileExternalDNS(ctx context.Context, spec v1alph
 			}
 
 			clusterName, err := d.config.TryGet("MO_CLUSTER_NAME")
-			if err != nil && clusterName != "" {
+			if err == nil && clusterName != "" {
 				values["txtOwnerId"] = clusterName
 			}
 
