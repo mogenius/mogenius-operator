@@ -75,6 +75,7 @@ func NewReconcilerFactory(logger *slog.Logger, clientProvider k8sclient.K8sClien
 	// detected GitOps status, so watching this costs a cluster nothing until it
 	// declares components.
 	factory.WithReconciler(utils.PlatformConfigResource, factory.module.reconcilePlatformConfig)
+	factory.WithReconciler(utils.PlatformPatchResource, factory.module.reconcilePlatformPatch)
 
 	return factory
 }
