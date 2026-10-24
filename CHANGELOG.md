@@ -1,5 +1,33 @@
 # Changelog
 
+## [2.33.0](https://github.com/mogenius/mogenius-operator/compare/v2.32.0...v2.33.0) (2026-10-24)
+
+
+### Features
+
+* **ai:** route official OpenAI through Responses API for tool calls ([a2570f6](https://github.com/mogenius/mogenius-operator/commit/a2570f6d714c7d8ca3c1e6225748cfb7bee2e172))
+* **ai:** route official OpenAI through Responses API for tool calls ([f87e5b8](https://github.com/mogenius/mogenius-operator/commit/f87e5b88d03b2684f8b9da389d8f847c2ca8dbc0))
+* end-to-end tunnel domains with tls, acme certificates and acces… ([8a7757f](https://github.com/mogenius/mogenius-operator/commit/8a7757f305acbf458a48b0bf9c467cfdaff4d149))
+* end-to-end tunnel domains with tls, acme certificates and access checks in the operator ([3a54e7d](https://github.com/mogenius/mogenius-operator/commit/3a54e7dbcce91066b2d4931fdffcbf6744b96b69))
+
+
+### Bug Fixes
+
+* **ai:** hide cluster-scoped agent runs from workspace views ([2413188](https://github.com/mogenius/mogenius-operator/commit/2413188b8f211b48c06a510b47d69aeb828616d0))
+* **ai:** hide cluster-scoped agent runs from workspace views ([ddbe0c2](https://github.com/mogenius/mogenius-operator/commit/ddbe0c203810fa6788f22d3e1340e5c52cada0c2))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.84.0 ([302e64f](https://github.com/mogenius/mogenius-operator/commit/302e64fd83bed9ccc9e5eef5e0bc77d5d1b4da7b))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.84.0 ([b1ee470](https://github.com/mogenius/mogenius-operator/commit/b1ee470092b00f934ce0ac27dfef76dd062575c9))
+* **deps:** update module github.com/kimmachinegun/automemlimit to v1.0.1 ([#1361](https://github.com/mogenius/mogenius-operator/issues/1361)) ([98c8218](https://github.com/mogenius/mogenius-operator/commit/98c8218e4e3fd1a8ef4a0a68cea76c716b639536))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.86.0 ([#1366](https://github.com/mogenius/mogenius-operator/issues/1366)) ([ce7538c](https://github.com/mogenius/mogenius-operator/commit/ce7538c94c607418c5a06440e9b1124320ec1033))
+* **platformconfig:** apply Argo ignoreDifferences on detected engines too ([7bcdae8](https://github.com/mogenius/mogenius-operator/commit/7bcdae8d0b6a74477dc1ea39ea75d87e11a69a69))
+* **platformconfig:** apply Argo ignoreDifferences on detected engines too ([302f76e](https://github.com/mogenius/mogenius-operator/commit/302f76e459bdbd34371b10e8c215cf013af1084d))
+* **reconciler:** reconcile PlatformConfigs when a referenced PlatformPatch changes ([1992290](https://github.com/mogenius/mogenius-operator/commit/19922902a7cb443a0109e2688a399fdec5281f0d))
+* **reconciler:** set external-dns txtOwnerId from cluster name ([fcec5b3](https://github.com/mogenius/mogenius-operator/commit/fcec5b38508a2bd8cf01e127ba76c5b8b41cc80d))
+* **utils:** decode base64 zlib payloads of inbound datagrams ([2cebc29](https://github.com/mogenius/mogenius-operator/commit/2cebc290fbc0aaa429edf4ed6f7a6abce17d2e09))
+* **utils:** decode base64 zlib payloads of inbound datagrams ([23d9d2c](https://github.com/mogenius/mogenius-operator/commit/23d9d2c55b9102ff20afc7c9e7403e0026d84f04))
+* **utils:** make FillWith/TruncateText rune-safe ([d0d4bd6](https://github.com/mogenius/mogenius-operator/commit/d0d4bd670ebf9690ffbb0590825184c6d0299391))
+* **utils:** make FillWith/TruncateText rune-safe ([b81f93c](https://github.com/mogenius/mogenius-operator/commit/b81f93cc635461c341d1f616c8552ac8591a4876))
+
 ## [2.32.0](https://github.com/mogenius/mogenius-operator/compare/v2.31.1...v2.32.0) (2026-10-20)
 
 
