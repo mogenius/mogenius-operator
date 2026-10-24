@@ -6,7 +6,7 @@ require (
 	github.com/KimMachineGun/automemlimit v1.0.1
 	github.com/alecthomas/kong v1.16.1
 	github.com/alicebob/miniredis/v2 v2.40.0
-	github.com/anthropics/anthropic-sdk-go v1.84.0
+	github.com/anthropics/anthropic-sdk-go/v2 v2.3.0
 	github.com/bitnami/sealed-secrets v0.40.0
 	github.com/creack/pty v1.1.24
 	github.com/go-acme/lego/v4 v4.35.2
