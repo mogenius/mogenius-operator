@@ -82,8 +82,8 @@ github.com/bahlo/generic-list-go v0.2.0 h1:5sz/EEAK+ls5wF+NeqDpk5+iNdMDXrh3z3nPn
 github.com/bahlo/generic-list-go v0.2.0/go.mod h1:2KvAjgMlE5NNynlg/5iLrrCCZ2+5xWbdbCW3pNTGyYg=
 github.com/beorn7/perks v1.0.1 h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=
 github.com/beorn7/perks v1.0.1/go.mod h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=
-github.com/bitnami/sealed-secrets v0.41.1 h1:uEW6f+zS3eVqCx7WSdNQuZPx2GBz7jOIvWhLuvDbZEA=
-github.com/bitnami/sealed-secrets v0.41.1/go.mod h1:AP3QV4vFf0TH8HpubfruMA47xTqJaMBQYSfNOBgO1VE=
+github.com/bitnami/sealed-secrets v0.41.2 h1:mscEwtgeNtFS/I+nmkpKDPkD+N2bgLsNerHTVrUdRyk=
+github.com/bitnami/sealed-secrets v0.41.2/go.mod h1:AP3QV4vFf0TH8HpubfruMA47xTqJaMBQYSfNOBgO1VE=
 github.com/blang/semver/v4 v4.0.0 h1:1PFHFE6yCCTv8C1TeyNNarDzntLi7wMI5i/pzqYIsAM=
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/bshuster-repo/logrus-logstash-hook v1.1.0 h1:o2FzZifLg+z/DN1OFmzTWzZZx/roaqt8IPZCIVco8r4=
