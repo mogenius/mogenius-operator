@@ -390,6 +390,9 @@ type aiManager struct {
 	agentCacheValid     bool
 	agentCacheFetching  bool
 	agentCacheGen       uint64
+
+	// taskIndex lists task keys without keyspace scans, see taskindex.go
+	taskIndex taskIndex
 }
 
 // auditInsightToolCall writes a durable audit entry for every tool the
@@ -491,6 +494,7 @@ func NewAiManager(logger *slog.Logger, valkeyClient valkeyclient.ValkeyClient, c
 	self.runCancels = make(map[string]context.CancelFunc)
 	self.pendingApprovals = make(map[string]chan approvalResult)
 	self.runSem = make(chan struct{}, maxConcurrentRuns)
+	self.taskIndex = newZsetTaskIndex(logger, valkeyClient)
 
 	return self
 }
@@ -633,6 +637,7 @@ func (ai *aiManager) cleanupOrphanedTasks() {
 				ai.logger.Error("Error deleting orphaned AI task", "key", key, "error", delErr)
 				continue
 			}
+			ai.tasks().remove(key)
 			ai.sendAiDeleteEvent(key)
 			ai.logger.Info("Cleaned up orphaned AI task (resource no longer exists)", "key", key, "kind", ref.Kind, "name", ref.ResourceName, "namespace", ref.Namespace)
 		}
@@ -847,7 +852,7 @@ func (ai *aiManager) getDbStats(namespace *string) (totalDbEntries int, unproces
 
 	ctx := context.Background()
 
-	keys, err := ai.valkeyClient.Keys(key)
+	keys, err := ai.tasks().keys(key)
 	if err != nil {
 		return 0, 0, 0, 0, err
 	}
@@ -1015,7 +1020,7 @@ func (ai *aiManager) ResetTokenUsageForModel(modelCrName string) (int64, error) 
 }
 
 func (ai *aiManager) getAllTaskKeys() ([]string, error) {
-	return ai.valkeyClient.Keys(fmt.Sprintf("%s:*", DB_AI_BUCKET_TASKS))
+	return ai.tasks().keys(DB_AI_BUCKET_TASKS + ":*")
 }
 
 type aiTaskWithKey struct {
@@ -1039,20 +1044,9 @@ func (ai *aiManager) processAiTaskQueue(ctx context.Context) {
 
 	// Load all pending/failed tasks and sort by CreatedAt ascending (oldest first)
 	var pendingTasks []aiTaskWithKey
-	for _, key := range keys {
-		item, err := ai.valkeyClient.Get(key)
-		if err != nil {
-			ai.logger.Error("Error getting AI task", "key", key, "error", err)
-			continue
-		}
-		var task AiTask
-		err = json.Unmarshal([]byte(item), &task)
-		if err != nil {
-			ai.logger.Error("Error unmarshaling AI task", "key", key, "error", err)
-			continue
-		}
-		if task.State == AI_TASK_STATE_PENDING || (task.State == AI_TASK_STATE_FAILED && task.Retries < maxAiTaskRetries) {
-			pendingTasks = append(pendingTasks, aiTaskWithKey{key: key, task: task})
+	for _, t := range ai.tasks().load(keys) {
+		if t.task.State == AI_TASK_STATE_PENDING || (t.task.State == AI_TASK_STATE_FAILED && t.task.Retries < maxAiTaskRetries) {
+			pendingTasks = append(pendingTasks, t)
 		}
 	}
 	sort.Slice(pendingTasks, func(i, j int) bool {
@@ -1297,6 +1291,7 @@ func (ai *aiManager) createOrUpdateAiTask(task *AiTask, key string) error {
 	if err != nil {
 		return fmt.Errorf("error saving AI task: %v", err)
 	}
+	ai.tasks().add(key)
 
 	// New pending work starts immediately instead of waiting for the ticker.
 	if task.State == AI_TASK_STATE_PENDING {

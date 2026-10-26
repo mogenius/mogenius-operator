@@ -27,6 +27,7 @@ func (ai *aiManager) DeleteTask(taskID string, user structs.User) (*AiTask, erro
 	if err := ai.valkeyClient.DeleteSingle(taskID); err != nil {
 		return nil, fmt.Errorf("failed to delete task %s: %w", taskID, err)
 	}
+	ai.tasks().remove(taskID)
 	// A primary run task owns a step timeline under its own ID; deleting the
 	// key of a task without steps is a no-op.
 	if err := ai.valkeyClient.DeleteSingle(runStepsKey(taskID)); err != nil {
