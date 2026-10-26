@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"path"
 	"strings"
 	"testing"
 	"time"
@@ -45,6 +46,16 @@ func (f *fakeStepValkey) List(limit int, keys ...string) ([]string, error) {
 		}
 	}
 	return items, nil
+}
+
+func (f *fakeStepValkey) Keys(pattern string) ([]string, error) {
+	var keys []string
+	for key := range f.store {
+		if ok, _ := path.Match(pattern, key); ok {
+			keys = append(keys, key)
+		}
+	}
+	return keys, nil
 }
 
 func (f *fakeStepValkey) DeleteSingle(key ...string) error {

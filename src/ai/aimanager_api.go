@@ -100,22 +100,13 @@ func (ai *aiManager) UpdateTaskReadState(taskID string, user *structs.User) erro
 func (ai *aiManager) GetAiTasksForResource(resourceReq utils.WorkloadSingleRequest) ([]AiTask, error) {
 	tasks := []AiTask{}
 	valkeyPath := ai.getValkeyKey(resourceReq.Kind, resourceReq.Namespace, resourceReq.ResourceName)
-	keys, err := ai.valkeyClient.Keys(valkeyPath)
+	keys, err := ai.tasks().keys(valkeyPath)
 	if err != nil {
 		return tasks, err
 	}
 
-	for _, key := range keys {
-		item, err := ai.valkeyClient.Get(key)
-		if err != nil {
-			return tasks, err
-		}
-		var task AiTask
-		err = json.Unmarshal([]byte(item), &task)
-		if err != nil {
-			return tasks, err
-		}
-		tasks = append(tasks, task)
+	for _, t := range ai.tasks().load(keys) {
+		tasks = append(tasks, t.task)
 	}
 	return tasks, nil
 }
@@ -174,38 +165,32 @@ func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) 
 // the storage key, so cluster-wide runs appear in every affected workspace
 // and findings only where their target namespace lives.
 func (ai *aiManager) getAgentTasksForNamespaces(namespaces map[string]bool) ([]AiTask, error) {
-	keys, err := ai.valkeyClient.Keys(agentTaskIDPrefix + "*")
+	keys, err := ai.tasks().keys(agentTaskIDPrefix + "*")
 	if err != nil {
 		return nil, err
 	}
 	var tasks []AiTask
-	for _, key := range keys {
-		task, err := ai.getTaskByKey(key)
-		if err != nil || task == nil {
-			continue
-		}
-		if agentTaskVisibleInNamespaces(task, namespaces) {
-			tasks = append(tasks, *task)
+	for _, t := range ai.tasks().load(keys) {
+		if agentTaskVisibleInNamespaces(&t.task, namespaces) {
+			tasks = append(tasks, t.task)
 		}
 	}
 	return tasks, nil
 }
 
 func (ai *aiManager) GetAllAiTasks() ([]AiTask, error) {
-	key := ai.getValkeyKey("*", "*", "*")
-
-	items, err := ai.valkeyClient.List(1000, key)
+	keys, err := ai.tasks().keys(ai.getValkeyKey("*", "*", "*"))
 	if err != nil {
 		return nil, err
 	}
+	// the index is ordered by expiry, i.e. by last update: keep the newest
+	if len(keys) > 1000 {
+		keys = keys[len(keys)-1000:]
+	}
 
 	var tasks []AiTask
-	for _, item := range items {
-		var task AiTask
-		err = json.Unmarshal([]byte(item), &task)
-		if err != nil {
-			return nil, err
-		}
+	for _, t := range ai.tasks().load(keys) {
+		task := t.task
 		skipDuplicate := false
 		for _, existingTask := range tasks {
 			if existingTask.ID == task.ID {
@@ -288,21 +273,18 @@ func (ai *aiManager) GetLatestTask(workspace *string) (*AiTaskLatest, error) {
 
 func (ai *aiManager) getAiTasksForNamespace(namespace string) ([]AiTask, error) {
 
-	key := ai.getValkeyKey("*", namespace, "*")
-
-	items, err := ai.valkeyClient.List(100, key)
+	keys, err := ai.tasks().keys(ai.getValkeyKey("*", namespace, "*"))
 	if err != nil {
 		return nil, err
 	}
+	// the index is ordered by expiry, i.e. by last update: keep the newest
+	if len(keys) > 100 {
+		keys = keys[len(keys)-100:]
+	}
 
 	var tasks []AiTask
-	for _, item := range items {
-		var task AiTask
-		err = json.Unmarshal([]byte(item), &task)
-		if err != nil {
-			return nil, err
-		}
-		tasks = append(tasks, task)
+	for _, t := range ai.tasks().load(keys) {
+		tasks = append(tasks, t.task)
 	}
 
 	return tasks, nil
@@ -518,8 +500,10 @@ func (ai *aiManager) DeleteAllAiData() error {
 		DB_AI_BUCKET_RUN_STEPS + ":*",
 	}
 	ai.resetCache()
-	err := ai.valkeyClient.DeleteMultiple(prefixes...)
-	return err
+	if err := ai.valkeyClient.DeleteMultiple(prefixes...); err != nil {
+		return err
+	}
+	return ai.valkeyClient.DeleteSingle(aiTaskIndexKey)
 }
 
 func userSeesTaskForTheFirstTime(readBy *structs.User, users []ReadBy) bool {

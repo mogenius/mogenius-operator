@@ -311,7 +311,7 @@ func agentTaskVisibleInNamespaces(task *AiTask, namespaces map[string]bool) bool
 // hasOpenAgentRun reports whether the agent already has a pending, in-progress
 // or cancelling whole-scope run, bounding cron/manual fan-out to one open run.
 func (ai *aiManager) hasOpenAgentRun(agentName string) (bool, error) {
-	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:Agent:*:%s-run-*", DB_AI_BUCKET_TASKS, agentName))
+	keys, err := ai.tasks().keys(fmt.Sprintf("%s:Agent:*:%s-run-*", DB_AI_BUCKET_TASKS, agentName))
 	if err != nil {
 		return false, err
 	}
@@ -657,7 +657,7 @@ func (ai *aiManager) pruneAgentRunsToLimit(agentName string) {
 	if agentName == "" {
 		return
 	}
-	keys, err := ai.valkeyClient.Keys(fmt.Sprintf("%s:Agent:*:%s-run-*", DB_AI_BUCKET_TASKS, agentName))
+	keys, err := ai.tasks().keys(fmt.Sprintf("%s:Agent:*:%s-run-*", DB_AI_BUCKET_TASKS, agentName))
 	if err != nil {
 		ai.logger.Warn("Failed to list agent tasks for run pruning", "agent", agentName, "error", err)
 		return
@@ -689,6 +689,7 @@ func (ai *aiManager) pruneAgentRunsToLimit(agentName string) {
 				ai.logger.Error("Error deleting task of pruned agent run", "agent", agentName, "key", key, "error", delErr)
 				continue
 			}
+			ai.tasks().remove(key)
 			// Only the primary run task owns a step timeline; deleting the
 			// steps key of a finding task is a no-op.
 			if stepsErr := ai.valkeyClient.DeleteSingle(runStepsKey(key)); stepsErr != nil {
