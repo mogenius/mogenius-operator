@@ -14,6 +14,7 @@ import (
 	"mogenius-operator/src/dtos"
 	"mogenius-operator/src/flux"
 	"mogenius-operator/src/helm"
+	"mogenius-operator/src/k8sexec"
 	"mogenius-operator/src/kubernetes"
 	moMetrics "mogenius-operator/src/metrics"
 	"mogenius-operator/src/networkmonitor"
@@ -726,6 +727,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/list"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) ([]dtos.PersistentFileDto, error) {
+				if err := authorizeFileAccess(datagram, request.Folder); err != nil {
+					return nil, err
+				}
 				return services.List(request.Folder, request.MaxDepth)
 			},
 		)
@@ -746,6 +750,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/search"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (services.FilesSearchResult, error) {
+				if err := authorizeFileAccess(datagram, request.Folder); err != nil {
+					return services.FilesSearchResult{}, err
+				}
 				return services.Search(request.Folder, request.Query, request.MaxResults, request.Glob)
 			},
 		)
@@ -755,6 +762,9 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "files/v2/info"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request dtos.PvcFileRequestDto) (dtos.PersistentFileDto, error) {
+			if err := authorizeFileAccess(datagram, request); err != nil {
+				return dtos.PersistentFileDto{}, err
+			}
 			return services.Info(request)
 		},
 	)
@@ -770,6 +780,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/create-folder"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
+				if err := authorizeFileAccess(datagram, request.Folder); err != nil {
+					return false, err
+				}
 				err := services.CreateFolder(request.Folder, request.Mode)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
@@ -788,6 +801,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/rename"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
+				if err := authorizeFileAccess(datagram, request.File); err != nil {
+					return false, err
+				}
 				err := services.Rename(request.File, request.NewName, request.NewPath)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
@@ -805,6 +821,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/chown"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
+				if err := authorizeFileAccess(datagram, request.File); err != nil {
+					return false, err
+				}
 				err := services.Chown(request.File, request.Uid, request.Gid)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
@@ -821,6 +840,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/chmod"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
+				if err := authorizeFileAccess(datagram, request.File); err != nil {
+					return false, err
+				}
 				err := services.Chmod(request.File, request.Mode)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
@@ -840,6 +862,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/delete"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (bool, error) {
+				if err := authorizeFileAccess(datagram, request.File); err != nil {
+					return false, err
+				}
 				err := services.Delete(request.File, request.Recursive == nil || *request.Recursive)
 				return store.AddToAuditLog(datagram, self.logger, err == nil, err, nil, nil)
 			},
@@ -858,6 +883,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/find"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (services.FilesFindResult, error) {
+				if err := authorizeFileAccess(datagram, request.Folder); err != nil {
+					return services.FilesFindResult{}, err
+				}
 				return services.Find(request.Folder, request.Pattern, request.MaxResults)
 			},
 		)
@@ -877,6 +905,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/replace"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) ([]services.FileReplaceResult, error) {
+				if err := authorizeFileAccess(datagram, request.Target); err != nil {
+					return nil, err
+				}
 				results, err := services.Replace(request.Target, request.Files, request.Pattern, request.NewValue)
 				return store.AddToAuditLog(datagram, self.logger, results, err, nil, nil)
 			},
@@ -901,6 +932,9 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "files/v2/download-stream"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (services.FilesDownloadStreamInfo, error) {
+				if err := authorizeFileAccess(datagram, request.File); err != nil {
+					return services.FilesDownloadStreamInfo{}, err
+				}
 				info, err := services.DownloadStreamInfo(request.File, request.Offset, request.IfRange)
 				if err != nil {
 					return info, err
@@ -1455,6 +1489,12 @@ func (self *socketApi) registerPatterns() {
 			// doc on the request type), so this is consistency, not a
 			// separate trust level.
 			request.UserEmail = datagram.User.Email
+			if request.TargetsWorkload() {
+				identity := k8sexec.Identity{Email: request.UserEmail, IsAdmin: request.IsAdmin || request.IsClusterAdmin}
+				if err := services.AuthorizeUserPodAccess(identity, request.Namespace, "", "portforward", "create"); err != nil {
+					return nil, err
+				}
+			}
 			go stream.PortForwardStreamConnection(request)
 			// Same treatment as exec-sh below: interactive cluster access
 			// must leave an audit trail of who opened a tunnel to which pod.
@@ -1471,6 +1511,14 @@ func (self *socketApi) registerPatterns() {
 		PatternConfig{},
 		func(datagram structs.Datagram, request stream.PodCmdConnectionRequest) (Void, error) {
 			request.UserEmail = datagram.User.Email
+			// a terminal session resolves the user's own clients; only the
+			// session-less terminal runs as the operator
+			if request.SessionId == "" {
+				identity := k8sexec.Identity{Email: request.UserEmail, IsAdmin: request.IsAdmin || request.IsClusterAdmin}
+				if err := services.AuthorizeUserPodAccess(identity, request.Namespace, request.Pod, "exec", "create"); err != nil {
+					return nil, err
+				}
+			}
 			go self.execShConnection(request)
 			_, err := store.AddToAuditLog(datagram, self.logger, any(nil), nil, nil, nil)
 			if err != nil {
@@ -1608,6 +1656,10 @@ func (self *socketApi) registerPatterns() {
 		PatternHandle{self, "service/log-stream-connection-request"},
 		PatternConfig{},
 		func(datagram structs.Datagram, request stream.PodCmdConnectionRequest) (Void, error) {
+			identity := k8sexec.Identity{Email: datagram.User.Email, IsAdmin: request.IsAdmin || request.IsClusterAdmin}
+			if err := services.AuthorizeUserPodAccess(identity, request.Namespace, request.Pod, "log", "get"); err != nil {
+				return nil, err
+			}
 			go self.logStreamConnection(request)
 			return nil, nil
 		},
@@ -3605,6 +3657,15 @@ func (self *socketApi) upgradeK8sManager(command string) (*structs.Job, error) {
 	_, err := kubernetes.UpgradeMyself(self.eventsClient, job, command)
 	job.Finish(self.eventsClient)
 	return job, err
+}
+
+// authorizeFileAccess checks a files v2 request against the requester's
+// RBAC (see services.UserRbacConfigKey). The file operations run as exec in
+// the target, so the equivalent permission is pods/exec: on the named pod,
+// or in the namespace for a volume (whose helper pod the operator picks).
+func authorizeFileAccess(datagram structs.Datagram, target dtos.PvcFileRequestDto) error {
+	identity := k8sexec.Identity{Email: datagram.User.Email, IsAdmin: target.IsAdmin || target.IsClusterAdmin}
+	return services.AuthorizeUserPodAccess(identity, target.Namespace, target.Pod, "exec", "create")
 }
 
 func (self *socketApi) execShConnection(podCmdConnectionRequest stream.PodCmdConnectionRequest) {

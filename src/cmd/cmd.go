@@ -322,6 +322,12 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_ENFORCE_USER_RBAC_FOR_FILES_LOGS_TUNNELS",
+		DefaultValue: new("false"),
+		Description:  new("check the requester's Kubernetes RBAC (pods/exec, pods/log, pods/portforward via their User CRD) before file operations, the session-less web terminal, pod log streams and workload tunnels, which run with the operator's identity; admins pass under MO_SSH_GATEWAY_ALLOW_ADMIN_BYPASS like on exec"),
+		Type:         new(config.ConfigVariableTypeBool),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_VALKEY_ADDR",
 		Description: new("Address of operator valkey Server"),
 		Validate: func(value string) error {

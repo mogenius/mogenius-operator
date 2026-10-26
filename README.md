@@ -103,6 +103,7 @@ if [[ -f .env ]]; then export $(grep -v '^#' .env | xargs); fi
 | `MO_EVENT_SERVER` | — | URL of the platform event WebSocket server (**required**) |
 | `MO_SKIP_TLS_VERIFICATION` | `false` | Skip TLS verification for API and Event Server |
 | `MO_PORT_FORWARD_ALLOW_EXTERNAL_HOSTS` | `false` | Allow port-forward tunnels to dial arbitrary hosts/IPs on the operator's network (`kind=host`), not just Kubernetes workloads. Off by default — enabling turns the operator into a proxy into the node's LAN (SSRF surface). Env alias: `PORT_FORWARD_ALLOW_EXTERNAL_HOSTS` |
+| `MO_ENFORCE_USER_RBAC_FOR_FILES_LOGS_TUNNELS` | `false` | Check the requester's Kubernetes RBAC (via their User CRD subject, `SelfSubjectAccessReview`) before file operations (`pods/exec`), the session-less web terminal (`pods/exec`), pod log streams (`pods/log`) and workload tunnels (`pods/portforward`). These run with the operator's identity; exec requests, terminal sessions and SSH are impersonated anyway. Admins pass under `MO_SSH_GATEWAY_ALLOW_ADMIN_BYPASS` when the request carries the admin flags |
 | `MO_VALKEY_ADDR` | — | Address (`host:port`) of the Valkey/Redis server (**required**) |
 | `MO_VALKEY_PASSWORD` | — | Password for the Valkey/Redis server |
 | `MO_HTTP_ADDR` | `:1337` | Listen address for the operator HTTP API |

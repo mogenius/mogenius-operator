@@ -26,11 +26,11 @@ type HttpService interface {
 }
 
 type httpService struct {
-	logger      *slog.Logger
-	config      cfg.ConfigModule
-	dbstats     ValkeyStatsDb
-	api         Api
-	reconciler  moreconciler.Reconciler
+	logger     *slog.Logger
+	config     cfg.ConfigModule
+	dbstats    ValkeyStatsDb
+	api        Api
+	reconciler moreconciler.Reconciler
 
 	socketapi SocketApi
 }

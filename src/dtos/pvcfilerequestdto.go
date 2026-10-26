@@ -16,6 +16,13 @@ type PvcFileRequestDto struct {
 	Pod       string `json:"pod,omitempty" validate:"required_without=PvcName"`
 	Container string `json:"container,omitempty"`
 	Path      string `json:"path" validate:"required"`
+
+	// IsAdmin / IsClusterAdmin are the platform's admin judgement, used like
+	// on exec requests when MO_ENFORCE_USER_RBAC_FOR_FILES_LOGS_TUNNELS
+	// checks the requester's access. Optional: without them the requester
+	// is checked through their User CRD.
+	IsAdmin        bool `json:"isAdmin,omitempty"`
+	IsClusterAdmin bool `json:"isClusterAdmin,omitempty"`
 }
 
 // AddressesPod reports whether the request names a pod rather than a volume.
