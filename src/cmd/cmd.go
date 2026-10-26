@@ -179,6 +179,12 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Description:  new("address of the controllers http api server"),
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_HTTP_SOCKETAPI_ALL_PATTERNS",
+		DefaultValue: new("false"),
+		Description:  new("allow every socket api pattern on the unauthenticated http endpoint /socketapi (local development only); when false only the read-only patterns used by the node stats page are served"),
+		Type:         new(config.ConfigVariableTypeBool),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "CLUSTER_DOMAIN",
 		DefaultValue: new("cluster.local"),
 		Description:  new("the cluster domain of the kubernetes cluster"),

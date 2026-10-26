@@ -9,6 +9,16 @@ import (
 	"encoding/json"
 )
 
+// httpSocketApiPublicPatterns are the patterns /socketapi serves by default.
+// The endpoint has no authentication and is reachable from every pod in the
+// cluster (and publicly when the node stats ingress/httproute is enabled),
+// while the socket api includes exec, secret and install patterns. Only the
+// read-only data behind the node stats page is exposed; everything else
+// requires MO_HTTP_SOCKETAPI_ALL_PATTERNS for local development.
+var httpSocketApiPublicPatterns = map[string]bool{
+	"get/nodes-metrics": true,
+}
+
 func (self *httpService) addApiRoutes(mux *http.ServeMux) {
 	mux.Handle("/socketapi", self.withRequestLogging(http.HandlerFunc(self.httpSocketApi)))
 	mux.HandleFunc("/api-doc", self.serveApiDocHtml)
@@ -37,7 +47,21 @@ func (self *httpService) httpSocketApi(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	self.logger.Info("http request for pattern", "datagram", datagram)
+	// log id and pattern only: payloads may carry credentials
+	self.logger.Info("http request for pattern", "id", datagram.Id, "pattern", datagram.Pattern)
+
+	if !httpSocketApiPublicPatterns[datagram.Pattern] {
+		allowAll, err := self.config.TryGetBool("MO_HTTP_SOCKETAPI_ALL_PATTERNS")
+		if err != nil || !allowAll {
+			self.logger.Warn("rejected http socketapi request for non-public pattern", "pattern", datagram.Pattern, "remoteAddr", r.RemoteAddr)
+			w.WriteHeader(http.StatusForbidden)
+			_, err := w.Write([]byte(`{"message":"pattern is not available on the http endpoint (set MO_HTTP_SOCKETAPI_ALL_PATTERNS=true for local development)"}`))
+			if err != nil {
+				self.logger.Error("failed to write response", "error", err)
+			}
+			return
+		}
+	}
 
 	result := self.socketapi.ExecuteCommandRequest(datagram)
 	datagram.Payload = result

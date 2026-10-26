@@ -1456,7 +1456,7 @@ func (self *socketApi) registerPatterns() {
 			// must leave an audit trail of who opened a tunnel to which pod.
 			_, err := store.AddToAuditLog(datagram, self.logger, any(nil), nil, nil, nil)
 			if err != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+				self.logger.Warn("failed to add event to audit log", "pattern", datagram.Pattern, "id", datagram.Id, "error", err)
 			}
 			return nil, nil
 		},
@@ -1470,7 +1470,7 @@ func (self *socketApi) registerPatterns() {
 			go self.execShConnection(request)
 			_, err := store.AddToAuditLog(datagram, self.logger, any(nil), nil, nil, nil)
 			if err != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+				self.logger.Warn("failed to add event to audit log", "pattern", datagram.Pattern, "id", datagram.Id, "error", err)
 			}
 			return nil, nil
 		},
@@ -1503,7 +1503,7 @@ func (self *socketApi) registerPatterns() {
 			// known once the stream ends.
 			_, err := store.AddToAuditLog(datagram, self.logger, any(nil), nil, nil, nil)
 			if err != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", err)
+				self.logger.Warn("failed to add event to audit log", "pattern", datagram.Pattern, "id", datagram.Id, "error", err)
 			}
 			return nil, nil
 		},
@@ -1730,7 +1730,7 @@ func (self *socketApi) registerPatterns() {
 			err := kubernetes.DeleteUnstructuredResource(request.ApiVersion, request.Plural, request.Namespace, request.ResourceName)
 			_, auditErr := store.AddToAuditLog(datagram, self.logger, any(nil), err, objToDel, nil)
 			if auditErr != nil {
-				self.logger.Warn("failed to add event to audit log", "request", request, "error", auditErr)
+				self.logger.Warn("failed to add event to audit log", "pattern", datagram.Pattern, "id", datagram.Id, "error", auditErr)
 			}
 			if err != nil {
 				return nil, err
@@ -2533,6 +2533,9 @@ func (self *socketApi) registerPatterns() {
 				// openai/anthropic the spec is only valid with a secret ref.
 				err := applyManagedApiKeyRef(request.Name, &request.Spec, request.ApiKey)
 				if err == nil {
+					err = checkApiSuppliedSecretRef(self.config.Get("MO_OWN_NAMESPACE"), request.Name, request.Spec.ApiKeySecretRef)
+				}
+				if err == nil {
 					err = ai.ValidateAiModelSpec(request.Spec)
 				}
 				if err == nil {
@@ -2557,6 +2560,9 @@ func (self *socketApi) registerPatterns() {
 				oldModel, _ := store.GetAiModel(self.config.Get("MO_OWN_NAMESPACE"), request.Name)
 				var res string
 				err := applyManagedApiKeyRef(request.Name, &request.Spec, request.ApiKey)
+				if err == nil {
+					err = checkApiSuppliedSecretRef(self.config.Get("MO_OWN_NAMESPACE"), request.Name, request.Spec.ApiKeySecretRef)
+				}
 				if err == nil {
 					err = ai.ValidateAiModelSpec(request.Spec)
 				}
@@ -2605,6 +2611,13 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "test/aimodel"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (*ai.AiModelTestResult, error) {
+				// a key override replaces the ref, so only a ref that would
+				// actually be resolved needs the check
+				if request.Spec != nil && request.ApiKey == "" {
+					if err := checkApiSuppliedSecretRef(self.config.Get("MO_OWN_NAMESPACE"), request.Name, request.Spec.ApiKeySecretRef); err != nil {
+						return nil, err
+					}
+				}
 				return self.aiApi.TestAiModel(request.Name, request.Spec, request.ApiKey)
 			},
 		)
