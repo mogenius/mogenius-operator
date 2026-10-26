@@ -62,6 +62,12 @@ LABEL org.opencontainers.image.description="mogenius-operator"
 
 ENV VERIFY_CHECKSUM=false
 ENV CGO_ENABLED=0
+# "|" instead of the default "," makes Go fall back to fetching from the VCS on
+# any proxy error, not only on 404/410. The amd64 ARC runners intermittently get
+# HTTP/2 INTERNAL_ERROR stream resets from proxy.golang.org on the larger module
+# zips (k8s.io/api, k8s.io/client-go), which otherwise fails the whole build.
+# go.sum still pins every module, so the fallback cannot change what gets built.
+ENV GOPROXY=https://proxy.golang.org|direct
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -81,7 +87,12 @@ ARG GO_BUILD_PARALLELISM=
 
 # Download dependencies first (better layer caching)
 COPY go.mod go.sum ./
-RUN go mod download
+RUN for attempt in 1 2 3; do \
+      go mod download && exit 0; \
+      echo "go mod download failed (attempt ${attempt}/3), retrying" >&2; \
+      sleep $((attempt * 5)); \
+    done; \
+    exit 1
 
 # Copy source code
 COPY . .
