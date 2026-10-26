@@ -19,6 +19,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"encoding/json"
 
@@ -33,6 +34,18 @@ const (
 	ARGO_CD_USER_SECRET_NAME = "argo-cd-secret"                  // mogenius argo-cd configmap name
 	ARGO_CD_SERVER_URL       = "%s://%s.%s.svc.cluster.local:%s" // scheme, deployment, namespace, port
 )
+
+// argoHTTPClient is shared by all ArgoCD API calls. A fresh Transport per call
+// never reuses connections and, without an idle timeout, keeps every idle
+// connection (socket + goroutines) open forever. TLS verification is skipped
+// because in-cluster ArgoCD typically serves a self-signed certificate.
+var argoHTTPClient = &http.Client{
+	Timeout: 30 * time.Second,
+	Transport: &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		IdleConnTimeout: 90 * time.Second,
+	},
+}
 
 type Argocd interface {
 	ArgoCdCreateApiToken(data ArgoCdCreateApiTokenRequest) (bool, error)
@@ -349,12 +362,6 @@ func (self *argocd) syncApplication(data ArgoCdApplicationSyncRequest, token str
 		return false, fmt.Errorf("failed to marshal sync body: %w", err)
 	}
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
 	req, err := http.NewRequest("POST", url, bytes.NewReader(bodyJSON))
 	if err != nil {
 		return false, fmt.Errorf("failed to create request: %w", err)
@@ -363,7 +370,7 @@ func (self *argocd) syncApplication(data ArgoCdApplicationSyncRequest, token str
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Do(req)
+	resp, err := argoHTTPClient.Do(req)
 	if err != nil {
 		return false, fmt.Errorf("sync request failed: %w", err)
 	}
@@ -386,12 +393,6 @@ func (self *argocd) syncApplication(data ArgoCdApplicationSyncRequest, token str
 func (self *argocd) terminateOperation(applicationName, token string) (bool, error) {
 	url := fmt.Sprintf("%s/api/v1/applications/%s/operation", *self.argoURL, applicationName)
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
 		return false, fmt.Errorf("failed to create request: %w", err)
@@ -400,7 +401,7 @@ func (self *argocd) terminateOperation(applicationName, token string) (bool, err
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Do(req)
+	resp, err := argoHTTPClient.Do(req)
 	if err != nil {
 		return false, fmt.Errorf("terminate request failed: %w", err)
 	}
@@ -440,12 +441,6 @@ func (self *argocd) resourceAction(data ArgoCdResourceActionRequest, token strin
 		return false, fmt.Errorf("failed to marshal action body: %w", err)
 	}
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
 	req, err := http.NewRequest("POST", url, bytes.NewReader(bodyJSON))
 	if err != nil {
 		return false, fmt.Errorf("failed to create request: %w", err)
@@ -454,7 +449,7 @@ func (self *argocd) resourceAction(data ArgoCdResourceActionRequest, token strin
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := client.Do(req)
+	resp, err := argoHTTPClient.Do(req)
 	if err != nil {
 		return false, fmt.Errorf("resource action request failed: %w", err)
 	}
@@ -478,13 +473,7 @@ func (self *argocd) createArgoToken(username, password, account string) (string,
 	loginBody := map[string]string{"username": username, "password": password}
 	loginJSON, _ := json.Marshal(loginBody)
 
-	httpClient := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // skip TLS verification for self-signed certs
-		},
-	}
-
-	responseSession, err := httpClient.Post(fmt.Sprintf("%s/api/v1/session", *self.argoURL), "application/json", bytes.NewReader(loginJSON))
+	responseSession, err := argoHTTPClient.Post(fmt.Sprintf("%s/api/v1/session", *self.argoURL), "application/json", bytes.NewReader(loginJSON))
 	if err != nil {
 		return "", fmt.Errorf("failed to call login: %w", err)
 	}
@@ -514,12 +503,7 @@ func (self *argocd) createArgoToken(username, password, account string) (string,
 	req.Header.Set("Authorization", "Bearer "+session.Token)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true}, // skip TLS verification for self-signed certs
-		},
-	}
-	responseApiToken, err := client.Do(req)
+	responseApiToken, err := argoHTTPClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("failed to create token: %w", err)
 	}
@@ -549,12 +533,6 @@ func (self *argocd) refreshApplication(applicationName, token string, hard bool)
 		refreshType = "hard"
 	}
 	url := fmt.Sprintf("%s/api/v1/applications/%s?refresh=%s", *self.argoURL, applicationName, refreshType)
-	client := &http.Client{
-		Transport: &http.Transport{
-			TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-		},
-	}
-
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return false, fmt.Errorf("failed to create request: %w", err)
@@ -563,7 +541,7 @@ func (self *argocd) refreshApplication(applicationName, token string, hard bool)
 	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := client.Do(req)
+	resp, err := argoHTTPClient.Do(req)
 	if err != nil {
 		return false, fmt.Errorf("request failed: %w", err)
 	}
