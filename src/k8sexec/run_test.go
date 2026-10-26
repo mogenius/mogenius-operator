@@ -223,7 +223,7 @@ func TestStreamShellCommandExitsWithoutWaitingForStdin(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer stdin.Close()
+	defer func() { _ = stdin.Close() }()
 	var out, errOut bytes.Buffer
 	cmd.Stdout = &out
 	cmd.Stderr = &errOut
@@ -266,8 +266,8 @@ func TestStreamShellCommandDiesWhenStdinCloses(t *testing.T) {
 	time.Sleep(300 * time.Millisecond)
 	_ = stdin.Close()
 
-	done := make(chan error, 1)
-	go func() { done <- cmd.Wait() }()
+	done := make(chan struct{})
+	go func() { _ = cmd.Wait(); close(done) }()
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):

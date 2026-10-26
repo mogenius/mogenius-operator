@@ -128,8 +128,6 @@ func execSync(t *testing.T, ref SessionRequest, command string) SessionExecRespo
 	return response
 }
 
-func intPtr(v int) *int { return &v }
-
 // The acceptance case from the ticket: state carries over between commands.
 func TestSessionKeepsShellState(t *testing.T) {
 	useLocalShell(t)

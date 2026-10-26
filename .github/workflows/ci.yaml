@@ -52,14 +52,24 @@ jobs:
         if: steps.go-cache.outputs.cache-hit != 'true'
         run: find ~/.cache/go-build -type f -exec touch -m -d '2 hours ago' {} +
 
+      # Compile errors (e.g. a dependency's breaking API change) fail here with
+      # the error itself, instead of as "[build failed]" lines among the tests.
+      - name: Build
+        id: build
+        run: go build ./src/...
+
       - name: Test
         run: go test ./src/...
 
+      # Runs after failed tests too, so one CI run shows all findings at once.
       - name: golangci-lint
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
+          # Keep in sync with the golangci-lint recipe in the Justfile (Renovate updates both).
           version: 'v2.15.0'
-          args: --config=.golangci.yml ./src
+          # ./src alone would lint only the src package itself, not its subpackages.
+          args: --config=.golangci.yml ./src/...
 
       - name: Prune unused build cache entries
         if: success() && steps.go-cache.outputs.cache-hit != 'true'
