@@ -18,6 +18,8 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+
+	"github.com/valkey-io/valkey-go"
 )
 
 const (
@@ -50,7 +52,7 @@ type ValkeyStatsDb interface {
 	AddNodeCpuProcessMetricsToDb(nodeName string, data any) error
 	AddNodeTrafficMetricsToDb(nodeName string, data any) error
 	AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error
-	GetCniData() ([]structs.CniData, error)
+	GetCniData(nodeNames []string) ([]structs.CniData, error)
 	GetLatestNodeStatsForNode(nodeName string) (*structs.NodeStats, error)
 	GetMachineStatsForNode(nodeName string) (*structs.MachineStats, error)
 	GetMachineStatsForNodes(nodeNames []string) []structs.MachineStats
@@ -209,13 +211,35 @@ func (self *valkeyStatsDb) ReplaceCniData(data []structs.CniData) {
 	}
 }
 
-func (self *valkeyStatsDb) GetCniData() ([]structs.CniData, error) {
-	result, err := valkeyclient.GetObjectsByPrefix[structs.CniData](
-		self.valkey,
-		valkeyclient.ORDER_NONE,
-		DB_STATS_CNI_BUCKET_NAME,
-	)
-	return result, err
+// GetCniData reads the CNI configuration of the given nodes, one pipelined
+// round trip. It used to SCAN the whole keyspace for a pattern without
+// wildcard, which could never match the per-node keys ReplaceCniData writes,
+// on every cluster resource-info refresh.
+func (self *valkeyStatsDb) GetCniData(nodeNames []string) ([]structs.CniData, error) {
+	result := []structs.CniData{}
+	if len(nodeNames) == 0 {
+		return result, nil
+	}
+	client := self.valkey.GetValkeyClient()
+	cmds := make([]valkey.Completed, len(nodeNames))
+	for i, node := range nodeNames {
+		cmds[i] = client.B().Get().Key(DB_STATS_CNI_BUCKET_NAME + ":" + node).Build()
+	}
+	for i, resp := range client.DoMulti(self.valkey.GetContext(), cmds...) {
+		raw, err := resp.ToString()
+		if err != nil {
+			if !valkey.IsValkeyNil(err) {
+				return result, fmt.Errorf("get cni data of node %s: %w", nodeNames[i], err)
+			}
+			continue
+		}
+		var data structs.CniData
+		if err := json.Unmarshal([]byte(raw), &data); err != nil {
+			return result, fmt.Errorf("unmarshal cni data of node %s: %w", nodeNames[i], err)
+		}
+		result = append(result, data)
+	}
+	return result, nil
 }
 
 func (self *valkeyStatsDb) GetPodStatsEntriesForController(kind string, name string, namespace string, timeOffsetMinutes int64) *[]structs.PodStats {
@@ -609,7 +633,7 @@ func (self *valkeyStatsDb) AddNodeRamMetricsToDb(nodeName string, data any) erro
 }
 
 func (self *valkeyStatsDb) AddNodeRamProcessMetricsToDb(nodeName string, data any) error {
-	return self.publishAndSet(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+	return self.publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data any) error {
@@ -617,7 +641,7 @@ func (self *valkeyStatsDb) AddNodeCpuMetricsToDb(nodeName string, data any) erro
 }
 
 func (self *valkeyStatsDb) AddNodeCpuProcessMetricsToDb(nodeName string, data any) error {
-	return self.publishAndSet(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
+	return self.publish(data, DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName)
 }
 
 func (self *valkeyStatsDb) AddNodeTrafficMetricsToDb(nodeName string, data any) error {
@@ -666,6 +690,20 @@ func (self *valkeyStatsDb) publishAndSet(data any, keys ...string) error {
 		self.logger.Error("Error publishing to Redis", "error", err, "key", key)
 	}
 	return results[1].Error()
+}
+
+// publish only publishes live stats. The per-process snapshots are consumed
+// exclusively by live-stream subscribers and never read back with GET;
+// storing them as well (tens of KB per node, every second) was pure write
+// load on Valkey.
+func (self *valkeyStatsDb) publish(data any, keys ...string) error {
+	key := strings.Join(keys, ":")
+	jsonData, err := json.Marshal(data)
+	if err != nil {
+		return fmt.Errorf("error marshalling live stats for %q: %w", key, err)
+	}
+	client := self.valkey.GetValkeyClient()
+	return client.Do(self.valkey.GetContext(), client.B().Publish().Channel(key).Message(string(jsonData)).Build()).Error()
 }
 
 type GenericChartEntry struct {
