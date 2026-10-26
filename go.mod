@@ -1,13 +1,13 @@
 module mogenius-operator
 
-go 1.27.0
+go 1.27.3
 
 require (
 	github.com/KimMachineGun/automemlimit v1.0.1
 	github.com/alecthomas/kong v1.16.1
 	github.com/alicebob/miniredis/v2 v2.40.0
 	github.com/anthropics/anthropic-sdk-go v1.84.0
-	github.com/bitnami/sealed-secrets v0.40.0
+	github.com/bitnami/sealed-secrets v0.41.1
 	github.com/creack/pty v1.1.24
 	github.com/go-acme/lego/v4 v4.35.2
 	github.com/go-playground/validator/v10 v10.30.5
