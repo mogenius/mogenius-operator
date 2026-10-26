@@ -7,8 +7,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/anthropics/anthropic-sdk-go"
-	anthropic_option "github.com/anthropics/anthropic-sdk-go/option"
+	"github.com/anthropics/anthropic-sdk-go/v2"
+	anthropic_option "github.com/anthropics/anthropic-sdk-go/v2/option"
 )
 
 const anthropicDefaultMaxTokens = 8192

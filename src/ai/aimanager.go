@@ -30,8 +30,8 @@ import (
 	"github.com/openai/openai-go/v3/option"
 	"github.com/valkey-io/valkey-go"
 
-	"github.com/anthropics/anthropic-sdk-go"
-	anthropic_option "github.com/anthropics/anthropic-sdk-go/option"
+	"github.com/anthropics/anthropic-sdk-go/v2"
+	anthropic_option "github.com/anthropics/anthropic-sdk-go/v2/option"
 
 	ollama "github.com/ollama/ollama/api"
 )
