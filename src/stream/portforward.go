@@ -358,6 +358,10 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 	headers.Add("x-pod-name", podName)
 	headers.Add("x-type", "k8s")
 
+	if err := utils.CheckPlatformStreamURL(wsURL); err != nil {
+		logger.Error("refusing stream gateway connection", "error", err)
+		return
+	}
 	logger.Info("Connecting to stream gateway", "url", wsURL.String())
 	dialer := &websocket.Dialer{
 		EnableCompression: true,

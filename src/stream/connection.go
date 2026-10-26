@@ -227,6 +227,11 @@ func GenerateWsConnection(
 	ctx context.Context,
 	cancel context.CancelFunc,
 ) (readMessages *chan ReadMessage, conn *websocket.Conn, connWriteLock *sync.Mutex, connReadLock *sync.Mutex, err error) {
+	if err := utils.CheckPlatformStreamURL(u); err != nil {
+		streamLogger.Error("refusing stream connection", "error", err)
+		return nil, nil, nil, nil, err
+	}
+
 	maxRetries := 6
 	currentRetries := 0
 	// Small buffer so a burst of control frames (PEER_IS_READY, resize) does
