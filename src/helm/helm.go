@@ -650,6 +650,12 @@ func HelmRepoPatch(data HelmRepoPatchRequest) (string, error) {
 		return "", fmt.Errorf("failed to load repository file: %s", err)
 	}
 
+	// a rename onto another existing repository would leave two entries
+	// with the same name in repositories.yaml
+	if data.NewName != data.Name && repoFile.Has(data.NewName) {
+		return "", fmt.Errorf("repository with name '%s' already exists", data.NewName)
+	}
+
 	found := false
 	for _, re := range repoFile.Repositories {
 		if re.Name == data.Name {
@@ -680,6 +686,9 @@ func HelmRepoPatch(data HelmRepoPatchRequest) (string, error) {
 	if err := repoFile.WriteFile(file, 0644); err != nil {
 		return "", fmt.Errorf("failed to write repositories.yaml: %w", err)
 	}
+	// Persist like add/remove do: on startup the file is restored from the
+	// Valkey copy, which would otherwise silently revert the patch.
+	_ = saveRepositoryFileToValkey()
 
 	return fmt.Sprintf("repository '%s' updated", data.Name), nil
 }
@@ -1410,8 +1419,11 @@ func HelmReleaseUpgrade(data HelmChartInstallUpgradeRequest) (result string, err
 
 func HelmReleaseUninstall(data HelmReleaseUninstallRequest) (result string, err error) {
 	defer invalidateReleaseListCache() // the release set changed
+	// The release is gone after a successful uninstall, so are its logs. A
+	// failed uninstall keeps them: they hold the failure reason (same
+	// rationale as install/upgrade, MOG-4306).
 	defer func() {
-		if err != nil {
+		if err == nil {
 			cleanReleaseLogs(data.Namespace, data.Release)
 		}
 	}()

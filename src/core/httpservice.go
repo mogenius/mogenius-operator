@@ -9,12 +9,10 @@ import (
 	"mogenius-operator/src/logging"
 	moreconciler "mogenius-operator/src/reconciler"
 	"mogenius-operator/src/shutdown"
-	"mogenius-operator/src/structs"
 	"mogenius-operator/src/version"
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"sync"
 	"time"
 
 	"encoding/json"
@@ -25,7 +23,6 @@ import (
 type HttpService interface {
 	Run()
 	Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api, reconciler moreconciler.Reconciler)
-	Broadcaster() *Broadcaster
 }
 
 type httpService struct {
@@ -33,64 +30,9 @@ type httpService struct {
 	config      cfg.ConfigModule
 	dbstats     ValkeyStatsDb
 	api         Api
-	broadcaster *Broadcaster
 	reconciler  moreconciler.Reconciler
 
 	socketapi SocketApi
-}
-
-type MessageCallback struct {
-	Id      string
-	MsgType string
-	MsgFunc func(message any)
-}
-
-func NewMessageCallback(datagram structs.Datagram, callback func(message any)) MessageCallback {
-	self := MessageCallback{}
-	self.Id = datagram.Id
-	self.MsgType = datagram.Pattern
-	self.MsgFunc = callback
-
-	return self
-}
-
-func (self *MessageCallback) Equals(other *MessageCallback) bool {
-	return self.Id == other.Id
-}
-
-type Broadcaster struct {
-	mu        sync.RWMutex
-	Listeners []MessageCallback
-}
-
-// Add a listener (callback) to the broadcaster
-func (self *Broadcaster) AddListener(callback MessageCallback) {
-	self.mu.Lock()
-	defer self.mu.Unlock()
-	self.Listeners = append(self.Listeners, callback)
-}
-
-// Remove a listener (callback) from the broadcaster
-func (self *Broadcaster) RemoveListener(callback MessageCallback) {
-	self.mu.Lock()
-	defer self.mu.Unlock()
-
-	for i := len(self.Listeners) - 1; i >= 0; i-- {
-		if self.Listeners[i].Equals(&callback) {
-			self.Listeners = append(self.Listeners[:i], self.Listeners[i+1:]...)
-		}
-	}
-}
-
-func (self *Broadcaster) BroadcastResponse(message any, messageType string) {
-	self.mu.RLock()
-	defer self.mu.RUnlock()
-
-	for _, listener := range self.Listeners {
-		if listener.MsgType == messageType {
-			listener.MsgFunc(message)
-		}
-	}
 }
 
 func NewHttpApi(
@@ -104,11 +46,6 @@ func NewHttpApi(
 
 	self.logger = logManagerModule.CreateLogger("http")
 	self.config = configModule
-	self.broadcaster = &Broadcaster{
-		Listeners: []MessageCallback{},
-		mu:        sync.RWMutex{},
-	}
-
 	return self
 }
 
@@ -178,10 +115,6 @@ func (self *httpService) Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiMod
 	self.dbstats = dbstats
 	self.api = apiModule
 	self.reconciler = reconciler
-}
-
-func (self *httpService) Broadcaster() *Broadcaster {
-	return self.broadcaster
 }
 
 func (self *httpService) getHealthz(w http.ResponseWriter, _ *http.Request) {

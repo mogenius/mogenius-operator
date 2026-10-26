@@ -9,14 +9,11 @@ func SumMemoryResources(pods []v1.Pod) (request int64, limit int64) {
 	resultLimit := int64(0)
 	for _, pod := range pods {
 		for _, container := range pod.Spec.Containers {
-			memReq, works := container.Resources.Requests.Memory().AsDec().Unscaled()
-			if works && memReq != 0 {
-				resultRequest += memReq
-			}
-			memLim, works := container.Resources.Limits.Memory().AsDec().Unscaled()
-			if works && memLim != 0 {
-				resultLimit += memLim
-			}
+			// Value() is the quantity in bytes. AsDec().Unscaled() returned
+			// the unscaled mantissa, i.e. "1G" counted as 1 byte and "1.5Gi"
+			// as 1.5e18.
+			resultRequest += container.Resources.Requests.Memory().Value()
+			resultLimit += container.Resources.Limits.Memory().Value()
 		}
 	}
 	return resultRequest, resultLimit
