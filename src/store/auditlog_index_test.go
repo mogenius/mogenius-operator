@@ -33,6 +33,10 @@ func setupAuditTestStore(t *testing.T) {
 	cfg.Declare(config.ConfigDeclaration{Key: "MO_VALKEY_PASSWORD", DefaultValue: str("")})
 	cfg.Declare(config.ConfigDeclaration{Key: "MO_STATS_RETENTION_MAX_ENTRIES", DefaultValue: str("")})
 	cfg.Declare(config.ConfigDeclaration{Key: "MO_STATS_RETENTION_HOURS", DefaultValue: str("")})
+	// Connect reads these since Valkey auth/TLS support; undeclared they panic
+	for _, key := range []string{"MO_VALKEY_USERNAME", "MO_VALKEY_TLS_CA_CERT_FILE", "MO_VALKEY_TLS_CLIENT_CERT_FILE", "MO_VALKEY_TLS_CLIENT_KEY_FILE"} {
+		cfg.Declare(config.ConfigDeclaration{Key: key, DefaultValue: str("")})
+	}
 
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	vc := valkeyclient.NewValkeyClient(logger, cfg)

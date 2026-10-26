@@ -1817,7 +1817,7 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "get/workload/pod-events"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request PodEventsRequest) ([]PodEvent, error) {
-				data, err := self.valkeyClient.List(50, "resources", "v1", "Event", request.Namespace, request.PodName+"*")
+				data, err := store.GetNewestResourcesByNamePrefix("v1", "Event", request.Namespace, request.PodName, 50)
 				if err != nil {
 					return nil, err
 				}

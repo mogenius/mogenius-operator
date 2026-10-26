@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
@@ -34,6 +35,7 @@ type ValkeyClient interface {
 	DeleteFromSortedListWithNsAndReleaseName(namespace string, releaseName string, keys ...string) error
 
 	StoreSortedListEntry(data any, timestamp int64, keys ...string) error
+	StoreSortedListEntries(entries []SortedListEntry) error
 
 	ClearNonEssentialKeys(includeTraffic bool, includePodStats bool, includeNodestats bool) (string, error)
 
@@ -1220,6 +1222,94 @@ func GetLastObjectsFromSortedList[T any](store ValkeyClient, count int64, keys .
 	}
 
 	return parseStreamMessages[T](store.GetLogger(), messages)
+}
+
+// SortedListEntry is one stream write of StoreSortedListEntries.
+type SortedListEntry struct {
+	Data      any
+	Timestamp int64
+	Keys      []string
+}
+
+// sortedListBatchSize caps the entries pipelined per round trip.
+const sortedListBatchSize = 500
+
+// StoreSortedListEntries is StoreSortedListEntry for many entries: per chunk
+// one pipelined round trip for all XADDs plus the retention trim and TTL
+// refresh once per distinct stream (not once per entry), and one for the
+// publishes of the entries that were stored. A failing entry no longer
+// aborts the rest; all failures are returned joined.
+func (self *valkeyClient) StoreSortedListEntries(entries []SortedListEntry) error {
+	var errs []error
+	for chunk := range slices.Chunk(entries, sortedListBatchSize) {
+		type prepared struct {
+			payload string
+			keys    []string
+		}
+		items := make([]prepared, 0, len(chunk))
+		cmds := make([]valkeyclient.Completed, 0, len(chunk)+8)
+		streams := map[string]struct{}{}
+		for _, entry := range chunk {
+			jsonData, err := json.Marshal(entry.Data)
+			if err != nil {
+				errs = append(errs, fmt.Errorf("failed to marshal data: %w", err))
+				continue
+			}
+			timestamp := entry.Timestamp
+			// make sure it's in milliseconds because valkey requires it
+			if timestamp < 10000000000 {
+				timestamp = timestamp * 1000
+			}
+			streamKey := createKey(entry.Keys...)
+			// server-assigned sequence, see StoreSortedListEntry
+			cmds = append(cmds, self.valkeyClient.B().Xadd().Key(streamKey).Id(fmt.Sprintf("%d-*", timestamp)).FieldValue().
+				FieldValue("data", string(jsonData)).
+				Build())
+			items = append(items, prepared{payload: string(jsonData), keys: entry.Keys})
+			streams[streamKey] = struct{}{}
+		}
+		xadds := len(items)
+		for streamKey := range streams {
+			if MAX_RETENTION_TIME > 0 {
+				cutoffID := fmt.Sprintf("%d-0", time.Now().Add(-MAX_RETENTION_TIME).UnixMilli())
+				cmds = append(cmds, self.valkeyClient.B().Xtrim().Key(streamKey).Minid().Threshold(cutoffID).Build())
+			}
+			if MAX_RETENTION_SIZE > 0 {
+				cmds = append(cmds, self.valkeyClient.B().Xtrim().Key(streamKey).Maxlen().Threshold(fmt.Sprintf("%d", MAX_RETENTION_SIZE)).Build())
+			}
+			cmds = append(cmds, self.valkeyClient.B().Expire().Key(streamKey).Seconds(int64(MAX_RETENTION_TIME.Seconds())).Build())
+		}
+		if len(cmds) == 0 {
+			continue
+		}
+
+		results := self.valkeyClient.DoMulti(self.ctx, cmds...)
+		publishes := make([]valkeyclient.Completed, 0, xadds)
+		for i := range xadds {
+			if err := results[i].Error(); err != nil {
+				// a writer clock behind the stream top: nothing stored,
+				// nothing to publish (see StoreSortedListEntry)
+				if !strings.Contains(err.Error(), "The ID specified in XADD is equal or smaller than the target stream top item") {
+					errs = append(errs, fmt.Errorf("failed to add to stream %s: %w", createKey(items[i].keys...), err))
+				}
+				continue
+			}
+			publishes = append(publishes, self.valkeyClient.B().Publish().Channel(createChannel(items[i].keys...)).Message(items[i].payload).Build())
+		}
+		for _, result := range results[xadds:] {
+			if err := result.Error(); err != nil && err.Error() != "ERR no such key" {
+				self.logger.Error("failed to trim/expire stream", "error", err.Error())
+			}
+		}
+		if len(publishes) > 0 {
+			for _, result := range self.valkeyClient.DoMulti(self.ctx, publishes...) {
+				if err := result.Error(); err != nil {
+					errs = append(errs, err)
+				}
+			}
+		}
+	}
+	return errors.Join(errs...)
 }
 
 func createChannel(parts ...string) string {

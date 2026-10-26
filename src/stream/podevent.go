@@ -3,7 +3,7 @@ package stream
 import (
 	"context"
 	"fmt"
-	"mogenius-operator/src/kubernetes"
+	mirrorStore "mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
 	"net/url"
 	"sort"
@@ -59,7 +59,7 @@ func PodEventStreamConnection(wsConnectionRequest WsConnectionRequest, namespace
 		return
 	}
 
-	data, err := store.List(50, kubernetes.VALKEY_RESOURCE_PREFIX, "v1", "Event", namespace, controller+"*")
+	data, err := mirrorStore.GetNewestResourcesByNamePrefix("v1", "Event", namespace, controller, 50)
 	if err != nil {
 		streamLogger.Error("Error getting events from pod-events", "error", err.Error())
 		return

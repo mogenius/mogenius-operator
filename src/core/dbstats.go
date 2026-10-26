@@ -603,7 +603,14 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 	return sortedEntries, nil
 }
 
+// AddPodStatsToDb stores one stream entry per container. It runs every
+// minute for every container of the cluster, so the writes are pipelined in
+// batches (StoreSortedListEntries) instead of two round trips per container,
+// and one failing entry no longer drops the rest of the cycle.
 func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
+	now := time.Now()
+	minute := now.Truncate(time.Minute).Unix()
+	entries := make([]valkeyclient.SortedListEntry, 0, len(stats))
 	for _, stat := range stats {
 		controller := self.ownerCacheService.ControllerForPod(stat.Namespace, stat.PodName)
 		if controller == nil {
@@ -611,19 +618,19 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 			continue
 		}
 
-		stat.CreatedAt = time.Now()
+		stat.CreatedAt = now
 		// Capture before stripping; Namespace is redundant in the entry payload
 		// (it's already in the stream key) and is refilled by readers.
 		namespace := stat.Namespace
 		stat.Namespace = ""
-		err := self.valkey.StoreSortedListEntry(
-			stat,
-			time.Now().Truncate(time.Minute).Unix(),
-			DB_STATS_POD_STATS_BUCKET_NAME, namespace, controller.ResourceName,
-		)
-		if err != nil {
-			return fmt.Errorf("error adding pod stats: %s", err)
-		}
+		entries = append(entries, valkeyclient.SortedListEntry{
+			Data:      stat,
+			Timestamp: minute,
+			Keys:      []string{DB_STATS_POD_STATS_BUCKET_NAME, namespace, controller.ResourceName},
+		})
+	}
+	if err := self.valkey.StoreSortedListEntries(entries); err != nil {
+		return fmt.Errorf("error adding pod stats: %w", err)
 	}
 	return nil
 }

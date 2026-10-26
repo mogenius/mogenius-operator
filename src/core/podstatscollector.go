@@ -11,6 +11,7 @@ import (
 	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
+	"sync"
 	"time"
 
 	"encoding/json"
@@ -21,14 +22,23 @@ import (
 
 type PodStatsCollector interface {
 	Run()
-	Link(statsDb ValkeyStatsDb)
+	Link(statsDb ValkeyStatsDb, isLeading func() bool)
 }
+
+// nodeMetricsConcurrency bounds the parallel kubelet /stats/summary requests
+// of one collection cycle; fetched one after another, a few hundred nodes
+// took longer than the collection interval.
+const nodeMetricsConcurrency = 10
 
 type podStatsCollector struct {
 	logger         *slog.Logger
 	clientProvider k8sclient.K8sClientProvider
 	statsDb        ValkeyStatsDb
 	config         config.ConfigModule
+	// isLeading gates collection to the leading replica: every replica
+	// wrote the same per-controller streams, multiplying the entries the
+	// stats aggregations sum up.
+	isLeading func() bool
 
 	startTime      time.Time
 	updateInterval uint64
@@ -50,10 +60,12 @@ func NewPodStatsCollector(
 	return self
 }
 
-func (self *podStatsCollector) Link(statsDb ValkeyStatsDb) {
+func (self *podStatsCollector) Link(statsDb ValkeyStatsDb, isLeading func() bool) {
 	assert.Assert(statsDb != nil)
+	assert.Assert(isLeading != nil)
 
 	self.statsDb = statsDb
+	self.isLeading = isLeading
 }
 
 func (self *podStatsCollector) Run() {
@@ -71,12 +83,20 @@ func (self *podStatsCollector) Run() {
 		go func() {
 			interval := time.Duration(self.updateInterval) * time.Second
 			for {
+				if !self.isLeading() {
+					// re-check soon: right after startup the election
+					// usually settles within seconds
+					if !sleepCtx(ctx, 5*time.Second) {
+						return
+					}
+					continue
+				}
 				nodemetrics := self.getRealNodeMetrics()
 
 				pods := store.GetPods("*")
 				currentPods := make(map[string]*v1.Pod, len(pods))
 				for i := range pods {
-					currentPods[pods[i].Name] = &pods[i]
+					currentPods[podStatsKey(pods[i].Namespace, pods[i].Name)] = &pods[i]
 				}
 
 				podsResult, err := self.podStats(nodemetrics, currentPods)
@@ -137,26 +157,44 @@ func (self *podStatsCollector) nodeStats(nodemetrics []podstatscollector.NodeMet
 }
 
 func (self *podStatsCollector) getRealNodeMetrics() []podstatscollector.NodeMetrics {
-	result := []podstatscollector.NodeMetrics{}
+	var (
+		mu     sync.Mutex
+		wg     sync.WaitGroup
+		result = []podstatscollector.NodeMetrics{}
+		slots  = make(chan struct{}, nodeMetricsConcurrency)
+	)
 	for _, node := range store.GetNodes() {
 		if len(node.Status.Addresses) == 0 {
 			self.logger.Debug("skipping node with no addresses", "node", node.Name)
 			continue
 		}
-		nodeStats, err := self.requestMetricsDataFromNode(node.Name)
-		if err != nil {
-			if k8serrors.IsNotFound(err) {
-				self.logger.Warn("node no longer exists, removing from store", "node", node.Name)
-				_ = store.DeleteNode(node.Name)
-			} else {
-				self.logger.Error("failed to request metrics from node", "error", err)
+		slots <- struct{}{}
+		wg.Go(func() {
+			defer func() { <-slots }()
+			nodeStats, err := self.requestMetricsDataFromNode(node.Name)
+			if err != nil {
+				if k8serrors.IsNotFound(err) {
+					self.logger.Warn("node no longer exists, removing from store", "node", node.Name)
+					_ = store.DeleteNode(node.Name)
+				} else {
+					self.logger.Error("failed to request metrics from node", "node", node.Name, "error", err)
+				}
+				return
 			}
-			continue
-		}
-		result = append(result, *nodeStats)
+			mu.Lock()
+			result = append(result, *nodeStats)
+			mu.Unlock()
+		})
 	}
+	wg.Wait()
 
 	return result
+}
+
+// podStatsKey identifies a pod across namespaces: keyed by name alone, pods
+// of the same name in different namespaces overwrote each other.
+func podStatsKey(namespace, name string) string {
+	return namespace + "/" + name
 }
 
 func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetrics, pods map[string]*v1.Pod) ([]structs.PodStats, error) {
@@ -166,7 +204,7 @@ func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetr
 	for _, nodeMetric := range nodemetrics {
 		for _, pod := range nodeMetric.Pods {
 			for _, container := range pod.Containers {
-				key := pod.PodRef.Name + ":" + container.Name
+				key := podStatsKey(pod.PodRef.Namespace, pod.PodRef.Name) + ":" + container.Name
 				ephemeralStorageMap[key] += int64(pod.EphemeralStorage.UsedBytes)
 			}
 		}
@@ -176,7 +214,7 @@ func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetr
 
 	for _, nodeMetric := range nodemetrics {
 		for _, kubeletPod := range nodeMetric.Pods {
-			pod, exists := pods[kubeletPod.PodRef.Name]
+			pod, exists := pods[podStatsKey(kubeletPod.PodRef.Namespace, kubeletPod.PodRef.Name)]
 			if !exists {
 				continue
 			}
@@ -207,7 +245,7 @@ func (self *podStatsCollector) podStats(nodemetrics []podstatscollector.NodeMetr
 				}
 
 				// O(1) lookup instead of O(n³) nested loops
-				key := kubeletPod.PodRef.Name + ":" + container.Name
+				key := podStatsKey(kubeletPod.PodRef.Namespace, kubeletPod.PodRef.Name) + ":" + container.Name
 				entry.EphemeralStorage = ephemeralStorageMap[key]
 
 				result = append(result, entry)

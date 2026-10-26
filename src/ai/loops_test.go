@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"mogenius-operator/src/ai/aisdk"
+	movalkey "mogenius-operator/src/valkeyclient"
 
 	valkeyclient "github.com/valkey-io/valkey-go"
 	"github.com/stretchr/testify/assert"
@@ -76,6 +77,7 @@ func (noopValkeyClient) DeleteFromSortedListWithNsAndReleaseName(_ string, _ str
 	return nil
 }
 func (noopValkeyClient) StoreSortedListEntry(_ any, _ int64, _ ...string) error { return nil }
+func (noopValkeyClient) StoreSortedListEntries(_ []movalkey.SortedListEntry) error { return nil }
 func (noopValkeyClient) ClearNonEssentialKeys(_, _ bool, _ bool) (string, error) {
 	return "", nil
 }
