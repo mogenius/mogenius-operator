@@ -249,7 +249,8 @@ func (self *aiWebsocketConnection) GenerateWsConnection(
 		headers.Add("x-channel-id", channelId)
 		headers.Add("x-type", "k8s")
 
-		dialer := &websocket.Dialer{}
+		// bounded like the stream dialers, see stream.wsHandshakeTimeout
+		dialer := &websocket.Dialer{HandshakeTimeout: 30 * time.Second}
 		if strings.ToLower(os.Getenv("MO_SKIP_TLS_VERIFICATION")) == "true" {
 			dialer.TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 		}

@@ -3289,6 +3289,7 @@ func (self *socketApi) startClientReadLoop(client websocket.WebsocketClient) {
 			_, message, err := client.ReadMessage()
 			if err != nil {
 				self.logger.Error("failed to read message from websocket connection", "client", self.clientName(client), "error", err)
+				upload.abort()
 				time.Sleep(time.Second) // wait before next attempt to read
 				continue
 			}

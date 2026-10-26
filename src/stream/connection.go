@@ -34,6 +34,11 @@ import (
 // part of the wire protocol, so it stays even though the package moved on.
 const GatewayPath = "/xterm-stream"
 
+// wsHandshakeTimeout bounds dial + TLS + upgrade of stream connections; a
+// zero Dialer.HandshakeTimeout means no deadline at all, so a gateway that
+// accepts TCP but never answers the upgrade would hang the request forever.
+const wsHandshakeTimeout = 30 * time.Second
+
 var streamLogger *slog.Logger
 var store valkeyclient.ValkeyClient
 var platformTLSConfig *tls.Config
@@ -242,7 +247,7 @@ func GenerateWsConnection(
 		// pass the peer's frames through unchanged.
 		headers.Add("x-binary", "1")
 
-		dialer := &websocket.Dialer{TLSClientConfig: platformTLSConfig}
+		dialer := &websocket.Dialer{TLSClientConfig: platformTLSConfig, HandshakeTimeout: wsHandshakeTimeout}
 		conn, _, err := dialer.Dial(u.String(), headers)
 		connWriteLock := &sync.Mutex{}
 		connReadLock := &sync.Mutex{}

@@ -232,15 +232,8 @@ func replaceInFile(target fileExecTarget, file, pattern, newValue string) FileRe
 	if err != nil {
 		return FileReplaceResult{File: file, Error: err.Error()}
 	}
-	info, err := infoImpl(target, file)
-	if err != nil {
+	if err := checkReplaceTarget(target, containerPath); err != nil {
 		return FileReplaceResult{File: file, Error: err.Error()}
-	}
-	if info.Type != "file" {
-		return FileReplaceResult{File: file, Error: "not a regular file"}
-	}
-	if info.SizeInBytes > filesReplaceMaxBytes {
-		return FileReplaceResult{File: file, Error: fmt.Sprintf("file is larger than %d bytes", filesReplaceMaxBytes)}
 	}
 
 	content, err := mokubernetes.ExecInPod(target.Namespace, target.Pod, target.Container, []string{"cat", "--", containerPath}, nil)
@@ -277,4 +270,33 @@ func containsString(list []string, value string) bool {
 		}
 	}
 	return false
+}
+
+// checkReplaceTarget stats the file a replace is about to read with cat,
+// following symlinks: only a regular file of at most filesReplaceMaxBytes may
+// be read. A device such as /dev/zero (reported as size 0) would stream into
+// operator memory until it is OOM-killed, a fifo would block the exec, which
+// has no deadline, and the size of a symlink itself says nothing about its
+// target.
+func checkReplaceTarget(target fileExecTarget, containerPath string) error {
+	output, err := mokubernetes.ExecInPod(
+		target.Namespace, target.Pod, target.Container,
+		[]string{"stat", "-L", "-c", "%F|%s", containerPath},
+		nil,
+	)
+	if err != nil {
+		return err
+	}
+	fileType, sizeField, ok := strings.Cut(strings.TrimSpace(output), "|")
+	if !ok || !strings.HasPrefix(fileType, "regular") {
+		return fmt.Errorf("not a regular file")
+	}
+	size, err := strconv.ParseInt(sizeField, 10, 64)
+	if err != nil {
+		return fmt.Errorf("unexpected stat output %q: %w", output, err)
+	}
+	if size > filesReplaceMaxBytes {
+		return fmt.Errorf("file is larger than %d bytes", filesReplaceMaxBytes)
+	}
+	return nil
 }

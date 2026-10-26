@@ -361,6 +361,7 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 	logger.Info("Connecting to stream gateway", "url", wsURL.String())
 	dialer := &websocket.Dialer{
 		EnableCompression: true,
+		HandshakeTimeout:  wsHandshakeTimeout,
 	}
 	wsConn, _, err := dialer.Dial(wsURL.String(), headers)
 	if err != nil {

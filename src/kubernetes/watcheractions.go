@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"mogenius-operator/src/ai"
+	"mogenius-operator/src/metrics"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
@@ -284,17 +285,49 @@ func setStoreIfNeeded(apiVersion string, resourceName string, kind string, names
 	}
 }
 
+// eventServerQueueSize bounds the cluster events buffered for the event
+// server. Informer handlers used to spawn one goroutine per event, each
+// blocking in WriteJSON while the event websocket was down; on a busy cluster
+// a platform outage piled up goroutines (and the objects they held) without
+// limit until the operator ran out of memory, and on reconnect they raced
+// each other, delivering events out of order.
+const eventServerQueueSize = 1000
+
+var (
+	eventServerQueue     = make(chan structs.Datagram, eventServerQueueSize)
+	eventServerQueueOnce sync.Once
+	eventServerDropped   atomic.Int64
+)
+
+// sendEventServerEvent enqueues a cluster event for the event server without
+// ever blocking the informer handler: when the queue is full the event is
+// dropped, counted (mogenius_operator_cluster_events_dropped_total) and
+// logged. A single sender keeps events in order; it exits once the event
+// client is terminated (shutdown).
 func sendEventServerEvent(eventClient websocket.WebsocketClient, apiVersion, kind, name, eventType string, obj *unstructured.Unstructured) {
+	eventServerQueueOnce.Do(func() {
+		go func() {
+			for datagram := range eventServerQueue {
+				if eventClient.IsTerminated() {
+					return
+				}
+				if err := eventClient.WriteJSON(datagram); err != nil {
+					k8sLogger.Error("Error sending data to EventServer", "error", err)
+				}
+			}
+		}()
+	})
+
 	datagram := structs.CreateDatagramForClusterEvent("ClusterEvent", apiVersion, kind, name, eventType, obj)
-
-	// send the datagram to the event server
-	go func() {
-		err := eventClient.WriteJSON(datagram)
-		if err != nil {
-			k8sLogger.Error("Error sending data to EventServer", "error", err)
-
+	select {
+	case eventServerQueue <- datagram:
+	default:
+		metrics.IncClusterEventDropped()
+		// log the first drop of a burst and every 1000th after that
+		if dropped := eventServerDropped.Add(1); dropped%1000 == 1 {
+			k8sLogger.Warn("event server queue full, dropping cluster events", "droppedTotal", dropped, "kind", kind)
 		}
-	}()
+	}
 }
 
 func deleteFromStoreIfNeeded(apiVersion string, resourceName string, kind string, namespace string, obj *unstructured.Unstructured) {

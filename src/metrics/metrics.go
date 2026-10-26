@@ -52,6 +52,17 @@ func IncAuditLogWriteFailure() {
 	auditLogWriteFailures.Inc()
 }
 
+var clusterEventsDropped = promauto.NewCounter(
+	prometheus.CounterOpts{
+		Name: "mogenius_operator_cluster_events_dropped_total",
+		Help: "Cluster watch events not sent to the event server because the send queue was full (event server unreachable or too slow).",
+	},
+)
+
+func IncClusterEventDropped() {
+	clusterEventsDropped.Inc()
+}
+
 func IncAuditLogEventDropped() {
 	auditLogEventsDropped.Inc()
 }
