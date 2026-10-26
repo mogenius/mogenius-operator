@@ -125,24 +125,12 @@ func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) 
 		return nil, fmt.Errorf("workspace not found: %s", workspace)
 	}
 
-	var tasks []AiTask
-	workspaceNamespaces := map[string]bool{}
+	var workspaceNamespaces []string
 	for _, workspaceResource := range workspaceObject.Spec.Resources {
 
 		switch workspaceResource.Type {
 		case "namespace":
-			workspaceNamespaces[workspaceResource.Id] = true
-			tasksForNamespace, err := ai.getAiTasksForNamespace(workspaceResource.Id)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get AI tasks for namespace '%s': %v", workspaceResource.Id, err)
-			}
-			for _, task := range tasksForNamespace {
-				// Whole-scope agent tasks are matched by scope/finding
-				// namespace below, not by their storage key.
-				if !isAgentTaskID(task.ID) {
-					tasks = append(tasks, task)
-				}
-			}
+			workspaceNamespaces = append(workspaceNamespaces, workspaceResource.Id)
 		case "helm", "argocd", "flux":
 			ai.logger.Debug("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
 		default:
@@ -150,30 +138,67 @@ func (ai *aiManager) GetAiTasksForWorkspace(workspace string) ([]AiTask, error) 
 		}
 	}
 
-	agentTasks, err := ai.getAgentTasksForNamespaces(workspaceNamespaces)
+	tasks, err := ai.getTasksForNamespaces(workspaceNamespaces)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get agent AI tasks for workspace '%s': %v", workspace, err)
+		return nil, fmt.Errorf("failed to get AI tasks for workspace '%s': %v", workspace, err)
 	}
-	tasks = append(tasks, agentTasks...)
-
 	return tasks, nil
 }
 
-// getAgentTasksForNamespaces returns every whole-scope agent task (runs,
-// all-clear reports and findings) visible to a workspace holding the given
-// namespaces — decided per task by agentTaskVisibleInNamespaces instead of
-// the storage key, so cluster-wide runs appear in every affected workspace
-// and findings only where their target namespace lives.
-func (ai *aiManager) getAgentTasksForNamespaces(namespaces map[string]bool) ([]AiTask, error) {
-	keys, err := ai.tasks().keys(agentTaskIDPrefix + "*")
+// maxEventTasksPerNamespace caps the event-triggered tasks listed per
+// namespace; the most recently updated ones are kept.
+const maxEventTasksPerNamespace = 100
+
+// getTasksForNamespaces returns the tasks visible to a workspace holding the
+// given namespaces, from a single index read:
+//   - event-triggered tasks by their key's namespace segment
+//     (ai_tasks:<Kind>:<ns>:<name>), grouped in the order of namespaces
+//   - followed by every whole-scope agent task (runs, all-clear reports and
+//     findings) that agentTaskVisibleInNamespaces admits — decided per task
+//     instead of by the storage key, so cluster-wide runs appear in every
+//     affected workspace and findings only where their target namespace lives
+func (ai *aiManager) getTasksForNamespaces(namespaces []string) ([]AiTask, error) {
+	keys, err := ai.tasks().keys(DB_AI_BUCKET_TASKS + ":*")
 	if err != nil {
 		return nil, err
 	}
-	var tasks []AiTask
-	for _, t := range ai.tasks().load(keys) {
-		if agentTaskVisibleInNamespaces(&t.task, namespaces) {
-			tasks = append(tasks, t.task)
+
+	wanted := make(map[string]bool, len(namespaces))
+	for _, namespace := range namespaces {
+		wanted[namespace] = true
+	}
+	eventKeys := map[string][]string{}
+	var agentKeys []string
+	for _, key := range keys {
+		if isAgentTaskID(key) {
+			agentKeys = append(agentKeys, key)
+			continue
 		}
+		parts := strings.SplitN(key, ":", 4)
+		if len(parts) == 4 && wanted[parts[2]] {
+			eventKeys[parts[2]] = append(eventKeys[parts[2]], key)
+		}
+	}
+
+	var selected []string
+	for _, namespace := range namespaces {
+		nsKeys := eventKeys[namespace]
+		// the index is ordered by expiry, i.e. by last update: keep the newest
+		if len(nsKeys) > maxEventTasksPerNamespace {
+			nsKeys = nsKeys[len(nsKeys)-maxEventTasksPerNamespace:]
+		}
+		selected = append(selected, nsKeys...)
+		// a namespace listed twice in the workspace must not duplicate tasks
+		delete(eventKeys, namespace)
+	}
+	selected = append(selected, agentKeys...)
+
+	var tasks []AiTask
+	for _, t := range ai.tasks().load(selected) {
+		if isAgentTaskID(t.key) && !agentTaskVisibleInNamespaces(&t.task, wanted) {
+			continue
+		}
+		tasks = append(tasks, t.task)
 	}
 	return tasks, nil
 }
@@ -269,25 +294,6 @@ func (ai *aiManager) GetLatestTask(workspace *string) (*AiTaskLatest, error) {
 		}
 	}
 	return latestTask, err
-}
-
-func (ai *aiManager) getAiTasksForNamespace(namespace string) ([]AiTask, error) {
-
-	keys, err := ai.tasks().keys(ai.getValkeyKey("*", namespace, "*"))
-	if err != nil {
-		return nil, err
-	}
-	// the index is ordered by expiry, i.e. by last update: keep the newest
-	if len(keys) > 100 {
-		keys = keys[len(keys)-100:]
-	}
-
-	var tasks []AiTask
-	for _, t := range ai.tasks().load(keys) {
-		tasks = append(tasks, t.task)
-	}
-
-	return tasks, nil
 }
 
 func (ai *aiManager) getLatestTask() (*AiTask, error) {
@@ -431,12 +437,12 @@ func (ai *aiManager) GetStatus(workspace *string) AiManagerStatus {
 			var workspaceObject *v1alpha1.Workspace
 			workspaceObject, err = store.GetWorkspace(ownNamespace, *workspace)
 			if err == nil && workspaceObject != nil {
-				workspaceNamespaces := map[string]bool{}
+				var workspaceNamespaces []string
 				for _, workspaceResource := range workspaceObject.Spec.Resources {
 
 					switch workspaceResource.Type {
 					case "namespace":
-						workspaceNamespaces[workspaceResource.Id] = true
+						workspaceNamespaces = append(workspaceNamespaces, workspaceResource.Id)
 					case "helm", "argocd", "flux":
 						ai.logger.Debug("Retrieving AI Tasks for this workspace type will be possible in the future", "workspace", workspace, "type", workspaceResource.Type)
 					default:

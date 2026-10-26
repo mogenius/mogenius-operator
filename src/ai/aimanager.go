@@ -902,8 +902,12 @@ func (ai *aiManager) getDbStats(namespace *string) (totalDbEntries int, unproces
 // given namespaces, using the same visibility rules as GetAiTasksForWorkspace
 // so status badges (e.g. unread count) match the report list: event tasks by
 // their key's namespace, whole-scope agent tasks by scope/finding namespace.
-func (ai *aiManager) getDbStatsForNamespaces(namespaces map[string]bool) (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, numberOfUnreadTasks int, err error) {
-	count := func(task *AiTask) {
+func (ai *aiManager) getDbStatsForNamespaces(namespaces []string) (totalDbEntries int, unprocessedDbEntries int, ignoredDbEntries int, numberOfUnreadTasks int, err error) {
+	tasks, err := ai.getTasksForNamespaces(namespaces)
+	if err != nil {
+		return 0, 0, 0, 0, err
+	}
+	for _, task := range tasks {
 		totalDbEntries++
 		if task.State == AI_TASK_STATE_PENDING || task.State == AI_TASK_STATE_FAILED {
 			unprocessedDbEntries++
@@ -914,26 +918,6 @@ func (ai *aiManager) getDbStatsForNamespaces(namespaces map[string]bool) (totalD
 		if len(task.ReadByUsers) == 0 {
 			numberOfUnreadTasks++
 		}
-	}
-
-	for namespace := range namespaces {
-		tasks, nsErr := ai.getAiTasksForNamespace(namespace)
-		if nsErr != nil {
-			return 0, 0, 0, 0, nsErr
-		}
-		for i := range tasks {
-			if !isAgentTaskID(tasks[i].ID) {
-				count(&tasks[i])
-			}
-		}
-	}
-
-	agentTasks, agentErr := ai.getAgentTasksForNamespaces(namespaces)
-	if agentErr != nil {
-		return 0, 0, 0, 0, agentErr
-	}
-	for i := range agentTasks {
-		count(&agentTasks[i])
 	}
 
 	return totalDbEntries, unprocessedDbEntries, ignoredDbEntries, numberOfUnreadTasks, nil
