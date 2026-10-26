@@ -115,15 +115,22 @@ func ComponentStreamConnection(
 			}
 
 			connWriteLock.Lock()
+			// This runs inside the Valkey pub/sub callback: a peer that stops
+			// reading must not block it, and with it the shared subscription
+			// connection, indefinitely.
+			_ = conn.SetWriteDeadline(time.Now().Add(streamWriteDeadline))
 			err = conn.WriteMessage(websocket.BinaryMessage, []byte(messageStr))
 			connWriteLock.Unlock()
 			if err != nil {
+				// a failed write (incl. the deadline) leaves the connection
+				// unusable: end the stream instead of failing every line
 				if strings.Contains(err.Error(), "broken pipe") {
 					streamLogger.Debug("write close:", "error", err)
-					cancel()
-					return
+				} else {
+					streamLogger.Error("WriteMessage", "error", err)
 				}
-				streamLogger.Error("WriteMessage", "error", err)
+				cancel()
+				return
 			}
 		}
 	})

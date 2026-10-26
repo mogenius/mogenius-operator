@@ -141,6 +141,10 @@ type podForwarder struct {
 
 	mu      sync.Mutex
 	current *podForward
+	// closed is set by close: a forward that replace finishes starting after
+	// the tunnel closed must be stopped instead of installed, or its kube
+	// port-forward and the sandbox hold it re-takes would leak.
+	closed bool
 	// changed is closed and replaced whenever current changes, so a waiting
 	// dial can wake up.
 	changed chan struct{}
@@ -187,6 +191,11 @@ func (f *podForwarder) startOn(podName string) error {
 
 func (f *podForwarder) set(forward *podForward) {
 	f.mu.Lock()
+	if f.closed && forward != nil {
+		f.mu.Unlock()
+		forward.close()
+		return
+	}
 	defer f.mu.Unlock()
 	f.current = forward
 	if forward != nil {
@@ -355,6 +364,7 @@ func (f *podForwarder) close() {
 	f.mu.Lock()
 	current := f.current
 	f.current = nil
+	f.closed = true
 	f.mu.Unlock()
 	if current != nil {
 		current.close()

@@ -178,11 +178,16 @@ func CreateOrUpdateYamlString(yamlContent string) error {
 	); err != nil {
 		if apierrors.IsAlreadyExists(err) {
 			// get the current resourcerevision to update the existing object
-			currentObject, _ := dynamicResource.Get(
+			currentObject, err := dynamicResource.Get(
 				context.Background(),
 				resource.GetName(),
 				metav1.GetOptions{},
 			)
+			if err != nil {
+				// e.g. a transient API error or forbidden: currentObject is
+				// nil and reading its resourceVersion used to panic
+				return fmt.Errorf("get existing %s %q: %w", groupVersionKind.Kind, resource.GetName(), err)
+			}
 			resource.SetResourceVersion(currentObject.GetResourceVersion())
 			if _, err := dynamicResource.Update(
 				context.Background(),

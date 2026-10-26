@@ -98,6 +98,17 @@ type ACME struct {
 	client     *lego.Client
 	dnsKind    string
 	accountURI string
+	// issuances are the running issue() calls per domain. Forget cancels a
+	// domain's issuance, and an issuance only keeps its certificate while it
+	// is still the domain's current one: one finishing after its tunnel was
+	// deleted used to recreate the Secret and the cached certificate.
+	issuances   map[string]acmeIssuance
+	issuanceSeq uint64
+}
+
+type acmeIssuance struct {
+	id     uint64
+	cancel context.CancelFunc
 }
 
 // acmeState is a domain without a usable certificate: being issued, or failed at a time.
@@ -119,6 +130,7 @@ func NewACME(logger *slog.Logger, clientset k8s.Interface, namespace string, con
 		certs:      map[string]*tls.Certificate{},
 		states:     map[string]acmeState{},
 		challenges: map[string]*tls.Certificate{},
+		issuances:  map[string]acmeIssuance{},
 	}
 }
 
@@ -152,7 +164,8 @@ func (a *ACME) Status(hostname string) CertificateStatus {
 	a.mu.Lock()
 	state, known := a.states[hostname]
 	retry := known && state.state == CertificateError && time.Since(state.failedAt) > acmeRetryAfter
-	if !known || retry {
+	_, issuing := a.issuances[hostname]
+	if (!known || retry) && !issuing {
 		a.states[hostname] = acmeState{state: CertificateIssuing}
 		state = a.states[hostname]
 		go a.issue(hostname)
@@ -167,6 +180,10 @@ func (a *ACME) Forget(ctx context.Context, hostname string) error {
 	a.mu.Lock()
 	delete(a.certs, hostname)
 	delete(a.states, hostname)
+	if issuance, ok := a.issuances[hostname]; ok {
+		issuance.cancel()
+		delete(a.issuances, hostname)
+	}
 	a.mu.Unlock()
 	err := a.clientset.CoreV1().Secrets(a.namespace).Delete(ctx, certSecretName(hostname), metav1.DeleteOptions{})
 	if err != nil && !apierrors.IsNotFound(err) {
@@ -222,9 +239,20 @@ func (a *ACME) renewDue(ctx context.Context) {
 func (a *ACME) issue(hostname string) {
 	ctx, cancel := context.WithTimeout(context.Background(), acmeIssueTimeout)
 	defer cancel()
-	err := a.obtain(ctx, hostname)
+	a.mu.Lock()
+	a.issuanceSeq++
+	id := a.issuanceSeq
+	a.issuances[hostname] = acmeIssuance{id: id, cancel: cancel}
+	a.mu.Unlock()
+
+	err := a.obtain(ctx, hostname, id)
 	a.mu.Lock()
 	defer a.mu.Unlock()
+	if !a.isCurrentIssuanceLocked(hostname, id) {
+		// forgotten meanwhile: leave no state behind
+		return
+	}
+	delete(a.issuances, hostname)
 	if err != nil {
 		a.logger.Warn("tunnel certificate not issued", "hostname", hostname, "error", err)
 		a.states[hostname] = acmeState{state: CertificateError, message: certificateErrorMessage(err), failedAt: time.Now()}
@@ -234,7 +262,14 @@ func (a *ACME) issue(hostname string) {
 	a.logger.Info("tunnel certificate issued", "hostname", hostname)
 }
 
-func (a *ACME) obtain(ctx context.Context, hostname string) error {
+// isCurrentIssuanceLocked reports whether issuance id is still hostname's
+// current one; a.mu must be held.
+func (a *ACME) isCurrentIssuanceLocked(hostname string, id uint64) bool {
+	issuance, ok := a.issuances[hostname]
+	return ok && issuance.id == id
+}
+
+func (a *ACME) obtain(ctx context.Context, hostname string, id uint64) error {
 	client, err := a.legoClient(ctx)
 	if err != nil {
 		return err
@@ -261,8 +296,20 @@ func (a *ACME) obtain(ctx context.Context, hostname string) error {
 		return fmt.Errorf("store the certificate: %w", err)
 	}
 	a.mu.Lock()
-	a.certs[hostname] = &cert
+	current := a.isCurrentIssuanceLocked(hostname, id)
+	if current {
+		a.certs[hostname] = &cert
+	}
 	a.mu.Unlock()
+	if !current {
+		// Forget ran while this was issuing, possibly before the Secret was
+		// written: remove it again instead of resurrecting the domain.
+		err := a.clientset.CoreV1().Secrets(a.namespace).Delete(context.Background(), certSecretName(hostname), metav1.DeleteOptions{})
+		if err != nil && !apierrors.IsNotFound(err) {
+			a.logger.Warn("remove certificate of a forgotten tunnel domain", "hostname", hostname, "error", err)
+		}
+		return fmt.Errorf("the domain was removed while its certificate was issued")
+	}
 	return nil
 }
 
