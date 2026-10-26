@@ -110,6 +110,12 @@ func resolveContainer(clients *execClients, namespace string, podName string, us
 // resize work at all: window-change arrives while the exec is running.
 func handleSession(logger *slog.Logger, user ConnectionUser, clients *execClients, channel ssh.Channel, requests <-chan *ssh.Request, namespace, podName, container string, containerNote string) {
 	defer func() { _ = channel.Close() }()
+	// Ends the exec stream with the session: closing the channel alone does
+	// not end a command that never reads stdin (tail -f, a server), which
+	// kept the SPDY stream, its goroutines and the process in the pod alive
+	// after the client disconnected.
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
 	var (
 		hasPty    bool
@@ -195,7 +201,7 @@ func handleSession(logger *slog.Logger, user ConnectionUser, clients *execClient
 					continue
 				}
 				go func() {
-					finished <- runShellPayload(logger, clients, channel, sizeQueue,
+					finished <- runShellPayload(ctx, logger, clients, channel, sizeQueue,
 						namespace, podName, container, containerNote, userCommand, pty, interactive)
 				}()
 
@@ -294,7 +300,7 @@ const shellNotFoundExitCode = 127
 // runShellPayload detects a usable shell and streams the exec, returning the
 // exit code to report to the client.
 func runShellPayload(
-	logger *slog.Logger, clients *execClients, channel ssh.Channel, sizeQueue *sizeQueue,
+	ctx context.Context, logger *slog.Logger, clients *execClients, channel ssh.Channel, sizeQueue *sizeQueue,
 	namespace, podName, container, containerNote, userCommand string, pty bool, interactive bool,
 ) int {
 	shell, err := detectShell(logger, clients, namespace, podName, container)
@@ -314,7 +320,7 @@ func runShellPayload(
 		_, _ = fmt.Fprintf(channel, "%s\r\n", containerNote)
 	}
 
-	return runExec(logger, clients, channel, sizeQueue, namespace, podName, container, command, pty)
+	return runExec(ctx, logger, clients, channel, sizeQueue, namespace, podName, container, command, pty)
 }
 
 func replyErr(req *ssh.Request, ok bool) {
@@ -329,7 +335,7 @@ func sendExitStatus(channel ssh.Channel, code int) {
 
 // runExec streams the Kubernetes exec API to/from the SSH channel and returns
 // the process exit code.
-func runExec(logger *slog.Logger, clients *execClients, channel ssh.Channel, sizeQueue *sizeQueue, namespace, podName, container string, command []string, tty bool) int {
+func runExec(ctx context.Context, logger *slog.Logger, clients *execClients, channel ssh.Channel, sizeQueue *sizeQueue, namespace, podName, container string, command []string, tty bool) int {
 	executor, err := newExecutor(clients, execParams{
 		namespace: namespace,
 		pod:       podName,
@@ -357,7 +363,7 @@ func runExec(logger *slog.Logger, clients *execClients, channel ssh.Channel, siz
 		opts.Stderr = channel.Stderr()
 	}
 
-	err = executor.StreamWithContext(context.Background(), opts)
+	err = executor.StreamWithContext(ctx, opts)
 	if err == nil {
 		return 0
 	}

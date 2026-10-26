@@ -70,6 +70,17 @@ var (
 	lastWatchCheckStart time.Time
 )
 
+// storeWatches holds the unregister func of the store's handler per watched
+// resource. WatchStoreResources runs again after CRD additions and used to
+// call Watch for every available resource each time: every kind gained one
+// more store handler per run (every event then stored, sent to the event
+// server and fed to the AI manager twice, three times, ...), and each Watch
+// on a running informer replayed all its objects as adds.
+var (
+	storeWatchesMu sync.Mutex
+	storeWatches   = map[utils.ResourceDescriptor]func(){}
+)
+
 func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, eventClient websocket.WebsocketClient) error {
 	// function should not be called more often than every 5 seconds
 	// to avoid too many calls to the k8s api server
@@ -113,11 +124,32 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 		})
 	}
 
+	active := map[utils.ResourceDescriptor]bool{}
+	for _, res := range wm.ListWatchedResources() {
+		active[res] = true
+	}
+
+	storeWatchesMu.Lock()
+	defer storeWatchesMu.Unlock()
+
 	var firstWatchErr error
 	for i, res := range resources {
+		if unregister, registered := storeWatches[res]; registered {
+			if active[res] {
+				// watched since an earlier run: count its sync (immediate
+				// when already synced) without registering again
+				wm.OnSynced(res, func() { settle(i) })
+				continue
+			}
+			// its informer was stopped (CRD deleted, now back): replace the
+			// stale registration instead of adding a second one
+			unregister()
+			delete(storeWatches, res)
+		}
+
 		wm.OnSynced(res, func() { settle(i) })
 
-		_, err := wm.Watch(res, watcher.WatchWeightStore, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
+		unregister, err := wm.Watch(res, watcher.WatchWeightStore, func(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
 			setStoreIfNeeded(resource.ApiVersion, obj.GetName(), resource.Kind, obj.GetNamespace(), obj)
 			handleCRDAddition(wm, aiManager, eventClient, resource)
 
@@ -175,6 +207,7 @@ func WatchStoreResources(wm watcher.WatcherModule, aiManager ai.AiManager, event
 			}
 			settle(i)
 		} else {
+			storeWatches[res] = unregister
 			k8sLogger.Info("🚀 Watching resource", "kind", res.Kind, "plural", res.Plural)
 		}
 	}

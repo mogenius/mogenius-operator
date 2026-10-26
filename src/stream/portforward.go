@@ -40,6 +40,9 @@ const (
 // and tunneling through the kube-apiserver.
 const pfKindHost = "host"
 
+// pfSubConnWriteTimeout bounds one write into a tunnel sub-connection.
+const pfSubConnWriteTimeout = 30 * time.Second
+
 // pfModeSSH selects the embedded SSH gateway: instead of dialing anything,
 // each sub-connection is handed to an in-process SSH server that translates
 // the session into Kubernetes exec API calls (no sshd in the container).
@@ -552,8 +555,15 @@ func PortForwardStreamConnection(request PortForwardConnectionRequest) {
 				connsMu.RUnlock()
 
 				if localConn != nil {
+					// This loop serves every sub-connection of the tunnel: a
+					// target that stops reading must not stall the others
+					// (or the PFM:C and close frames behind them). Closing
+					// the stuck one ends its readLocalAndSend, which removes
+					// it and tells the gateway.
+					_ = localConn.SetWriteDeadline(time.Now().Add(pfSubConnWriteTimeout))
 					if _, err := localConn.Write(data); err != nil {
-						logger.Info("Local TCP write error", "connID", connID, "error", err)
+						logger.Info("Local TCP write error, closing sub-connection", "connID", connID, "error", err)
+						_ = localConn.Close()
 					}
 				}
 				continue

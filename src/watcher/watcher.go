@@ -638,9 +638,13 @@ func (m *watcher) Unwatch(resource utils.ResourceDescriptor) error {
 	}
 	delete(m.activeHandlers, resource)
 
-	m.handlersMu.Lock()
-	delete(m.handlers, resource)
-	m.handlersMu.Unlock()
+	// The consumers' handler registrations are kept: Unwatch stops the
+	// informer (e.g. its CRD was deleted), it does not unsubscribe anyone.
+	// Dropping them silently disconnected the reconciler from a kind whose
+	// CRD was deleted and re-created until the next restart, since only the
+	// store re-registers. When the kind is watched again, the new informer
+	// serves every registered handler; consumers that re-register replace
+	// their old registration via the unregister func Watch returned.
 
 	return nil
 }

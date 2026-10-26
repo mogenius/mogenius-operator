@@ -39,6 +39,10 @@ const GatewayPath = "/xterm-stream"
 // accepts TCP but never answers the upgrade would hang the request forever.
 const wsHandshakeTimeout = 30 * time.Second
 
+// streamWriteDeadline bounds a single frame write to a stream peer on paths
+// that must not block (pub/sub callbacks, shared read loops).
+const streamWriteDeadline = 10 * time.Second
+
 var streamLogger *slog.Logger
 var store valkeyclient.ValkeyClient
 var platformTLSConfig *tls.Config
