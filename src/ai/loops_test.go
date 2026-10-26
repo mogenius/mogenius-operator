@@ -12,8 +12,8 @@ import (
 	"mogenius-operator/src/ai/aisdk"
 	movalkey "mogenius-operator/src/valkeyclient"
 
-	valkeyclient "github.com/valkey-io/valkey-go"
 	"github.com/stretchr/testify/assert"
+	valkeyclient "github.com/valkey-io/valkey-go"
 )
 
 // ---------------------------------------------------------------------------
@@ -61,8 +61,8 @@ func staticStream(chunks ...aisdk.StreamChunk) (<-chan aisdk.StreamChunk, error)
 // that aiManager.addTokenUsage doesn't panic in unit tests.
 type noopValkeyClient struct{}
 
-func (noopValkeyClient) Connect() error                    { return nil }
-func (noopValkeyClient) Close()                            {}
+func (noopValkeyClient) Connect() error { return nil }
+func (noopValkeyClient) Close()         {}
 func (noopValkeyClient) Set(_ string, _ time.Duration, _ ...string) error {
 	return nil
 }
@@ -70,24 +70,24 @@ func (noopValkeyClient) SetObject(_ any, _ time.Duration, _ ...string) error { r
 func (noopValkeyClient) SetObjectWithAutoincrementLimit(_ any, _ int64, _ time.Duration, _ ...string) (string, error) {
 	return "", nil
 }
-func (noopValkeyClient) Get(_ ...string) (string, error)              { return "", nil }
-func (noopValkeyClient) GetObject(_ ...string) (any, error)           { return nil, nil }
-func (noopValkeyClient) List(_ int, _ ...string) ([]string, error)    { return nil, nil }
+func (noopValkeyClient) Get(_ ...string) (string, error)           { return "", nil }
+func (noopValkeyClient) GetObject(_ ...string) (any, error)        { return nil, nil }
+func (noopValkeyClient) List(_ int, _ ...string) ([]string, error) { return nil, nil }
 func (noopValkeyClient) DeleteFromSortedListWithNsAndReleaseName(_ string, _ string, _ ...string) error {
 	return nil
 }
-func (noopValkeyClient) StoreSortedListEntry(_ any, _ int64, _ ...string) error { return nil }
+func (noopValkeyClient) StoreSortedListEntry(_ any, _ int64, _ ...string) error    { return nil }
 func (noopValkeyClient) StoreSortedListEntries(_ []movalkey.SortedListEntry) error { return nil }
 func (noopValkeyClient) ClearNonEssentialKeys(_, _ bool, _ bool) (string, error) {
 	return "", nil
 }
-func (noopValkeyClient) DeleteSingle(_ ...string) error         { return nil }
-func (noopValkeyClient) DeleteMultiple(_ ...string) error       { return nil }
-func (noopValkeyClient) Keys(_ string) ([]string, error)        { return nil, nil }
-func (noopValkeyClient) Exists(_ ...string) (bool, error)       { return false, nil }
-func (noopValkeyClient) GetValkeyClient() valkeyclient.Client   { return nil }
-func (noopValkeyClient) GetContext() context.Context            { return context.Background() }
-func (noopValkeyClient) GetLogger() *slog.Logger                { return slog.Default() }
+func (noopValkeyClient) DeleteSingle(_ ...string) error       { return nil }
+func (noopValkeyClient) DeleteMultiple(_ ...string) error     { return nil }
+func (noopValkeyClient) Keys(_ string) ([]string, error)      { return nil, nil }
+func (noopValkeyClient) Exists(_ ...string) (bool, error)     { return false, nil }
+func (noopValkeyClient) GetValkeyClient() valkeyclient.Client { return nil }
+func (noopValkeyClient) GetContext() context.Context          { return context.Background() }
+func (noopValkeyClient) GetLogger() *slog.Logger              { return slog.Default() }
 
 // minimalAI returns an aiManager wired up for loop tests (no K8s, no Valkey I/O).
 func minimalAI() *aiManager {

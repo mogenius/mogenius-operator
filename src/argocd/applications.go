@@ -133,10 +133,11 @@ func (self *argocd) argoCdNamespace() (string, bool) {
 	if err := self.initArgoCdConfig(); err != nil {
 		return "", false
 	}
-	if self.argoCdConfig == nil || self.argoCdConfig.Data == nil {
+	config := self.argoCdConfig.Load()
+	if config == nil || config.Data == nil {
 		return "", false
 	}
-	ns, ok := self.argoCdConfig.Data["namespaceName"]
+	ns, ok := config.Data["namespaceName"]
 	if !ok || ns == "" {
 		return "", false
 	}

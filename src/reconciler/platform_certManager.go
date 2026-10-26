@@ -5,7 +5,6 @@ import (
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
 	"mogenius-operator/src/utils"
-
 )
 
 func (d *reconcilerModule) reconcileCertManager(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
@@ -91,4 +90,3 @@ func getServer(server string) string {
 	}
 	return server
 }
-

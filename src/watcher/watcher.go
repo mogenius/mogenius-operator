@@ -124,9 +124,9 @@ type watcher struct {
 	// handlersMu protects the per-resource weighted handler lists used by the
 	// event fan-out. Separate from handlerMapLock to avoid deadlocks between
 	// the Watch registration path and the event delivery path.
-	handlersMu  sync.RWMutex
-	handlers    map[utils.ResourceDescriptor][]*weightedHandler
-	handlerSeq  int
+	handlersMu sync.RWMutex
+	handlers   map[utils.ResourceDescriptor][]*weightedHandler
+	handlerSeq int
 
 	// Shared informer machinery. The previous code built a brand-new
 	// DynamicSharedInformerFactory per Watch() call - so "Shared" in the

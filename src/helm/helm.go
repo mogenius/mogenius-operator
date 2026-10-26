@@ -18,6 +18,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"helm.sh/helm/v4/pkg/kube"
@@ -581,8 +582,50 @@ func normalizeRepoURL(url string) string {
 	return strings.TrimRight(strings.TrimSpace(url), "/")
 }
 
+// repoFileMu serializes the load-modify-write cycles of repositories.yaml
+// (add, patch, remove, restore). Without it concurrent repo mutations lost
+// each other's updates. Readers need no lock: writes go through
+// writeRepositoryFile, which replaces the file atomically.
+var repoFileMu sync.Mutex
+
+// writeRepositoryFile writes repositories.yaml via temp file + rename.
+// helm's File.WriteFile truncates and rewrites in place, so a concurrent
+// reader (chart search, repo update) could load a torn file.
+func writeRepositoryFile(path string, data []byte) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".repositories-*.yaml")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.Remove(tmp.Name()) }() // no-op after the rename
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(tmp.Name(), 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), path)
+}
+
+// saveRepoFile marshals repoFile and writes it with writeRepositoryFile.
+func saveRepoFile(repoFile *repo.File, path string) error {
+	data, err := yaml.Marshal(repoFile)
+	if err != nil {
+		return err
+	}
+	return writeRepositoryFile(path, data)
+}
+
 func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 	settings := NewCli()
+	repoFileMu.Lock()
+	defer repoFileMu.Unlock()
 
 	// Create a new Helm repository entry
 	entry := &repo.Entry{
@@ -629,7 +672,7 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 	repoFile.Update(entry)
 
 	// Write the updated repository file
-	if err := repoFile.WriteFile(settings.RepositoryConfig, 0644); err != nil {
+	if err := saveRepoFile(repoFile, settings.RepositoryConfig); err != nil {
 		return "", fmt.Errorf("failed to write repository file: %s", err)
 	}
 
@@ -640,6 +683,8 @@ func HelmRepoAdd(data HelmRepoAddRequest) (string, error) {
 
 func HelmRepoPatch(data HelmRepoPatchRequest) (string, error) {
 	settings := NewCli()
+	repoFileMu.Lock()
+	defer repoFileMu.Unlock()
 
 	// Initialize the file where repositories are stored
 	file := settings.RepositoryConfig
@@ -683,7 +728,7 @@ func HelmRepoPatch(data HelmRepoPatchRequest) (string, error) {
 		return "", fmt.Errorf("repository with name '%s' not found", data.Name)
 	}
 
-	if err := repoFile.WriteFile(file, 0644); err != nil {
+	if err := saveRepoFile(repoFile, file); err != nil {
 		return "", fmt.Errorf("failed to write repositories.yaml: %w", err)
 	}
 	// Persist like add/remove do: on startup the file is restored from the
@@ -786,6 +831,8 @@ func HelmRepoList() ([]*HelmEntryWithoutPassword, error) {
 
 func HelmRepoRemove(data HelmRepoRemoveRequest) (string, error) {
 	settings := NewCli()
+	repoFileMu.Lock()
+	defer repoFileMu.Unlock()
 
 	// Initialize the file where repositories are stored
 	file := settings.RepositoryConfig
@@ -805,7 +852,7 @@ func HelmRepoRemove(data HelmRepoRemoveRequest) (string, error) {
 	repoFile.Remove(data.Name)
 
 	// Write the updated repository file
-	if err := repoFile.WriteFile(file, 0644); err != nil {
+	if err := saveRepoFile(repoFile, file); err != nil {
 		return "", fmt.Errorf("failed to write repository file: %s", err)
 	}
 
@@ -1014,8 +1061,8 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	// See HelmReleaseUpgrade: take sole ownership on SSA conflicts (MOG-4393).
 	install.ForceConflicts = true
 	install.Labels = map[string]string{
-		InstalledViaLabel: InstalledViaValue,
-		"mogenius.com/oci-chart":     "true",
+		InstalledViaLabel:        InstalledViaValue,
+		"mogenius.com/oci-chart": "true",
 	}
 
 	// Create registry client for OCI
@@ -1183,8 +1230,8 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 	// See HelmReleaseUpgrade: take sole ownership on SSA conflicts (MOG-4393).
 	install.ForceConflicts = true
 	install.Labels = map[string]string{
-		InstalledViaLabel: InstalledViaValue,
-		"mogenius.com/oci-chart":     "false",
+		InstalledViaLabel:        InstalledViaValue,
+		"mogenius.com/oci-chart": "false",
 	}
 
 	helmLogger.Info("Locating chart ...", "releaseName", data.Release, "namespace", data.Namespace)
@@ -2248,7 +2295,9 @@ func restoreRepositoryFileFromValkey() error {
 		return ErrorRepoFileDoesNotExist
 	}
 
-	err = os.WriteFile(repositoryConfig, []byte(data), 0644)
+	repoFileMu.Lock()
+	err = writeRepositoryFile(repositoryConfig, []byte(data))
+	repoFileMu.Unlock()
 	if err != nil {
 		return fmt.Errorf("failed to write repositories.yaml: %s", err.Error())
 	}
