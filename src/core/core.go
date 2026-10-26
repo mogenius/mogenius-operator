@@ -153,15 +153,10 @@ func (self *core) InitializeWebsocketEventServer() {
 	assert.Assert(err == nil, err)
 	err = self.eventConnectionClient.SetHeader(utils.HttpHeader(""))
 	assert.Assert(err == nil, err)
-	err = self.eventConnectionClient.Connect()
-	if err != nil {
-		self.logger.Error("Failed to connect to mogenius api server. Aborting.", "url", url.String(), "error", err.Error())
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-	assert.Assert(err == nil, "cant connect to mogenius api server - aborting startup", url.String(), err)
-
-	self.config.OnChanged([]string{"MO_API_SERVER"}, func(key string, value string, isSecret bool) {
+	// register the config callbacks before connecting: a URL or credential
+	// change while the initial connect is still retrying must be picked up by
+	// the next attempt
+	self.config.OnChanged([]string{"MO_EVENT_SERVER"}, func(key string, value string, isSecret bool) {
 		url, err := url.Parse(value)
 		assert.Assert(err == nil, err)
 		err = self.eventConnectionClient.SetUrl(*url)
@@ -192,6 +187,11 @@ func (self *core) InitializeWebsocketEventServer() {
 			self.logger.Error("failed to update eventConnectionClient header", "header", header, "error", err)
 		}
 	})
+
+	err = websocket.ConnectWithRetry(self.eventConnectionClient, self.logger.With("client", "eventClient", "url", url.String()))
+	if err != nil {
+		self.logger.Warn("event server connect aborted", "error", err)
+	}
 }
 
 func (self *core) InitializeWebsocketApiServers() {
@@ -209,13 +209,8 @@ func (self *core) initializeWebsocketApiServerClient(client websocket.WebsocketC
 	assert.Assert(err == nil, err)
 	err = client.SetHeader(utils.HttpHeader(""))
 	assert.Assert(err == nil, err)
-	err = client.Connect()
-	if err != nil {
-		self.logger.Error("Failed to connect to mogenius api server. Aborting.", "client", clientLabel, "url", url.String(), "error", err.Error())
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
 
+	// callbacks first, see InitializeWebsocketEventServer
 	self.config.OnChanged([]string{"MO_API_SERVER"}, func(key string, value string, isSecret bool) {
 		url, err := url.Parse(value)
 		assert.Assert(err == nil, err)
@@ -247,6 +242,11 @@ func (self *core) initializeWebsocketApiServerClient(client websocket.WebsocketC
 			self.logger.Error("failed to update header", "client", clientLabel, "header", header, "error", err)
 		}
 	})
+
+	err = websocket.ConnectWithRetry(client, self.logger.With("client", clientLabel, "url", url.String()))
+	if err != nil {
+		self.logger.Warn("api server connect aborted", "client", clientLabel, "error", err)
+	}
 }
 
 func (self *core) Initialize() error {
