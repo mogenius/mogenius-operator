@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/gitops"
@@ -19,6 +18,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"encoding/json"
@@ -62,8 +62,11 @@ type argocd struct {
 	config         cfg.ConfigModule
 	valkeyClient   valkeyclient.ValkeyClient
 	clientProvider k8sclient.K8sClientProvider
-	argoCdConfig   *corev1.ConfigMap
-	argoURL        *string
+	// argoCdConfig and argoURL are re-resolved by every request of this
+	// shared instance while concurrent requests read them; atomic pointers
+	// replace the unsynchronized field writes (a data race).
+	argoCdConfig atomic.Pointer[corev1.ConfigMap]
+	argoURL      atomic.Pointer[string]
 }
 
 func NewArgoCd(logManager logging.SlogManager, configModule cfg.ConfigModule, clientProviderModule k8sclient.K8sClientProvider, valkey valkeyclient.ValkeyClient) Argocd {
@@ -134,10 +137,10 @@ func (self *argocd) ArgoCdCreateApiToken(data ArgoCdCreateApiTokenRequest) (bool
 	if err != nil {
 		return false, err
 	}
-	if self.argoCdConfig.Data == nil {
+	if self.argoCdConfig.Load().Data == nil {
 		return false, fmt.Errorf("argo-cd-config ConfigMap data is nil")
 	}
-	if ns, ok := self.argoCdConfig.Data["namespaceName"]; !ok || ns == "" {
+	if ns, ok := self.argoCdConfig.Load().Data["namespaceName"]; !ok || ns == "" {
 		return false, fmt.Errorf("namespaceName key not found in argo-cd-config ConfigMap")
 	}
 
@@ -168,7 +171,7 @@ func (self *argocd) ArgoCdCreateApiToken(data ArgoCdCreateApiTokenRequest) (bool
 
 	argoCdSecretObjMap, err := runtime.DefaultUnstructuredConverter.ToUnstructured(&argoCdSecret)
 	if err != nil {
-		log.Fatalf("Failed to convert Secret to unstructured: %v", err)
+		return false, fmt.Errorf("failed to convert Secret to unstructured: %w", err)
 	}
 	_, err = dynamicClient.Resource(kubernetes.CreateGroupVersionResource(utils.SecretResource.ApiVersion, utils.SecretResource.Plural)).Namespace(self.config.Get("MO_OWN_NAMESPACE")).Update(context.Background(), &unstructured.Unstructured{Object: argoCdSecretObjMap}, metav1.UpdateOptions{})
 	if err != nil {
@@ -183,16 +186,16 @@ func (self *argocd) ArgoCdApplicationRefresh(data ArgoCdApplicationRefreshReques
 	if err != nil {
 		return false, err
 	}
-	if self.argoCdConfig.Data == nil {
+	if self.argoCdConfig.Load().Data == nil {
 		return false, fmt.Errorf("argo-cd-config ConfigMap data is nil")
 	}
-	if ns, ok := self.argoCdConfig.Data["namespaceName"]; !ok || ns == "" {
+	if ns, ok := self.argoCdConfig.Load().Data["namespaceName"]; !ok || ns == "" {
 		return false, fmt.Errorf("namespaceName key not found in argo-cd-config ConfigMap")
 	}
 
 	argoCdSecret, err := self.getArgoCdSecret()
 	if err != nil {
-		return false, fmt.Errorf("argo-cd-user-secret Secret data is nil")
+		return false, fmt.Errorf("failed to get argo-cd-user-secret Secret: %w", err)
 	}
 	if pw, ok := argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)]; !ok || pw == nil {
 		return false, fmt.Errorf("accounts.%s.token key not found in argo-cd-user-secret Secret", data.Username)
@@ -216,16 +219,16 @@ func (self *argocd) ArgoCdApplicationHardRefresh(data ArgoCdApplicationRefreshRe
 	if err != nil {
 		return false, err
 	}
-	if self.argoCdConfig.Data == nil {
+	if self.argoCdConfig.Load().Data == nil {
 		return false, fmt.Errorf("argo-cd-config ConfigMap data is nil")
 	}
-	if ns, ok := self.argoCdConfig.Data["namespaceName"]; !ok || ns == "" {
+	if ns, ok := self.argoCdConfig.Load().Data["namespaceName"]; !ok || ns == "" {
 		return false, fmt.Errorf("namespaceName key not found in argo-cd-config ConfigMap")
 	}
 
 	argoCdSecret, err := self.getArgoCdSecret()
 	if err != nil {
-		return false, fmt.Errorf("argo-cd-user-secret Secret data is nil")
+		return false, fmt.Errorf("failed to get argo-cd-user-secret Secret: %w", err)
 	}
 	if pw, ok := argoCdSecret.Data[fmt.Sprintf("accounts.%s.token", data.Username)]; !ok || pw == nil {
 		return false, fmt.Errorf("accounts.%s.token key not found in argo-cd-user-secret Secret", data.Username)
@@ -249,7 +252,7 @@ func (self *argocd) ArgoCdApplicationSync(data ArgoCdApplicationSyncRequest) (bo
 	if err != nil {
 		return false, err
 	}
-	if self.argoCdConfig.Data == nil {
+	if self.argoCdConfig.Load().Data == nil {
 		return false, fmt.Errorf("argo-cd-config ConfigMap data is nil")
 	}
 
@@ -279,7 +282,7 @@ func (self *argocd) ArgoCdApplicationTerminateOperation(data ArgoCdApplicationTe
 	if err != nil {
 		return false, err
 	}
-	if self.argoCdConfig.Data == nil {
+	if self.argoCdConfig.Load().Data == nil {
 		return false, fmt.Errorf("argo-cd-config ConfigMap data is nil")
 	}
 
@@ -309,7 +312,7 @@ func (self *argocd) ArgoCdResourceAction(data ArgoCdResourceActionRequest) (bool
 	if err != nil {
 		return false, err
 	}
-	if self.argoCdConfig.Data == nil {
+	if self.argoCdConfig.Load().Data == nil {
 		return false, fmt.Errorf("argo-cd-config ConfigMap data is nil")
 	}
 
@@ -335,7 +338,7 @@ func (self *argocd) ArgoCdResourceAction(data ArgoCdResourceActionRequest) (bool
 }
 
 func (self *argocd) syncApplication(data ArgoCdApplicationSyncRequest, token string) (bool, error) {
-	url := fmt.Sprintf("%s/api/v1/applications/%s/sync", *self.argoURL, data.ApplicationName)
+	url := fmt.Sprintf("%s/api/v1/applications/%s/sync", *self.argoURL.Load(), data.ApplicationName)
 
 	syncBody := map[string]any{
 		"prune":  data.Prune,
@@ -391,7 +394,7 @@ func (self *argocd) syncApplication(data ArgoCdApplicationSyncRequest, token str
 }
 
 func (self *argocd) terminateOperation(applicationName, token string) (bool, error) {
-	url := fmt.Sprintf("%s/api/v1/applications/%s/operation", *self.argoURL, applicationName)
+	url := fmt.Sprintf("%s/api/v1/applications/%s/operation", *self.argoURL.Load(), applicationName)
 
 	req, err := http.NewRequest("DELETE", url, nil)
 	if err != nil {
@@ -423,7 +426,7 @@ func (self *argocd) terminateOperation(applicationName, token string) (bool, err
 
 func (self *argocd) resourceAction(data ArgoCdResourceActionRequest, token string) (bool, error) {
 	url := fmt.Sprintf("%s/api/v1/applications/%s/resource/actions?namespace=%s&resourceName=%s&version=%s&kind=%s&group=%s",
-		*self.argoURL,
+		*self.argoURL.Load(),
 		data.ApplicationName,
 		data.Namespace,
 		data.ResourceName,
@@ -473,7 +476,7 @@ func (self *argocd) createArgoToken(username, password, account string) (string,
 	loginBody := map[string]string{"username": username, "password": password}
 	loginJSON, _ := json.Marshal(loginBody)
 
-	responseSession, err := argoHTTPClient.Post(fmt.Sprintf("%s/api/v1/session", *self.argoURL), "application/json", bytes.NewReader(loginJSON))
+	responseSession, err := argoHTTPClient.Post(fmt.Sprintf("%s/api/v1/session", *self.argoURL.Load()), "application/json", bytes.NewReader(loginJSON))
 	if err != nil {
 		return "", fmt.Errorf("failed to call login: %w", err)
 	}
@@ -494,7 +497,7 @@ func (self *argocd) createArgoToken(username, password, account string) (string,
 
 	req, err := http.NewRequest(
 		"POST",
-		fmt.Sprintf("%s/api/v1/account/%s/token", *self.argoURL, account),
+		fmt.Sprintf("%s/api/v1/account/%s/token", *self.argoURL.Load(), account),
 		bytes.NewReader(tokenJSON),
 	)
 	if err != nil {
@@ -532,7 +535,7 @@ func (self *argocd) refreshApplication(applicationName, token string, hard bool)
 	if hard {
 		refreshType = "hard"
 	}
-	url := fmt.Sprintf("%s/api/v1/applications/%s?refresh=%s", *self.argoURL, applicationName, refreshType)
+	url := fmt.Sprintf("%s/api/v1/applications/%s?refresh=%s", *self.argoURL.Load(), applicationName, refreshType)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return false, fmt.Errorf("failed to create request: %w", err)
@@ -576,7 +579,7 @@ func (self *argocd) initArgoCdConfig() error {
 			// only adds why the second chance did not apply either.
 			return fmt.Errorf("%w (and no PlatformConfig reports an installed Argo CD: %s)", err, fallbackErr.Error())
 		}
-		self.argoCdConfig = config
+		self.argoCdConfig.Store(config)
 		return nil
 	}
 	var argoCdConfig corev1.ConfigMap
@@ -584,7 +587,7 @@ func (self *argocd) initArgoCdConfig() error {
 	if err != nil {
 		return err
 	}
-	self.argoCdConfig = &argoCdConfig
+	self.argoCdConfig.Store(&argoCdConfig)
 	return nil
 }
 
@@ -639,7 +642,7 @@ func (self *argocd) initArgoServerUrl() error {
 	// get argo-cd server deployment
 	whitelist := []*utils.ResourceDescriptor{&utils.DeploymentResource}
 	blacklist := []*utils.ResourceDescriptor{}
-	deploymentWorkloads, err := kubernetes.GetUnstructuredNamespaceResourceList(self.argoCdConfig.Data["namespaceName"], whitelist, blacklist)
+	deploymentWorkloads, err := kubernetes.GetUnstructuredNamespaceResourceList(self.argoCdConfig.Load().Data["namespaceName"], whitelist, blacklist)
 	if err != nil {
 		return err
 	}
@@ -647,13 +650,13 @@ func (self *argocd) initArgoServerUrl() error {
 	var argoCdServerDeployment *unstructured.Unstructured
 	for _, workload := range deploymentWorkloads {
 		labels := workload.GetLabels()
-		if labels != nil && labels["app.kubernetes.io/part-of"] == "argocd" && labels["app.kubernetes.io/component"] == "server" && labels["app.kubernetes.io/instance"] == self.argoCdConfig.Data["releaseName"] {
+		if labels != nil && labels["app.kubernetes.io/part-of"] == "argocd" && labels["app.kubernetes.io/component"] == "server" && labels["app.kubernetes.io/instance"] == self.argoCdConfig.Load().Data["releaseName"] {
 			argoCdServerDeployment = &workload
 			break
 		}
 	}
 	if argoCdServerDeployment == nil {
-		return fmt.Errorf("argo-cd-server deployment not found in namespace %s", self.argoCdConfig.Data["namespaceName"])
+		return fmt.Errorf("argo-cd-server deployment not found in namespace %s", self.argoCdConfig.Load().Data["namespaceName"])
 	}
 
 	// argo-cd-server can be started with --insecure (TLS terminated elsewhere), in which
@@ -662,7 +665,7 @@ func (self *argocd) initArgoServerUrl() error {
 	if argoServerRunsInsecure(argoCdServerDeployment) {
 		scheme, port = "http", "80"
 	}
-	self.argoURL = new(fmt.Sprintf(ARGO_CD_SERVER_URL, scheme, argoCdServerDeployment.GetName(), self.argoCdConfig.Data["namespaceName"], port))
+	self.argoURL.Store(new(fmt.Sprintf(ARGO_CD_SERVER_URL, scheme, argoCdServerDeployment.GetName(), self.argoCdConfig.Load().Data["namespaceName"], port)))
 	return nil
 }
 

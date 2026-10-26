@@ -312,10 +312,11 @@ func (self *valkeyStatsDb) GetWorkspaceStatsCpuUtilization(
 			// Aggregate locally for this resource
 			localAgg := make(map[time.Time]GenericChartEntry)
 
-			for i, entry := range values {
-				if i >= timeOffsetInMinutes {
-					break
-				}
+			// values already cover exactly the requested window. They hold
+			// one entry per container per minute, so the former cap of
+			// timeOffsetInMinutes *entries* kept only the oldest minutes
+			// for controllers with several pods or containers.
+			for _, entry := range values {
 
 				if entry.CreatedAt.IsZero() {
 					continue
@@ -427,10 +428,11 @@ func (self *valkeyStatsDb) GetWorkspaceStatsMemoryUtilization(
 			// Local aggregation per goroutine
 			localAgg := make(map[time.Time]GenericChartEntry)
 
-			for i, entry := range values {
-				if i >= timeOffsetInMinutes {
-					break
-				}
+			// values already cover exactly the requested window. They hold
+			// one entry per container per minute, so the former cap of
+			// timeOffsetInMinutes *entries* kept only the oldest minutes
+			// for controllers with several pods or containers.
+			for _, entry := range values {
 
 				if entry.CreatedAt.IsZero() {
 					continue
