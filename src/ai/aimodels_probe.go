@@ -112,12 +112,7 @@ func (ai *aiManager) probeModel(ctx context.Context, rc *ResolvedModelConfig) (s
 		message, err := client.Messages.New(ctx, anthropic.MessageNewParams{
 			Model:     anthropic.Model(rc.Model),
 			MaxTokens: int64(16),
-			Messages: []anthropic.MessageParam{
-				{
-					Role:    anthropic.MessageParamRoleUser,
-					Content: []anthropic.ContentBlockParamUnion{anthropic.NewTextBlock(aiModelProbePrompt)},
-				},
-			},
+			Messages:  []anthropic.MessageParam{anthropic.NewUserMessage(anthropic.NewTextBlock(aiModelProbePrompt))},
 		})
 		if err != nil {
 			return "", err

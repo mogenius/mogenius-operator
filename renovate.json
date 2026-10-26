@@ -49,6 +49,20 @@
         "\"[^\"\\n]*:(?<currentValue>[^\"\\n]+)\"[^\\n]*// renovate: datasource=(?<datasource>[a-z-]+) depName=(?<depName>\\S+)"
       ],
       "datasourceTemplate": "docker"
+    },
+    {
+      "description": "Keep the golangci-lint version of CI and the Justfile in sync",
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^\\.github/workflows/ci\\.yaml$/",
+        "/^Justfile$/"
+      ],
+      "matchStrings": [
+        "version: '(?<currentValue>v[\\d.]+)'",
+        "golangci-lint/v2/cmd/golangci-lint@(?<currentValue>v[\\d.]+)"
+      ],
+      "depNameTemplate": "golangci/golangci-lint",
+      "datasourceTemplate": "github-releases"
     }
   ],
   "packageRules": [

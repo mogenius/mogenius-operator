@@ -91,7 +91,7 @@ func TestACMEForgetDropsTheCertificateSecret(t *testing.T) {
 func TestACMEAnswersAValidationThroughTheGateway(t *testing.T) {
 	acme, _ := newTestACME(t)
 	provider := alpnProvider{acme}
-	require.NoError(t, provider.Present("app.example.com", "token", "key-authorization"))
+	require.NoError(t, provider.Present(context.Background(), "app.example.com", "token", "key-authorization"))
 
 	clientEnd, gatewayEnd := net.Pipe()
 	defer func() { _ = clientEnd.Close() }()
@@ -103,7 +103,7 @@ func TestACMEAnswersAValidationThroughTheGateway(t *testing.T) {
 	require.NoError(t, client.Handshake())
 	assert.Equal(t, ACMETLSALPNProtocol, client.ConnectionState().NegotiatedProtocol)
 
-	require.NoError(t, provider.CleanUp("app.example.com", "token", "key-authorization"))
+	require.NoError(t, provider.CleanUp(context.Background(), "app.example.com", "token", "key-authorization"))
 	_, ok := acme.Challenge("app.example.com")
 	assert.False(t, ok)
 }
@@ -124,4 +124,20 @@ func TestCAARecordNamesTheAccountOnlyForLetsEncrypt(t *testing.T) {
 	assert.Equal(t, `0 issue "letsencrypt.org; accounturi=https://acme-v02.api.letsencrypt.org/acme/acct/123; validationmethods=tls-alpn-01"`, acme.caaRecord())
 	acme.dnsKind = "cloudflare"
 	assert.Contains(t, acme.caaRecord(), "validationmethods=dns-01")
+}
+
+func TestDecodeRegistrationReadsBothLegoFormats(t *testing.T) {
+	const accountURL = "https://acme-v02.api.letsencrypt.org/acme/acct/123"
+
+	current := decodeRegistration([]byte(`{"status":"valid","accountURL":"` + accountURL + `"}`))
+	require.NotNil(t, current)
+	assert.Equal(t, accountURL, current.Location)
+
+	legacy := decodeRegistration([]byte(`{"body":{"status":"valid"},"uri":"` + accountURL + `"}`))
+	require.NotNil(t, legacy, "a registration stored by lego v4 keeps its account")
+	assert.Equal(t, accountURL, legacy.Location)
+	assert.Equal(t, "valid", legacy.Status)
+
+	assert.Nil(t, decodeRegistration([]byte(`{"status":"valid"}`)), "without an account URL the account registers again")
+	assert.Nil(t, decodeRegistration([]byte(`not json`)))
 }

@@ -89,9 +89,9 @@ test-integration: generate
 test-e2e: generate
     KUBEBUILDER_ASSETS=$(go run sigs.k8s.io/controller-runtime/tools/setup-envtest@latest use -p path) go run gotest.tools/gotestsum@latest --format="testname" --hide-summary="skipped" --format-hide-empty-pkg --rerun-fails="0" -- -tags e2e -count=1 -timeout=600s ./test/integration/...
 
-# Execute golangci-lint
+# Execute golangci-lint (same version as CI, see .github/workflows/ci.yaml)
 golangci-lint: generate
-    go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest run '--max-same-issues=0' ./src/...
+    go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 run --config=.golangci.yml '--max-same-issues=0' ./src/...
 
 # Build a multi-arch container image as a local manifest list.
 # parallelism caps the compiler's concurrent processes; see GO_BUILD_PARALLELISM

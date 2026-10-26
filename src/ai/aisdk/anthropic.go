@@ -107,20 +107,14 @@ func toAnthropicMessages(messages []Message) (system []anthropic.TextBlockParam,
 			if m.CacheControl && textBlock.OfText != nil {
 				textBlock.OfText.CacheControl = anthropic.NewCacheControlEphemeralParam()
 			}
-			msgs = append(msgs, anthropic.MessageParam{
-				Role:    anthropic.MessageParamRoleUser,
-				Content: []anthropic.ContentBlockParamUnion{textBlock},
-			})
+			msgs = append(msgs, anthropic.NewUserMessage(textBlock))
 
 		case RoleTool:
 			resultBlock := anthropic.NewToolResultBlock(m.ToolCallID, m.Content, false)
 			if m.CacheControl && resultBlock.OfToolResult != nil {
 				resultBlock.OfToolResult.CacheControl = anthropic.NewCacheControlEphemeralParam()
 			}
-			msgs = append(msgs, anthropic.MessageParam{
-				Role:    anthropic.MessageParamRoleUser,
-				Content: []anthropic.ContentBlockParamUnion{resultBlock},
-			})
+			msgs = append(msgs, anthropic.NewUserMessage(resultBlock))
 
 		case RoleAssistant:
 			content := make([]anthropic.ContentBlockParamUnion, 0, 1+len(m.ToolCalls))
@@ -143,10 +137,7 @@ func toAnthropicMessages(messages []Message) (system []anthropic.TextBlockParam,
 					last.OfToolUse.CacheControl = anthropic.NewCacheControlEphemeralParam()
 				}
 			}
-			msgs = append(msgs, anthropic.MessageParam{
-				Role:    anthropic.MessageParamRoleAssistant,
-				Content: content,
-			})
+			msgs = append(msgs, anthropic.NewAssistantMessage(content...))
 		}
 	}
 	return

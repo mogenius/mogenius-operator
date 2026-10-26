@@ -21,6 +21,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/go-acme/lego/v5/acme"
 	"github.com/go-acme/lego/v5/certcrypto"
 	"github.com/go-acme/lego/v5/certificate"
 	"github.com/go-acme/lego/v5/challenge/tlsalpn01"
@@ -238,7 +239,7 @@ func (a *ACME) obtain(ctx context.Context, hostname string) error {
 	if err != nil {
 		return err
 	}
-	resource, err := client.Certificate.Obtain(certificate.ObtainRequest{Domains: []string{hostname}, Bundle: true})
+	resource, err := client.Certificate.Obtain(ctx, certificate.ObtainRequest{Domains: []string{hostname}, KeyType: certcrypto.EC256, Bundle: true})
 	if err != nil {
 		return err
 	}
@@ -283,7 +284,6 @@ func (a *ACME) legoClient(ctx context.Context) (*lego.Client, error) {
 	}
 	config := lego.NewConfig(user)
 	config.CADirURL = a.config.Server
-	config.Certificate.KeyType = certcrypto.EC256
 	if a.config.CAFile != "" {
 		httpClient, err := httpClientTrusting(a.config.CAFile)
 		if err != nil {
@@ -310,7 +310,7 @@ func (a *ACME) legoClient(ctx context.Context) (*lego.Client, error) {
 	}
 
 	if user.registration == nil {
-		registered, err := client.Registration.Register(registration.RegisterOptions{TermsOfServiceAgreed: true})
+		registered, err := client.Registration.Register(ctx, registration.RegisterOptions{TermsOfServiceAgreed: true})
 		if err != nil {
 			return nil, fmt.Errorf("register the ACME account: %w", err)
 		}
@@ -324,7 +324,7 @@ func (a *ACME) legoClient(ctx context.Context) (*lego.Client, error) {
 	defer a.mu.Unlock()
 	a.client = client
 	a.dnsKind = dnsKind
-	a.accountURI = user.registration.URI
+	a.accountURI = user.registration.Location
 	return client, nil
 }
 
@@ -405,10 +405,7 @@ func (a *ACME) account(ctx context.Context) (*acmeUser, error) {
 		}
 		user := &acmeUser{email: a.config.Email, key: key}
 		if raw := secret.Data["registration"]; len(raw) > 0 {
-			user.registration = &registration.Resource{}
-			if err := json.Unmarshal(raw, user.registration); err != nil {
-				user.registration = nil
-			}
+			user.registration = decodeRegistration(raw)
 		}
 		return user, nil
 	}
@@ -445,17 +442,37 @@ func (a *ACME) saveAccount(ctx context.Context, user *acmeUser) error {
 type acmeUser struct {
 	email        string
 	key          *ecdsa.PrivateKey
-	registration *registration.Resource
+	registration *acme.ExtendedAccount
 }
 
-func (u *acmeUser) GetEmail() string                        { return u.email }
-func (u *acmeUser) GetRegistration() *registration.Resource { return u.registration }
-func (u *acmeUser) GetPrivateKey() crypto.PrivateKey        { return u.key }
+func (u *acmeUser) GetEmail() string                       { return u.email }
+func (u *acmeUser) GetRegistration() *acme.ExtendedAccount { return u.registration }
+func (u *acmeUser) GetPrivateKey() crypto.Signer           { return u.key }
+
+// decodeRegistration reads the stored registration, also in the format of lego v4 ({"body": …, "uri": …}). Without
+// an account URL it is nil, and the account registers again: the ACME server answers with the account of the key.
+func decodeRegistration(raw []byte) *acme.ExtendedAccount {
+	var account acme.ExtendedAccount
+	if err := json.Unmarshal(raw, &account); err != nil {
+		return nil
+	}
+	if account.Location == "" {
+		var legacy struct {
+			Body acme.Account `json:"body"`
+			URI  string       `json:"uri"`
+		}
+		if err := json.Unmarshal(raw, &legacy); err != nil || legacy.URI == "" {
+			return nil
+		}
+		account = acme.ExtendedAccount{Account: legacy.Body, Location: legacy.URI}
+	}
+	return &account
+}
 
 // alpnProvider answers TLS-ALPN-01 validations through the TLS gateway instead of a listener of its own.
 type alpnProvider struct{ a *ACME }
 
-func (p alpnProvider) Present(domain, _, keyAuth string) error {
+func (p alpnProvider) Present(_ context.Context, domain, _, keyAuth string) error {
 	cert, err := tlsalpn01.ChallengeCert(domain, keyAuth)
 	if err != nil {
 		return err
@@ -466,7 +483,7 @@ func (p alpnProvider) Present(domain, _, keyAuth string) error {
 	return nil
 }
 
-func (p alpnProvider) CleanUp(domain, _, _ string) error {
+func (p alpnProvider) CleanUp(_ context.Context, domain, _, _ string) error {
 	p.a.mu.Lock()
 	defer p.a.mu.Unlock()
 	delete(p.a.challenges, strings.ToLower(domain))

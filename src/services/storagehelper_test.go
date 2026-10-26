@@ -54,7 +54,7 @@ func TestStorageHelperPodName(t *testing.T) {
 
 	t.Run("deterministic", func(t *testing.T) {
 		long := strings.Repeat("x", 100)
-		if StorageHelperPodName(long) != StorageHelperPodName(long) {
+		if first, second := StorageHelperPodName(long), StorageHelperPodName(long); first != second {
 			t.Fatal("pod name derivation is not deterministic")
 		}
 	})

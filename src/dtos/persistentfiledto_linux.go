@@ -38,8 +38,8 @@ func PersistentFileDtoFrom(rootDir string, path string) (PersistentFileDto, erro
 		fileType = "directory"
 	}
 
-	var uid int = 0
-	var gid int = 0
+	var uid = 0
+	var gid = 0
 	var size int64 = 0
 	var createTime = time.Now().Format(time.RFC3339)
 	var modTime = time.Now().Format(time.RFC3339)
