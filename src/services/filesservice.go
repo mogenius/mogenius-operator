@@ -3,7 +3,7 @@ package services
 import (
 	"archive/tar"
 	"archive/zip"
-	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"mime"
@@ -484,19 +484,28 @@ func uploadedImpl(target fileExecTarget, tempZipFileSrc string, requestPath stri
 		"path", requestPath,
 	)
 
-	// Convert zip → tar in-memory, then stream into the target pod via exec stdin.
-	tarBuf, err := zipToTar(tempZipFileSrc)
-	if err != nil {
-		return fmt.Errorf("error converting zip to tar for %s: %w", requestPath, err)
-	}
-
+	// Convert zip → tar while streaming it into the target pod via exec
+	// stdin. The tar used to be built in memory first, so the operator held
+	// the whole uncompressed upload (and a zip bomb could OOM it).
+	pr, pw := io.Pipe()
+	convertErr := make(chan error, 1)
+	go func() {
+		err := zipToTar(tempZipFileSrc, pw, UploadMaxBytes())
+		_ = pw.CloseWithError(err)
+		convertErr <- err
+	}()
 	_, err = mokubernetes.ExecInPod(
 		target.Namespace, target.Pod, target.Container,
 		// path as positional argument, never interpolated into the script:
 		// a quote in it would otherwise break out of the shell string
 		[]string{"sh", "-c", `mkdir -p -- "$1" && tar xf - -C "$1"`, "sh", containerPath},
-		tarBuf,
+		pr,
 	)
+	// unblocks the converter if the exec ended before reading everything
+	_ = pr.Close()
+	if cErr := <-convertErr; cErr != nil && !errors.Is(cErr, io.ErrClosedPipe) {
+		return fmt.Errorf("error converting zip to tar for %s: %w", requestPath, cErr)
+	}
 	return err
 }
 
@@ -736,41 +745,83 @@ func parseStatLine(rootContainerPath, line string) (dtos.PersistentFileDto, erro
 	}, nil
 }
 
-// zipToTar reads a zip archive and re-encodes it as a tar stream in memory.
-func zipToTar(zipPath string) (*bytes.Buffer, error) {
+// defaultUploadMaxBytes is the default of MO_FILES_UPLOAD_MAX_BYTES (1 GiB).
+const defaultUploadMaxBytes int64 = 1 << 30
+
+// UploadMaxBytes is the maximum uncompressed size of one upload.
+func UploadMaxBytes() int64 {
+	if config != nil {
+		if raw, err := config.TryGet("MO_FILES_UPLOAD_MAX_BYTES"); err == nil {
+			if n, err := strconv.ParseInt(strings.TrimSpace(raw), 10, 64); err == nil && n > 0 {
+				return n
+			}
+		}
+	}
+	return defaultUploadMaxBytes
+}
+
+// zipToTar re-encodes a zip archive as a tar stream into w. maxBytes caps the
+// total uncompressed size: the sizes a zip declares cannot be trusted, so the
+// bytes are counted while copying. Entries with absolute paths or ".."
+// components are refused instead of relying on the target's tar to strip
+// them (zip slip).
+func zipToTar(zipPath string, w io.Writer, maxBytes int64) error {
 	r, err := zip.OpenReader(zipPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer func() { _ = r.Close() }()
 
-	var buf bytes.Buffer
-	tw := tar.NewWriter(&buf)
-
+	tw := tar.NewWriter(w)
+	remaining := maxBytes
 	for _, f := range r.File {
+		if !safeArchivePath(f.Name) {
+			return fmt.Errorf("refusing archive entry %q: absolute path or '..' component", f.Name)
+		}
 		hdr, err := tar.FileInfoHeader(f.FileInfo(), "")
 		if err != nil {
-			return nil, err
+			return err
 		}
 		hdr.Name = f.Name
+		if !f.FileInfo().IsDir() {
+			if int64(f.UncompressedSize64) > remaining {
+				return fmt.Errorf("upload exceeds the limit of %s (MO_FILES_UPLOAD_MAX_BYTES)", utils.BytesToHumanReadable(maxBytes))
+			}
+		}
 		if err := tw.WriteHeader(hdr); err != nil {
-			return nil, err
+			return err
 		}
 		if !f.FileInfo().IsDir() {
 			rc, err := f.Open()
 			if err != nil {
-				return nil, err
+				return err
 			}
-			_, err = io.Copy(tw, rc)
+			// hdr.Size (the declared size) bounds what tar accepts; copying
+			// at most remaining+1 bytes detects a zip that lies about it
+			n, err := io.CopyN(tw, rc, min(hdr.Size, remaining)+1)
 			_ = rc.Close()
-			if err != nil {
-				return nil, err
+			if err != nil && !errors.Is(err, io.EOF) {
+				return err
+			}
+			remaining -= n
+			if remaining < 0 {
+				return fmt.Errorf("upload exceeds the limit of %s (MO_FILES_UPLOAD_MAX_BYTES)", utils.BytesToHumanReadable(maxBytes))
 			}
 		}
 	}
+	return tw.Close()
+}
 
-	if err := tw.Close(); err != nil {
-		return nil, err
+// safeArchivePath reports whether an archive entry name stays inside the
+// extraction directory.
+func safeArchivePath(name string) bool {
+	if name == "" || strings.HasPrefix(name, "/") || strings.HasPrefix(name, "\\") {
+		return false
 	}
-	return &buf, nil
+	for part := range strings.SplitSeq(strings.ReplaceAll(name, "\\", "/"), "/") {
+		if part == ".." {
+			return false
+		}
+	}
+	return true
 }

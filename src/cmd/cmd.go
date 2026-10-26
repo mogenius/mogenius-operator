@@ -185,6 +185,12 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Type:         new(config.ConfigVariableTypeBool),
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_FILES_UPLOAD_MAX_BYTES",
+		DefaultValue: new("1073741824"),
+		Description:  new("maximum uncompressed size in bytes of one file upload (default 1 GiB); the upload is streamed, so this bounds disk and transfer, not operator memory"),
+		Type:         new(config.ConfigVariableTypeInt),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "CLUSTER_DOMAIN",
 		DefaultValue: new("cluster.local"),
 		Description:  new("the cluster domain of the kubernetes cluster"),

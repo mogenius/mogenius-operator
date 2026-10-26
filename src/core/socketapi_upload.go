@@ -36,21 +36,32 @@ type uploadReceiver struct {
 
 	fileName *string
 	file     *os.File
+	// spooled bytes of the current transfer; once they exceed
+	// maxSpoolBytes the rest is dropped and END reports the overflow
+	written  int64
+	tooLarge bool
 	request  *services.FilesUploadRequest
 	// the original announce, kept for the audit log entry written on END
 	datagram *structs.Datagram
 
 	// tempDir hosts the spooled zip. The completion callbacks are fields so
 	// the state machine can be exercised without a cluster.
-	tempDir  string
-	uploaded func(tempZip string, request services.FilesUploadRequest) error
-	audit    func(datagram structs.Datagram, err error)
+	tempDir       string
+	maxSpoolBytes func() int64
+	uploaded      func(tempZip string, request services.FilesUploadRequest) error
+	audit         func(datagram structs.Datagram, err error)
 }
 
 func newUploadReceiver(logger *slog.Logger) *uploadReceiver {
 	return &uploadReceiver{
-		logger:   logger,
-		tempDir:  "/tmp",
+		logger:  logger,
+		tempDir: "/tmp",
+		// the spooled zip is compressed, so it stays below the
+		// uncompressed limit; 10% headroom covers stored entries
+		maxSpoolBytes: func() int64 {
+			limit := services.UploadMaxBytes()
+			return limit + limit/10
+		},
 		uploaded: services.Uploaded,
 		audit: func(datagram structs.Datagram, err error) {
 			// uploads mutate the PVC: audit with the original datagram
@@ -85,8 +96,19 @@ func (self *uploadReceiver) frame(message []byte) ([]structs.Datagram, bool) {
 		return self.finish(), true
 	}
 	if self.fileName != nil {
+		if self.tooLarge {
+			return nil, true
+		}
 		if _, err := self.file.Write(message); err != nil {
 			self.logger.Error("Error writing to file", "error", err)
+		}
+		self.written += int64(len(message))
+		if self.maxSpoolBytes != nil && self.written > self.maxSpoolBytes() {
+			// keep consuming the chunks until END, but stop filling the disk
+			self.logger.Warn("upload exceeds the size limit, dropping the rest", "spooledBytes", self.written)
+			self.tooLarge = true
+			_ = self.file.Close()
+			_ = os.Remove(*self.fileName)
 		}
 		return nil, true
 	}
@@ -112,6 +134,8 @@ func (self *uploadReceiver) abort() {
 	self.file = nil
 	self.request = nil
 	self.datagram = nil
+	self.written = 0
+	self.tooLarge = false
 }
 
 func (self *uploadReceiver) open() {
@@ -121,6 +145,9 @@ func (self *uploadReceiver) open() {
 		_ = self.file.Close()
 		_ = os.Remove(*self.fileName)
 	}
+
+	self.written = 0
+	self.tooLarge = false
 
 	fileName := filepath.Join(self.tempDir, fmt.Sprintf("%s.zip", utils.NanoId()))
 	file, err := os.OpenFile(fileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
@@ -141,6 +168,8 @@ func (self *uploadReceiver) finish() []structs.Datagram {
 
 	var uploadErr error
 	switch {
+	case self.tooLarge:
+		uploadErr = fmt.Errorf("upload exceeds the limit of %d bytes (MO_FILES_UPLOAD_MAX_BYTES)", services.UploadMaxBytes())
 	case self.fileName != nil && self.request != nil:
 		uploadErr = self.uploaded(*self.fileName, *self.request)
 	case self.fileName == nil:
@@ -170,5 +199,7 @@ func (self *uploadReceiver) finish() []structs.Datagram {
 	self.file = nil
 	self.request = nil
 	self.datagram = nil
+	self.written = 0
+	self.tooLarge = false
 	return acks
 }
