@@ -473,7 +473,11 @@ func (self *socketApi) registerPatterns() {
 			}
 			loadBalancerExternalIps := kubernetes.GetClusterExternalIps()
 			country, _ := utils.GuessClusterCountry()
-			cniConfig, _ := self.dbstats.GetCniData()
+			nodeNames := make([]string, 0, len(nodeStats))
+			for _, node := range nodeStats {
+				nodeNames = append(nodeNames, node.Name)
+			}
+			cniConfig, _ := self.dbstats.GetCniData(nodeNames)
 			return ClusterResourceInfo{
 				NodeStats:               nodeStats,
 				LoadBalancerExternalIps: loadBalancerExternalIps,
@@ -3131,11 +3135,11 @@ func (self *socketApi) registerPatterns() {
 			PatternHandle{self, "get/nodes-metrics"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Void) (Response, error) {
-				// Get all nodes from Kubernetes
-				nodes, err := self.moKubernetes.GetNodeStats()
-				if err != nil {
-					return Response{}, fmt.Errorf("failed to get nodes: %w", err)
-				}
+				// Only the node names are needed. GetNodeStats unmarshals every
+				// pod of the cluster and reads per-node stats (kubelet probes on
+				// a cold cache) on each call of this continuously polled
+				// endpoint, just to throw everything but the name away.
+				nodes := store.GetNodes()
 
 				result := Response{
 					Nodes: make([]NodeMetrics, 0, len(nodes)),
