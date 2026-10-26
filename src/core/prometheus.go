@@ -29,6 +29,11 @@ const (
 	prometheusTargetPoints = 60
 )
 
+// prometheusHTTPClient is shared so connections to Prometheus are reused. The
+// timeout keeps an unresponsive Prometheus from blocking the calling handler
+// forever; it sits below Prometheus' own default query timeout of 2m.
+var prometheusHTTPClient = &http.Client{Timeout: 60 * time.Second}
+
 type PrometheusRequest struct {
 	Query              string `json:"query"`
 	Step               int    `json:"step"`
@@ -93,8 +98,7 @@ func IsPrometheusReachable(data PrometheusRequest, config cfg.ConfigModule, logg
 	}
 	req.Header = header
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := prometheusHTTPClient.Do(req)
 	if err != nil {
 		logger.Warn("prometheus reachability check failed", "url", urlString, "error", err)
 		return false, fmt.Errorf("failed to execute request: %w", err)
@@ -121,8 +125,7 @@ func PrometheusValues(data PrometheusRequest, config cfg.ConfigModule, logger *s
 	}
 	req.Header = header
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := prometheusHTTPClient.Do(req)
 	if err != nil {
 		logger.Warn("prometheus values request failed", "url", urlString, "error", err)
 		return []string{}, fmt.Errorf("failed to execute request: %w", err)
@@ -159,8 +162,7 @@ func ExecutePrometheusQuery(data PrometheusRequest, config cfg.ConfigModule, log
 	}
 	req.Header = header
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := prometheusHTTPClient.Do(req)
 	if err != nil {
 		logger.Warn("prometheus query request failed", "url", urlString, "error", err)
 		return nil, fmt.Errorf("failed to execute request: %w", err)

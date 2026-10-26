@@ -47,6 +47,38 @@ func reconnectBackoff(attempt int) time.Duration {
 	return time.Duration(float64(d) * jitter)
 }
 
+// ConnectWithRetry blocks until the initial connection is established,
+// retrying with reconnectBackoff. Once connected, the client's own reconnect
+// logic takes over. An unreachable platform at startup must not crash the
+// operator: exiting would put every connected cluster into CrashLoopBackOff
+// for the duration of a platform-side outage. Returns an error only if the
+// client gets terminated (shutdown) before a connection could be made.
+func ConnectWithRetry(client WebsocketClient, logger *slog.Logger) error {
+	attempts := 0
+	for {
+		err := client.Connect()
+		if err == nil {
+			if attempts > 0 {
+				logger.Info("websocket connection established after retries", "attempts", attempts+1)
+			}
+			return nil
+		}
+		if client.IsTerminated() {
+			return fmt.Errorf("websocket client terminated before connecting: %w", err)
+		}
+		attempts++
+		backoff := reconnectBackoff(attempts)
+		// first failure and every 10th after that at error level, the rest at
+		// warn to keep long outages from flooding the log pipeline
+		if attempts == 1 || attempts%10 == 0 {
+			logger.Error("failed to connect websocket, retrying", "attempt", attempts, "backoff", backoff, "error", err)
+		} else {
+			logger.Warn("failed to connect websocket, retrying", "attempt", attempts, "backoff", backoff, "error", err)
+		}
+		time.Sleep(backoff)
+	}
+}
+
 // #############################
 // # +-----------------------+ #
 // # | Interface Declaration | #

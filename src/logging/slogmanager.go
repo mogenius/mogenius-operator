@@ -426,6 +426,13 @@ func (self *PrettyPrintHandler) tryGetScope() *string {
 	return nil
 }
 
+// unmarshalablePayload renders a payload that json cannot encode (NaN/Inf
+// floats, channels, funcs, ...). A single odd log attribute must never panic
+// the logging pipeline, so fall back to Go's default formatting.
+func unmarshalablePayload(payload map[string]any, err error) string {
+	return fmt.Sprintf("%v (payload not json-encodable: %s)", payload, err.Error())
+}
+
 func (self *PrettyPrintHandler) formatLogMessage(
 	logLine LogLine,
 	enableColor bool,
@@ -442,7 +449,8 @@ func (self *PrettyPrintHandler) formatLogMessage(
 		case "ERROR":
 			logLine.Level = shell.Red + logLine.Level + shell.Reset
 		default:
-			panic(fmt.Errorf("unsupported error level: %s", logLine.Level))
+			// custom slog levels (e.g. "INFO+2") stay uncolored instead of
+			// taking the whole process down
 		}
 		logLine.Component = shell.Magenta + logLine.Component + shell.Reset
 		if logLine.Scope != nil {
@@ -455,17 +463,19 @@ func (self *PrettyPrintHandler) formatLogMessage(
 		if len(logLine.Payload) > 0 {
 			data, err := jsoncolor.Marshal(logLine.Payload)
 			if err != nil {
-				panic(fmt.Errorf("failed to marshal json: %s\n", err.Error()))
+				payloadString = unmarshalablePayload(logLine.Payload, err)
+			} else {
+				payloadString = string(data)
 			}
-			payloadString = string(data)
 		}
 	} else {
 		if len(logLine.Payload) > 0 {
 			data, err := json.Marshal(logLine.Payload)
 			if err != nil {
-				panic(fmt.Errorf("failed to marshal json: %s\n", err.Error()))
+				payloadString = unmarshalablePayload(logLine.Payload, err)
+			} else {
+				payloadString = string(data)
 			}
-			payloadString = string(data)
 		}
 	}
 
