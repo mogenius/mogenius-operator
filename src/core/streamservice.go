@@ -20,6 +20,9 @@ import (
 	"github.com/valkey-io/valkey-go"
 )
 
+// liveStreamWriteDeadline bounds a single frame write to a live stream peer.
+const liveStreamWriteDeadline = 10 * time.Second
+
 type StreamService interface {
 	LiveStreamConnection(wsConnectionRequest stream.WsConnectionRequest, datagram structs.Datagram, httpApi HttpService, store valkeyclient.ValkeyClient, podNames []string)
 }
@@ -96,27 +99,33 @@ func (self *streamService) LiveStreamConnection(conReq stream.WsConnectionReques
 	// of reading the conn a second time from here.
 	go stream.DiscardReadMessages(readMessages)
 
-	listener := NewMessageCallback(datagram, func(message any) {
-		if conn != nil {
-			// Metrics JSON is payload, so it goes out as a binary frame like
-			// every other stream payload (MOG-4754); control messages stay text.
-			payload, err := json.Marshal(message)
-			if err != nil {
-				logger.Error("Marshal Broadcast", "error", err)
-				return
-			}
-			connWriteLock.Lock()
-			err = conn.WriteMessage(websocket.BinaryMessage, payload)
-			connWriteLock.Unlock()
-			if err != nil {
-				logger.Error("WriteMessage Broadcast", "error", err)
-				cancel() // Close the context to stop the connection
-			}
+	// send writes one frame to THIS stream's connection. Frames used to go
+	// through a broadcaster that delivered them to every live stream of the
+	// same pattern, so viewers received each other's (differently filtered)
+	// pod and node data, at K² cost for K viewers.
+	send := func(message any) {
+		if conn == nil {
+			return
 		}
-	})
-
-	httpApi.Broadcaster().AddListener(listener)
-	defer httpApi.Broadcaster().RemoveListener(listener)
+		// Metrics JSON is payload, so it goes out as a binary frame like
+		// every other stream payload (MOG-4754); control messages stay text.
+		payload, err := json.Marshal(message)
+		if err != nil {
+			logger.Error("Marshal live stream frame", "error", err)
+			return
+		}
+		connWriteLock.Lock()
+		// This runs inside the Valkey pub/sub callback: a peer that stops
+		// reading must not block it (and with it the shared subscription
+		// connection) indefinitely.
+		_ = conn.SetWriteDeadline(time.Now().Add(liveStreamWriteDeadline))
+		err = conn.WriteMessage(websocket.BinaryMessage, payload)
+		connWriteLock.Unlock()
+		if err != nil {
+			logger.Error("WriteMessage live stream frame", "error", err)
+			cancel() // Close the context to stop the connection
+		}
+	}
 
 	// Pre-build set for O(1) pod name lookups instead of linear search per entry
 	podNameSet := make(map[string]bool, len(podNames))
@@ -177,7 +186,7 @@ func (self *streamService) LiveStreamConnection(conReq stream.WsConnectionReques
 			}
 		}
 
-		httpApi.Broadcaster().BroadcastResponse(entry, datagram.Pattern)
+		send(entry)
 	})
 	if err != nil {
 		self.logger.Error("failed to register receive handler", "error", err)
