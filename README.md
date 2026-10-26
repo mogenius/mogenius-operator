@@ -106,6 +106,7 @@ if [[ -f .env ]]; then export $(grep -v '^#' .env | xargs); fi
 | `MO_VALKEY_ADDR` | — | Address (`host:port`) of the Valkey/Redis server (**required**) |
 | `MO_VALKEY_PASSWORD` | — | Password for the Valkey/Redis server |
 | `MO_HTTP_ADDR` | `:1337` | Listen address for the operator HTTP API |
+| `MO_HTTP_SOCKETAPI_ALL_PATTERNS` | `false` | Serve every socket api pattern on the unauthenticated HTTP endpoint `/socketapi` (needed for the local API doc page at `/api-doc`). Off by default: only the read-only `get/nodes-metrics` used by the node stats page is served. Never enable in a shared cluster |
 | `MO_OWN_NAMESPACE` | `mogenius` | Namespace the mogenius platform is installed in |
 | `OWN_NODE_NAME` | — | Node name the application is running on (set by DaemonSet) |
 | `OWN_DEPLOYMENT_NAME` | `mogenius-operator` | Deployment name the application is running in |

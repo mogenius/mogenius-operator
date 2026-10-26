@@ -492,7 +492,9 @@ func uploadedImpl(target fileExecTarget, tempZipFileSrc string, requestPath stri
 
 	_, err = mokubernetes.ExecInPod(
 		target.Namespace, target.Pod, target.Container,
-		[]string{"sh", "-c", fmt.Sprintf("mkdir -p '%s' && tar xf - -C '%s'", containerPath, containerPath)},
+		// path as positional argument, never interpolated into the script:
+		// a quote in it would otherwise break out of the shell string
+		[]string{"sh", "-c", `mkdir -p -- "$1" && tar xf - -C "$1"`, "sh", containerPath},
 		tarBuf,
 	)
 	return err

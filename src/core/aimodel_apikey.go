@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"mogenius-operator/src/ai"
 	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/store"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -76,6 +77,36 @@ func applyManagedApiKeyRef(modelName string, spec *v1alpha1.AiModelSpec, apiKey 
 		Key:  ai.DefaultApiKeySecretKey,
 	}
 	return nil
+}
+
+// checkApiSuppliedSecretRef guards an apiKeySecretRef that arrives through the
+// socket api (create/update/test aimodel). The operator sends the referenced
+// value as bearer token to spec.apiUrl, so an arbitrary ref would let anyone
+// allowed to edit AI models ship any Secret of the operator namespace (cluster
+// API key, Valkey password, registry and git credentials) to a URL of their
+// choice. Allowed are the model's managed secret, a secret an AiModel CR
+// already references (keys provisioned via GitOps or shared between models)
+// and secrets labelled mogenius.com/aimodel. AiModel CRs applied directly
+// (GitOps) are not affected.
+func checkApiSuppliedSecretRef(namespace string, modelName string, ref *v1alpha1.SecretKeyRef) error {
+	if ref == nil || ref.Name == "" || ref.Name == managedAiModelSecretName(modelName) {
+		return nil
+	}
+	models, err := store.GetAllAiModels(namespace)
+	if err != nil {
+		return fmt.Errorf("check apiKeySecretRef: %w", err)
+	}
+	for _, model := range models {
+		if existing := model.Spec.ApiKeySecretRef; existing != nil && existing.Name == ref.Name {
+			return nil
+		}
+	}
+	if secret := store.GetSecret(namespace, ref.Name); secret != nil {
+		if _, ok := secret.Labels[aiModelSecretModelLabelKey]; ok {
+			return nil
+		}
+	}
+	return fmt.Errorf("apiKeySecretRef %q is not an AI model key secret: pass the key as apiKey, reference a secret another AiModel already uses, or label the secret with %q", ref.Name, aiModelSecretModelLabelKey)
 }
 
 func aiModelOwnerReference(model *v1alpha1.AiModel) metav1.OwnerReference {
