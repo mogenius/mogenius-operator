@@ -171,7 +171,14 @@ func (self *uploadReceiver) finish() []structs.Datagram {
 	case self.tooLarge:
 		uploadErr = fmt.Errorf("upload exceeds the limit of %d bytes (MO_FILES_UPLOAD_MAX_BYTES)", services.UploadMaxBytes())
 	case self.fileName != nil && self.request != nil:
-		uploadErr = self.uploaded(*self.fileName, *self.request)
+		// the announce bypasses the pattern handlers, so the access check
+		// the other files/v2 patterns run happens here
+		if self.datagram != nil {
+			uploadErr = authorizeFileAccess(*self.datagram, self.request.File)
+		}
+		if uploadErr == nil {
+			uploadErr = self.uploaded(*self.fileName, *self.request)
+		}
 	case self.fileName == nil:
 		uploadErr = fmt.Errorf("upload failed: could not open temporary file")
 	}

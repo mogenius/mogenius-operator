@@ -183,6 +183,13 @@ func (r PortForwardConnectionRequest) isSSH() bool {
 	return strings.ToLower(r.Mode) == pfModeSSH || strings.ToLower(r.Kind) == pfKindSSH
 }
 
+// TargetsWorkload reports whether the tunnel forwards to a pod or service
+// through the Kubernetes port-forward API. SSH sessions (impersonated on
+// their own) and host targets (no Kubernetes resource) do not.
+func (r PortForwardConnectionRequest) TargetsWorkload() bool {
+	return !r.isSSH() && strings.ToLower(r.Kind) != pfKindHost
+}
+
 // isTLS reports whether the request serves an end-to-end tunnel domain.
 func (r PortForwardConnectionRequest) isTLS() bool {
 	return strings.ToLower(r.Mode) == pfModeTLS
