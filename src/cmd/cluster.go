@@ -235,7 +235,7 @@ func initializeClusterSystems(
 
 	// Link phase: wire service dependencies.
 	mocore.Link(moKubernetes)
-	podStatsCollector.Link(dbstatsService)
+	podStatsCollector.Link(dbstatsService, leaderElector.IsLeading)
 	nodeMetricsCollector.Link(dbstatsService, leaderElector)
 	socketApi.Link(httpApi, streamService, dbstatsService, apiModule, moKubernetes, sealedSecret, aiApi, aiWebsocketConnection)
 	moKubernetes.Link(dbstatsService)

@@ -1069,6 +1069,65 @@ func resourceKeysByIndex(apiVersion, kind, namespaceFilter, nameFilter string) (
 	return resourceKeysForShards(shards, nameFilter)
 }
 
+// GetNewestResourcesByNamePrefix returns the raw JSON of the newest (by
+// creation) resources of one kind in namespace whose name starts with
+// prefix, at most limit, oldest first. Pod events (named <pod>.<hash>) used
+// to be looked up with a keyspace SCAN for "<pod>*", which is O(keyspace) on
+// Valkey's single thread and returned an arbitrary 50 instead of the newest;
+// this reads the name index by lex range and the creation index for order.
+func GetNewestResourcesByNamePrefix(apiVersion, kind, namespace, prefix string, limit int) ([]string, error) {
+	client := valkeyClient.GetValkeyClient()
+	ctx := valkeyClient.GetContext()
+
+	byName := resourceIndexKey(apiVersion, kind, namespace, resourceIndexSortByName)
+	minLex, maxLex := "-", "+"
+	if prefix != "" {
+		// all by-name members share score 0, so the set is ordered lexically
+		minLex, maxLex = "["+prefix, "("+prefix+"\xff"
+	}
+	names, err := client.Do(ctx, client.B().Zrangebylex().Key(byName).Min(minLex).Max(maxLex).Build()).AsStrSlice()
+	if err != nil {
+		return nil, fmt.Errorf("read name index for %s/%s in %q: %w", apiVersion, kind, namespace, err)
+	}
+	if len(names) == 0 {
+		return []string{}, nil
+	}
+
+	byCreation := resourceIndexKey(apiVersion, kind, namespace, resourceIndexSortByCreation)
+	scores, err := client.Do(ctx, client.B().Zmscore().Key(byCreation).Member(names...).Build()).ToArray()
+	if err != nil {
+		return nil, fmt.Errorf("read creation index for %s/%s in %q: %w", apiVersion, kind, namespace, err)
+	}
+	type candidate struct {
+		name    string
+		created float64
+	}
+	candidates := make([]candidate, 0, len(names))
+	for i, name := range names {
+		created, err := scores[i].AsFloat64()
+		if err != nil {
+			continue // no creation entry: the resource is gone
+		}
+		candidates = append(candidates, candidate{name: name, created: created})
+	}
+	sort.Slice(candidates, func(i, j int) bool { return candidates[i].created < candidates[j].created })
+	if limit > 0 && len(candidates) > limit {
+		candidates = candidates[len(candidates)-limit:]
+	}
+
+	cmds := make([]vgo.Completed, len(candidates))
+	for i, c := range candidates {
+		cmds[i] = client.B().Get().Key(CreateResourceKey(apiVersion, kind, namespace, c.name)).Build()
+	}
+	result := make([]string, 0, len(candidates))
+	for _, resp := range client.DoMulti(ctx, cmds...) {
+		if raw, err := resp.ToString(); err == nil {
+			result = append(result, raw)
+		}
+	}
+	return result, nil
+}
+
 // listResourcesByIndex returns every resource of one (apiVersion, kind)
 // matching the namespace and name filters, decoded into T. Index members whose
 // primary key has already expired are skipped.

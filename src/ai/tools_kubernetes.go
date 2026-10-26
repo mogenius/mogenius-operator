@@ -592,7 +592,7 @@ func getPodEventsTool(args map[string]any, tc *ToolContext, valkeyClient valkeyc
 
 	logger.Info("Getting pod events", "namespace", namespace, "podName", podName, "maxChars", maxChars)
 
-	data, err := valkeyClient.List(50, "resources", "v1", "Event", namespace, podName+"*")
+	data, err := store.GetNewestResourcesByNamePrefix("v1", "Event", namespace, podName, 50)
 	if err != nil {
 		logger.Error("Error getting pod events", "error", err)
 		return fmt.Sprintf("Error getting pod events: %v", err)
