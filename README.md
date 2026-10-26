@@ -107,6 +107,7 @@ if [[ -f .env ]]; then export $(grep -v '^#' .env | xargs); fi
 | `MO_VALKEY_PASSWORD` | — | Password for the Valkey/Redis server |
 | `MO_HTTP_ADDR` | `:1337` | Listen address for the operator HTTP API |
 | `MO_FILES_UPLOAD_MAX_BYTES` | `1073741824` | Maximum uncompressed size in bytes of one file upload (1 GiB). Uploads are streamed into the target, so this bounds disk and transfer, not operator memory |
+| `MO_STREAM_ALLOWED_HOSTS` | — | Extra stream gateway hosts the operator may connect to, comma-separated (`host` or `*.domain`). Stream requests carry the cluster credentials, so only the hosts of `MO_API_SERVER`/`MO_EVENT_SERVER` and their parent domain are allowed by default (e.g. `k8s-ws.mogenius.com` → `*.mogenius.com`); plain `ws://` is refused when the platform connection uses TLS |
 | `MO_HTTP_SOCKETAPI_ALL_PATTERNS` | `false` | Serve every socket api pattern on the unauthenticated HTTP endpoint `/socketapi` (needed for the local API doc page at `/api-doc`). Off by default: only the read-only `get/nodes-metrics` used by the node stats page is served. Never enable in a shared cluster |
 | `MO_OWN_NAMESPACE` | `mogenius` | Namespace the mogenius platform is installed in |
 | `OWN_NODE_NAME` | — | Node name the application is running on (set by DaemonSet) |

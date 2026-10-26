@@ -240,6 +240,11 @@ func (self *aiWebsocketConnection) GenerateWsConnection(
 ) (conn *websocket.Conn, connWriteLock *sync.Mutex, connReadLock *sync.Mutex, err error) {
 	logger := self.logger.With("scope", "GenerateWsConnection")
 
+	if err := utils.CheckPlatformStreamURL(u); err != nil {
+		logger.Error("refusing stream connection", "error", err)
+		return nil, nil, nil, err
+	}
+
 	maxRetries := 6
 	currentRetries := 0
 

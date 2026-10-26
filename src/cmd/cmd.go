@@ -191,6 +191,11 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		Type:         new(config.ConfigVariableTypeInt),
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_STREAM_ALLOWED_HOSTS",
+		DefaultValue: new(""),
+		Description:  new("comma-separated extra stream gateway hosts the operator may connect to (exact host or *.domain); the hosts of MO_API_SERVER/MO_EVENT_SERVER and their parent domain are always allowed"),
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:          "CLUSTER_DOMAIN",
 		DefaultValue: new("cluster.local"),
 		Description:  new("the cluster domain of the kubernetes cluster"),
