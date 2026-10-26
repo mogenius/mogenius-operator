@@ -346,7 +346,11 @@ func GetWorkloadStatus(requestData GetWorkloadStatusRequest) ([]WorkloadStatusDt
 				})
 			}
 		}
-	} else {
+	} else if requestData.HelmReleases == nil {
+		// A helm-only filter must fall through to the collection below: its
+		// goroutines were started above and send on the unbuffered channel,
+		// so returning here leaked them blocked forever (and the caller got
+		// an empty result instead of the release's workloads).
 		k8sLogger.Debug("No filter applied")
 		return []WorkloadStatusDto{}, nil
 	}

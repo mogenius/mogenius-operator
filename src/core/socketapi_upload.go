@@ -93,6 +93,27 @@ func (self *uploadReceiver) frame(message []byte) ([]structs.Datagram, bool) {
 	return nil, false
 }
 
+// abort drops an in-flight upload. The read loop calls it when the
+// connection fails: a transfer cut off between START and END never gets its
+// END, and without the reset every later message on the reconnected
+// connection would be appended to the spool file instead of being dispatched.
+func (self *uploadReceiver) abort() {
+	if self.fileName == nil && self.request == nil {
+		return
+	}
+	self.logger.Warn("aborting in-flight file upload after connection failure")
+	if self.file != nil {
+		_ = self.file.Close()
+	}
+	if self.fileName != nil {
+		_ = os.Remove(*self.fileName)
+	}
+	self.fileName = nil
+	self.file = nil
+	self.request = nil
+	self.datagram = nil
+}
+
 func (self *uploadReceiver) open() {
 	// a START while a spool file is still open means the previous transfer
 	// never saw its END; drop it instead of leaking the descriptor

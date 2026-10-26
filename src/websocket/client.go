@@ -25,6 +25,9 @@ import (
 // Without this a slow/stuck peer wedges the entire write thread.
 const writeDeadline = 10 * time.Second
 
+// handshakeTimeout bounds how long establishing a connection may take.
+const handshakeTimeout = 30 * time.Second
+
 // livenessTimeout bounds how long a connection that is actively read may go
 // without any inbound frame or pong before the watchdog forces a reconnect.
 // Generous on purpose: pongs are only processed while a read is pending, so
@@ -564,9 +567,14 @@ func (self *websocketClient) startRuntime() {
 			// handlePatternRequest), so transport-level deflate would just burn
 			// CPU re-compressing incompressible (already-compressed or base64)
 			// bytes.
+			// HandshakeTimeout bounds dial + TLS + upgrade. Without it a
+			// peer that accepts TCP but never answers the upgrade blocks
+			// this runtime thread forever, and with it every Connect,
+			// reconnect attempt and Terminate.
 			dialer := &gorillaWebsocket.Dialer{
 				EnableCompression: false,
 				TLSClientConfig:   self.tlsConfig,
+				HandshakeTimeout:  handshakeTimeout,
 			}
 			conn, _, err := dialer.Dial(connectionUrl.String(), *header)
 			if err != nil {

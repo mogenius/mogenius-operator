@@ -15,6 +15,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"encoding/json"
@@ -219,37 +220,66 @@ func MergeMaps(maplist ...map[string]string) map[string]string {
 	return resultMap
 }
 
+// countryLookup guards the country lookup. The lookup runs inside the
+// cluster resource-info TTL cache, whose mutex every caller waits on, so it
+// must be bounded: without a timeout an egress-restricted cluster that
+// silently drops the request blocked every resource-info call for the OS
+// connect timeout (~2 min), retried on every cache refresh.
+var countryLookup = struct {
+	sync.Mutex
+	client      *http.Client
+	lastFailure time.Time
+}{client: &http.Client{Timeout: 5 * time.Second}}
+
+// countryRetryAfterFailure is how long a failed lookup is not retried.
+const countryRetryAfterFailure = 10 * time.Minute
+
 func GuessClusterCountry() (*CountryDetails, error) {
+	countryLookup.Lock()
+	defer countryLookup.Unlock()
+
 	if CURRENT_COUNTRY != nil {
 		return CURRENT_COUNTRY, nil
 	}
 
 	allowCountryCheck, err := config.TryGetBool("MO_ALLOW_COUNTRY_CHECK")
 	assert.Assert(err == nil, err)
-	if allowCountryCheck {
-		resp, err := http.Get("https://platform-api.mogenius.com/country/location")
-		if err != nil {
-			return nil, err
-		}
-		defer func() { _ = resp.Body.Close() }()
-
-		if resp.StatusCode != 200 {
-			return nil, fmt.Errorf("failed to fetch with status code: %d", resp.StatusCode)
-		}
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			return nil, err
-		}
-
-		var country CountryDetails
-		if err := json.Unmarshal(body, &country); err != nil {
-			return CURRENT_COUNTRY, err
-		} else {
-			CURRENT_COUNTRY = &country
-			return CURRENT_COUNTRY, err
-		}
+	if !allowCountryCheck {
+		return nil, nil
 	}
-	return nil, nil
+	if since := time.Since(countryLookup.lastFailure); since < countryRetryAfterFailure {
+		return nil, fmt.Errorf("country lookup failed recently, next attempt in %s", (countryRetryAfterFailure - since).Round(time.Second))
+	}
+
+	country, err := fetchClusterCountry(countryLookup.client)
+	if err != nil {
+		countryLookup.lastFailure = time.Now()
+		return nil, err
+	}
+	CURRENT_COUNTRY = country
+	return CURRENT_COUNTRY, nil
+}
+
+func fetchClusterCountry(client *http.Client) (*CountryDetails, error) {
+	resp, err := client.Get("https://platform-api.mogenius.com/country/location")
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != 200 {
+		return nil, fmt.Errorf("failed to fetch with status code: %d", resp.StatusCode)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	var country CountryDetails
+	if err := json.Unmarshal(body, &country); err != nil {
+		return nil, err
+	}
+	return &country, nil
 }
 
 func ContainsResourceDescriptor(resources []*ResourceDescriptor, target ResourceDescriptor) bool {

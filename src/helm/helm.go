@@ -9,7 +9,6 @@ import (
 	"mogenius-operator/src/assert"
 	cfg "mogenius-operator/src/config"
 	"mogenius-operator/src/logging"
-	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
@@ -811,9 +810,9 @@ func HelmChartSearch(data HelmChartSearchRequest) ([]HelmChartInfo, error) {
 
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
-		helmLogger.Error("Failed to load repositories file", "error", err.Error())
-		shutdown.SendShutdownSignal(true)
-		select {}
+		// e.g. not yet created on first boot or read mid-rewrite: a request
+		// error, never a reason to shut the operator down
+		return nil, fmt.Errorf("failed to load repositories file: %w", err)
 	}
 
 	var allCharts []HelmChartInfo
@@ -907,9 +906,7 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 
 	repositoriesFile, err := repo.LoadFile(settings.RepositoryConfig)
 	if err != nil {
-		helmLogger.Error("failed to load repositories file", "error", err.Error())
-		shutdown.SendShutdownSignal(true)
-		select {}
+		return nil, fmt.Errorf("failed to load repositories file: %w", err)
 	}
 
 	var allCharts []HelmChartInfo
@@ -938,7 +935,7 @@ func HelmChartVersion(data HelmChartVersionRequest) ([]HelmChartInfo, error) {
 				if chartVersion.Name != chartName {
 					continue
 				}
-				if len(allCharts) > MAXCHART_VERSIONS {
+				if len(allCharts) >= MAXCHART_VERSIONS {
 					break
 				}
 				allCharts = append(allCharts, HelmChartInfo{
