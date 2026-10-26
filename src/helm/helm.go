@@ -1061,8 +1061,8 @@ func HelmOciInstall(data HelmChartOciInstallUpgradeRequest) (result string, err 
 	// See HelmReleaseUpgrade: take sole ownership on SSA conflicts (MOG-4393).
 	install.ForceConflicts = true
 	install.Labels = map[string]string{
-		InstalledViaLabel: InstalledViaValue,
-		"mogenius.com/oci-chart":     "true",
+		InstalledViaLabel:        InstalledViaValue,
+		"mogenius.com/oci-chart": "true",
 	}
 
 	// Create registry client for OCI
@@ -1230,8 +1230,8 @@ func HelmChartInstall(data HelmChartInstallUpgradeRequest) (result string, err e
 	// See HelmReleaseUpgrade: take sole ownership on SSA conflicts (MOG-4393).
 	install.ForceConflicts = true
 	install.Labels = map[string]string{
-		InstalledViaLabel: InstalledViaValue,
-		"mogenius.com/oci-chart":     "false",
+		InstalledViaLabel:        InstalledViaValue,
+		"mogenius.com/oci-chart": "false",
 	}
 
 	helmLogger.Info("Locating chart ...", "releaseName", data.Release, "namespace", data.Namespace)

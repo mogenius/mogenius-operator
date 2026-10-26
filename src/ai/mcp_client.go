@@ -633,4 +633,3 @@ func mcpSchemaToPropertiesAndRequired(schema any) (map[string]any, []string) {
 
 	return properties, required
 }
-

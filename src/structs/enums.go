@@ -20,4 +20,3 @@ const (
 	HelmGetNotes    HelmGetEnum = "notes"
 	HelmGetValues   HelmGetEnum = "values"
 )
-

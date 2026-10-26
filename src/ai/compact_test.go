@@ -184,4 +184,3 @@ func TestSummaryResourceText(t *testing.T) {
 	full, _ := json.Marshal(res.Object)
 	assert.Less(t, len(out), len(full))
 }
-

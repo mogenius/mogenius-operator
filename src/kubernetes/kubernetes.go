@@ -46,4 +46,3 @@ func GetSecret(namespace, name string) (*coreV1.Secret, error) {
 	clientset := clientProvider.K8sClientSet()
 	return clientset.CoreV1().Secrets(namespace).Get(context.Background(), name, metav1.GetOptions{})
 }
-

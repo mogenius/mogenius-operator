@@ -24,7 +24,7 @@ type StorageInfoRequestItem struct {
 
 type StorageInfoRequest struct {
 	Items      []StorageInfoRequestItem `json:"items" validate:"required"`
-	WithEvents bool                       `json:"withEvents"`
+	WithEvents bool                     `json:"withEvents"`
 }
 
 type StorageMountedBy struct {
@@ -49,29 +49,29 @@ type StorageEvent struct {
 // why a mount hangs (e.g. FailedMount events, ContainerCreating) instead of a
 // static "Mounting…" text.
 type StorageHelperStatus struct {
-	PodName string           `json:"podName"`
-	Phase   string           `json:"phase"`
-	Ready   bool             `json:"ready"`
-	Reason  string           `json:"reason"`
-	Message string           `json:"message"`
+	PodName string         `json:"podName"`
+	Phase   string         `json:"phase"`
+	Ready   bool           `json:"ready"`
+	Reason  string         `json:"reason"`
+	Message string         `json:"message"`
 	Events  []StorageEvent `json:"events,omitempty"`
 }
 
 type StorageInfoItem struct {
-	Namespace        string                 `json:"namespace"`
-	PvcName          string                 `json:"pvcName"`
-	Phase            string                 `json:"phase"`
-	RequestedBytes   int64                  `json:"requestedBytes"`
-	CapacityBytes    int64                  `json:"capacityBytes"`
-	StorageClassName string                 `json:"storageClassName"`
-	AccessModes      []string               `json:"accessModes"`
-	VolumeName       string                 `json:"volumeName"`
-	VolumeMode       string                 `json:"volumeMode"`
-	Provisioner      string                 `json:"provisioner"`
+	Namespace        string               `json:"namespace"`
+	PvcName          string               `json:"pvcName"`
+	Phase            string               `json:"phase"`
+	RequestedBytes   int64                `json:"requestedBytes"`
+	CapacityBytes    int64                `json:"capacityBytes"`
+	StorageClassName string               `json:"storageClassName"`
+	AccessModes      []string             `json:"accessModes"`
+	VolumeName       string               `json:"volumeName"`
+	VolumeMode       string               `json:"volumeMode"`
+	Provisioner      string               `json:"provisioner"`
 	MountedBy        []StorageMountedBy   `json:"mountedBy"`
-	Browsable        bool                   `json:"browsable"`
-	BrowsableReason  string                 `json:"browsableReason"`
-	HelperMounted    bool                   `json:"helperMounted"`
+	Browsable        bool                 `json:"browsable"`
+	BrowsableReason  string               `json:"browsableReason"`
+	HelperMounted    bool                 `json:"helperMounted"`
 	HelperStatus     *StorageHelperStatus `json:"helperStatus,omitempty"`
 	Events           []StorageEvent       `json:"events,omitempty"`
 	// PVC creationTimestamp as RFC3339, "" when unknown
