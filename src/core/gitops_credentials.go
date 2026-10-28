@@ -14,7 +14,6 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation"
 	"k8s.io/client-go/kubernetes"
-	"k8s.io/client-go/util/retry"
 )
 
 // ╭──────────────────────────────────────╮
@@ -48,24 +47,18 @@ import (
 // The token must never leave this file except inside Secret.Data: not in error
 // messages, not in log attributes, not in audit objects.
 
+// The write credential's contract and the shared labels live in the gitops
+// package, which the platform reconciler writes the same Secret through.
 const (
-	// gitOpsWriteSecretPrefix is a contract with the platform API: it reads
-	// the write credential as mogenius-gitops-write-<repository name> from the
-	// operator's namespace.
-	gitOpsWriteSecretPrefix = "mogenius-gitops-write-"
-
-	// gitOpsRepositorySecretSuffix is the conventional name of a repository's
-	// read credential, <repository>-repository, in the engine's namespace. The
-	// platform repository reconciler looks the Secret up under that name, so
-	// the PlatformConfig does not have to name it.
-	gitOpsRepositorySecretSuffix = "-repository"
+	gitOpsWriteSecretPrefix      = gitops.WriteSecretPrefix
+	gitOpsRepositorySecretSuffix = gitops.RepositorySecretSuffix
 )
 
 // Data keys of the two Secrets.
 const (
-	gitOpsWriteSecretTokenKey    = "token"
-	gitOpsWriteSecretUsernameKey = "username"
-	gitOpsWriteSecretProviderKey = "provider"
+	gitOpsWriteSecretTokenKey    = gitops.WriteSecretTokenKey
+	gitOpsWriteSecretUsernameKey = gitops.WriteSecretUsernameKey
+	gitOpsWriteSecretProviderKey = gitops.WriteSecretProviderKey
 
 	gitOpsReadSecretTypeKey     = "type"
 	gitOpsReadSecretURLKey      = "url"
@@ -73,59 +66,42 @@ const (
 	gitOpsReadSecretPasswordKey = "password"
 )
 
-// Annotations on the write credential. The repository name is how the platform
-// finds its own entry in spec.gitOps.repositories[] again; the write mode lives
-// on the Secret rather than in the platform database so a restored backup or a
-// re-registered cluster keeps the setting.
 const (
-	gitOpsWriteRepositoryAnnotation    = "mogenius.com/gitops-repository"
-	gitOpsWriteRepositoryURLAnnotation = "mogenius.com/gitops-repository-url"
-	gitOpsWriteModeAnnotation          = "mogenius.com/gitops-write-mode"
+	gitOpsWriteRepositoryAnnotation    = gitops.WriteRepositoryAnnotation
+	gitOpsWriteRepositoryURLAnnotation = gitops.WriteRepositoryURLAnnotation
+	gitOpsWriteModeAnnotation          = gitops.WriteModeAnnotation
 )
 
 const (
-	// gitOpsWriteManagedByLabelKey is bare, not app.kubernetes.io/managed-by:
-	// this is the label the platform API recognises its own write credentials
-	// by, so a Secret created here and one the UI writes on a token rotation
-	// are the same object.
-	gitOpsWriteManagedByLabelKey   = "managed-by"
-	gitOpsWriteManagedByLabelValue = "mogenius"
+	gitOpsWriteManagedByLabelKey   = gitops.WriteManagedByLabelKey
+	gitOpsWriteManagedByLabelValue = gitops.WriteManagedByLabelValue
 
-	gitOpsComponentLabelKey        = "mogenius.com/component"
-	gitOpsWriteComponentLabelValue = "gitops-write"
+	gitOpsComponentLabelKey        = gitops.ComponentLabelKey
+	gitOpsWriteComponentLabelValue = gitops.WriteComponentLabelValue
 
-	gitOpsManagedByLabelKey    = "app.kubernetes.io/managed-by"
-	gitOpsManagedByLabelValue  = "mogenius"
-	gitOpsPartOfLabelKey       = "app.kubernetes.io/part-of"
-	gitOpsPartOfLabelValue     = "mogenius"
-	gitOpsComponentK8sLabelKey = "app.kubernetes.io/component"
-	gitOpsComponentK8sValue    = "platform-config"
+	gitOpsManagedByLabelKey    = gitops.ManagedByLabelKey
+	gitOpsManagedByLabelValue  = gitops.ManagedByLabelValue
+	gitOpsPartOfLabelKey       = gitops.PartOfLabelKey
+	gitOpsPartOfLabelValue     = gitops.PartOfLabelValue
+	gitOpsComponentK8sLabelKey = gitops.ComponentK8sLabelKey
+	gitOpsComponentK8sValue    = gitops.ComponentK8sValue
 
-	// argoCDSecretTypeLabelKey is how Argo CD discovers repository
-	// credentials: by label, with the repository URL inside the Secret.
-	argoCDSecretTypeLabelKey   = "argocd.argoproj.io/secret-type"
-	argoCDSecretTypeLabelValue = "repository"
+	argoCDSecretTypeLabelKey   = gitops.ArgoCDSecretTypeLabelKey
+	argoCDSecretTypeLabelValue = gitops.ArgoCDSecretTypeLabelValue
 )
 
-// Write modes the platform API accepts. PULL_REQUEST is its own default and the
-// safer one — a pull request is reviewable, a direct commit is already live.
 const (
-	GitOpsWriteModePullRequest  = "PULL_REQUEST"
-	GitOpsWriteModeDirectCommit = "DIRECT_COMMIT"
+	GitOpsWriteModePullRequest  = gitops.WriteModePullRequest
+	GitOpsWriteModeDirectCommit = gitops.WriteModeDirectCommit
 )
 
-// Git providers, in the platform's spelling. Only these three are accepted:
-// committing a PlatformConfig needs an API that can both read and write a file,
-// and the API reports anything else as unsupported rather than attempting it.
 const (
-	GitOpsProviderGitHub = "GIT_HUB"
-	GitOpsProviderGitLab = "GIT_LAB"
-	GitOpsProviderGitea  = "GITEA"
+	GitOpsProviderGitHub = gitops.ProviderGitHub
+	GitOpsProviderGitLab = gitops.ProviderGitLab
+	GitOpsProviderGitea  = gitops.ProviderGitea
 )
 
-// gitOpsWriteDefaultUsername is the platform's default; only some provider
-// APIs use the username at all.
-const gitOpsWriteDefaultUsername = "mogenius"
+const gitOpsWriteDefaultUsername = gitops.DefaultWriteUsername
 
 // Default namespaces of the engines, used when the command does not name one.
 const (
@@ -347,35 +323,16 @@ func resolveGitOpsCredentials(request GitOpsCredentialsRequest) (resolvedGitOpsC
 
 // gitOpsWriteCredentialSecret is the desired write credential: the Secret the
 // platform API commits platformconfig.yaml with.
-//
-// Everything goes into Data rather than StringData. The platform's own secret
-// validation only ever looks at data, so a Secret carrying just stringData is
-// rejected as having no keys when the API updates it on the next rotation.
 func gitOpsWriteCredentialSecret(namespace string, resolved resolvedGitOpsCredentials) *corev1.Secret {
-	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      gitOpsWriteSecretName(resolved.repositoryName),
-			Namespace: namespace,
-			Labels: map[string]string{
-				gitOpsWriteManagedByLabelKey: gitOpsWriteManagedByLabelValue,
-				gitOpsComponentLabelKey:      gitOpsWriteComponentLabelValue,
-				gitOpsManagedByLabelKey:      gitOpsManagedByLabelValue,
-				gitOpsComponentK8sLabelKey:   gitOpsComponentK8sValue,
-				gitOpsPartOfLabelKey:         gitOpsPartOfLabelValue,
-			},
-			Annotations: map[string]string{
-				gitOpsWriteRepositoryAnnotation:    resolved.repositoryName,
-				gitOpsWriteRepositoryURLAnnotation: resolved.repositoryURL,
-				gitOpsWriteModeAnnotation:          resolved.writeMode,
-			},
-		},
-		Type: corev1.SecretTypeOpaque,
-		Data: map[string][]byte{
-			gitOpsWriteSecretTokenKey:    []byte(resolved.token),
-			gitOpsWriteSecretUsernameKey: []byte(resolved.username),
-			gitOpsWriteSecretProviderKey: []byte(resolved.provider),
-		},
-	}
+	return gitops.WriteCredentialSecret(gitops.WriteCredential{
+		Namespace:      namespace,
+		RepositoryName: resolved.repositoryName,
+		RepositoryURL:  resolved.repositoryURL,
+		Token:          resolved.token,
+		Username:       resolved.username,
+		Provider:       resolved.provider,
+		WriteMode:      resolved.writeMode,
+	})
 }
 
 // gitOpsReadCredentialSecret is the desired read credential: the Secret the
@@ -413,69 +370,11 @@ func gitOpsReadCredentialSecret(resolved resolvedGitOpsCredentials) *corev1.Secr
 	return secret
 }
 
-// upsertGitOpsSecret creates desired, or updates an existing Secret of the same
-// name in place.
-//
-// An existing Secret is adopted rather than refused. Rotating a token is the
-// same call again, and the Secret it has to rotate may have been created by the
-// bootstrap chart or by the platform UI — refusing anything without our own
-// labels would break rotation on exactly the clusters that were onboarded
-// before this code existed.
-//
-// Data keys are merged, not replaced: only the keys we manage are written, so a
-// key an operator added next to them (an Argo CD tlsClientCert, say) survives a
-// rotation.
+// upsertGitOpsSecret creates desired, or adopts and updates an existing Secret
+// of the same name in place: the Secret a rotation has to update may have been
+// created by the bootstrap chart or by the platform UI.
 func upsertGitOpsSecret(ctx context.Context, client kubernetes.Interface, desired *corev1.Secret) (created bool, err error) {
-	secrets := client.CoreV1().Secrets(desired.Namespace)
-
-	_, err = secrets.Get(ctx, desired.Name, metav1.GetOptions{})
-	if err != nil && !apierrors.IsNotFound(err) {
-		return false, fmt.Errorf("get secret %q: %w", desired.Name, err)
-	}
-	if apierrors.IsNotFound(err) {
-		if _, err = secrets.Create(ctx, desired, metav1.CreateOptions{}); err == nil {
-			return true, nil
-		}
-		if !apierrors.IsAlreadyExists(err) {
-			return false, fmt.Errorf("create secret %q: %w", desired.Name, err)
-		}
-		// Lost a create race; fall through to the update path.
-	}
-
-	err = retry.RetryOnConflict(retry.DefaultRetry, func() error {
-		current, err := secrets.Get(ctx, desired.Name, metav1.GetOptions{})
-		if err != nil {
-			return err
-		}
-		if current.Labels == nil {
-			current.Labels = map[string]string{}
-		}
-		for key, value := range desired.Labels {
-			current.Labels[key] = value
-		}
-		if current.Annotations == nil {
-			current.Annotations = map[string]string{}
-		}
-		for key, value := range desired.Annotations {
-			current.Annotations[key] = value
-		}
-		if current.Data == nil {
-			current.Data = map[string][]byte{}
-		}
-		for key, value := range desired.Data {
-			current.Data[key] = value
-		}
-		// StringData wins over Data on the API server, so a leftover entry
-		// from a Secret written with stringData would shadow the new token.
-		delete(current.StringData, gitOpsWriteSecretTokenKey)
-		delete(current.StringData, gitOpsReadSecretPasswordKey)
-		_, err = secrets.Update(ctx, current, metav1.UpdateOptions{})
-		return err
-	})
-	if err != nil {
-		return false, fmt.Errorf("update secret %q: %w", desired.Name, err)
-	}
-	return false, nil
+	return gitops.UpsertSecret(ctx, client, desired)
 }
 
 // UpsertGitOpsCredentials materializes both credentials for one platform
@@ -501,12 +400,19 @@ func UpsertGitOpsCredentials(
 	}
 
 	readSecret := gitOpsReadCredentialSecret(resolved)
+	writeSecret := gitOpsWriteCredentialSecret(operatorNamespace, resolved)
+
+	for _, secret := range []*corev1.Secret{readSecret, writeSecret} {
+		if err := refuseGitHubAppCredential(ctx, client, secret); err != nil {
+			return "", err
+		}
+	}
+
 	readCreated, err := upsertGitOpsSecret(ctx, client, readSecret)
 	if err != nil {
 		return "", fmt.Errorf("upsert repository read credential: %w", err)
 	}
 
-	writeSecret := gitOpsWriteCredentialSecret(operatorNamespace, resolved)
 	writeCreated, err := upsertGitOpsSecret(ctx, client, writeSecret)
 	if err != nil {
 		return "", fmt.Errorf("upsert repository write credential: %w", err)
@@ -528,4 +434,22 @@ func UpsertGitOpsCredentials(
 		resolved.repositoryName,
 		readSecret.Namespace, readSecret.Name,
 		writeSecret.Namespace, writeSecret.Name), nil
+}
+
+// refuseGitHubAppCredential fails when the Secret desired would land on is
+// derived from a GitHub App. The PlatformConfig owns those: a token written
+// over them is replaced on the next reconcile, and until then the engine and
+// the platform authenticate with a credential nobody declared.
+func refuseGitHubAppCredential(ctx context.Context, client kubernetes.Interface, desired *corev1.Secret) error {
+	current, err := client.CoreV1().Secrets(desired.Namespace).Get(ctx, desired.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("get secret %q: %w", desired.Name, err)
+	}
+	if _, ok := current.Labels[gitops.GitHubAppLabelKey]; ok {
+		return fmt.Errorf("secret %s/%s is derived from the repository's githubApp in the PlatformConfig; remove githubApp there before storing a token", desired.Namespace, desired.Name)
+	}
+	return nil
 }

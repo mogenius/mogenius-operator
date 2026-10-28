@@ -92,6 +92,8 @@ const (
 	RepositoryTypeApplication = "application"
 )
 
+// +kubebuilder:validation:XValidation:rule="!(has(self.externalSecret) && has(self.githubApp))",message="externalSecret and githubApp are mutually exclusive"
+// +kubebuilder:validation:XValidation:rule="!(has(self.githubApp) && has(self.write) && has(self.write.secretRef))",message="write.secretRef cannot be combined with githubApp, the write token is minted from the app"
 type GitOpsRepositoryConfig struct {
 	Name string `json:"name"`
 	URL  string `json:"url"`
@@ -104,6 +106,11 @@ type GitOpsRepositoryConfig struct {
 	Path           string          `json:"path,omitempty"`
 	Revision       string          `json:"revision,omitempty"`
 	ExternalSecret *ExternalSecret `json:"externalSecret,omitempty"`
+	// GitHubApp authenticates as a GitHub App installation. The engine
+	// authenticates with the app directly; the platform commits with
+	// short-lived installation tokens the operator mints on request.
+	// +optional
+	GitHubApp *GitHubAppConfig `json:"githubApp,omitempty"`
 	// Write configures how edits made in the platform reach this repository.
 	// Read by the mogenius API, not by this operator: declaring it changes
 	// nothing in the cluster on its own.
@@ -141,6 +148,22 @@ type GitOpsWriteConfig struct {
 	// Provider is "GIT_HUB", "GIT_LAB" or "GITEA". Derived from url when empty.
 	// +optional
 	Provider string `json:"provider,omitempty"`
+}
+
+// GitHubAppConfig identifies a GitHub App installation with access to a
+// repository.
+type GitHubAppConfig struct {
+	// +kubebuilder:validation:Minimum=1
+	AppID int64 `json:"appId"`
+	// +kubebuilder:validation:Minimum=1
+	InstallationID int64 `json:"installationId"`
+	// EnterpriseBaseURL is the REST API root of a GitHub Enterprise Server,
+	// e.g. https://github.example.com/api/v3. Empty means github.com.
+	// +optional
+	EnterpriseBaseURL string `json:"enterpriseBaseUrl,omitempty"`
+	// PrivateKey is the app's PEM-encoded private key. secret.key and
+	// externalSecret.key default to "privateKey".
+	PrivateKey GenericSecretReference `json:"privateKey"`
 }
 
 // SecretReference points at a Secret already present in the
@@ -391,6 +414,45 @@ type PlatformConfigStatus struct {
 	// ConfigSource reports who owns this resource's spec.
 	// +optional
 	ConfigSource *PlatformConfigSource `json:"configSource,omitempty"`
+	// Repositories mirrors spec.gitOps.repositories with the credentials the
+	// operator resolved for them, so the platform never derives Secret names
+	// on its own.
+	// +optional
+	Repositories []GitOpsRepositoryStatus `json:"repositories,omitempty"`
+}
+
+// Kinds of credential a GitOpsCredentialReference points at.
+const (
+	// GitOpsCredentialKindToken is a Secret holding a token under Key.
+	GitOpsCredentialKindToken = "token"
+	// GitOpsCredentialKindGitHubApp is a Secret holding GitHub App
+	// credentials. Tokens are minted from it through the operator's
+	// platform/github-app-token command.
+	GitOpsCredentialKindGitHubApp = "githubApp"
+)
+
+// GitOpsRepositoryStatus reports one entry of spec.gitOps.repositories.
+type GitOpsRepositoryStatus struct {
+	Name string `json:"name"`
+	URL  string `json:"url"`
+	// Type is the entry's type with the default applied.
+	Type string `json:"type"`
+	// WriteCredential is the credential the platform commits with. Absent when
+	// the spec declares none; the platform then uses the token it stored
+	// itself.
+	// +optional
+	WriteCredential *GitOpsCredentialReference `json:"writeCredential,omitempty"`
+}
+
+// GitOpsCredentialReference locates a credential Secret.
+type GitOpsCredentialReference struct {
+	// +kubebuilder:validation:Enum=token;githubApp
+	Kind      string `json:"kind"`
+	Namespace string `json:"namespace"`
+	Name      string `json:"name"`
+	// Key holds the token for kind token.
+	// +optional
+	Key string `json:"key,omitempty"`
 }
 
 // PlatformConfigSource says where the spec in the cluster came from.

@@ -622,3 +622,24 @@ func TestUpsertGitOpsCredentialsResultNamesBothSecrets(t *testing.T) {
 	assert.Contains(t, result, "flux-system/platform-repository")
 	assert.NotContains(t, result, "ghp_test")
 }
+
+// Credentials derived from a GitHub App belong to the PlatformConfig; a token
+// written over them would be replaced on the next reconcile anyway.
+func TestUpsertGitOpsCredentialsRefusesGitHubAppCredentials(t *testing.T) {
+	client := fake.NewClientset(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      gitOpsWriteSecretName(testRepository),
+			Namespace: testNamespace,
+			Labels:    map[string]string{gitops.GitHubAppLabelKey: gitops.GitHubAppLabelValue},
+		},
+		Data: map[string][]byte{gitOpsWriteSecretTokenKey: []byte("ghs_app")},
+	})
+
+	_, err := UpsertGitOpsCredentials(context.Background(), client, discardLogger(), testNamespace, testCredentialsRequest())
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "githubApp")
+	assert.Equal(t, []byte("ghs_app"), writeSecretOf(t, client, testRepository).Data[gitOpsWriteSecretTokenKey])
+	_, err = client.CoreV1().Secrets(testEngineNs).Get(context.Background(), gitOpsReadSecretName(testRepository), metav1.GetOptions{})
+	assert.True(t, apierrors.IsNotFound(err), "neither Secret is written")
+}

@@ -84,13 +84,14 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 					fluxKustomizationObject(name, repo, namespace),
 				)
 
+				// Absent enabled means enabled, as for the platform's own reading.
 				if repo.Write != nil &&
-					repo.Write.Enabled != nil &&
-					*repo.Write.Enabled &&
+					(repo.Write.Enabled == nil || *repo.Write.Enabled) &&
+					repo.Write.SecretRef != nil &&
 					repo.Write.SecretRef.ExternalSecret != nil {
 
 					operatorNamespace := d.config.Get("MO_OWN_NAMESPACE")
-					extraObjects = append(extraObjects, externalSecretResource(name+"-write", operatorNamespace, *repo.Write.SecretRef.ExternalSecret, nil, nil))
+					extraObjects = append(extraObjects, externalSecretResource(gitOpsWriteExternalSecretName(name), operatorNamespace, *repo.Write.SecretRef.ExternalSecret, nil, nil))
 				}
 			}
 
@@ -174,6 +175,9 @@ func fluxGitRepositoryObject(name string, repo v1alpha1.GitOpsRepositoryConfig, 
 	}
 	if secretName != "" {
 		spec["secretRef"] = map[string]any{"name": secretName}
+	}
+	if repo.GitHubApp != nil {
+		spec["provider"] = "github"
 	}
 	return map[string]any{
 		"apiVersion": "source.toolkit.fluxcd.io/v1",
