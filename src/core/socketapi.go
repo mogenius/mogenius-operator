@@ -2702,6 +2702,28 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		// A GitHub App installation token the platform API commits with,
+		// minted per request so the private key stays in the cluster and no
+		// token is stored.
+		//
+		// The audit entry records a summary instead of the result, which
+		// carries the token.
+		RegisterPatternHandler(
+			PatternHandle{self, "platform/github-app-token"},
+			PatternConfig{},
+			func(datagram structs.Datagram, request GitHubAppTokenRequest) (GitHubAppTokenResult, error) {
+				res, err := self.apiService.MintGitHubAppToken(request)
+				summary := ""
+				if err == nil {
+					summary = fmt.Sprintf("github app token for %s/%s, expires %s", request.Namespace, request.Name, res.ExpiresAt.UTC().Format(time.RFC3339))
+				}
+				_, _ = store.AddToAuditLog(datagram, self.logger, summary, err, nil, nil)
+				return res, err
+			},
+		)
+	}
+
+	{
 		type Request struct {
 			AgentName string `json:"agentName" validate:"required"`
 		}

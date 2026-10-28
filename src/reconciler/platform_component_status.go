@@ -47,6 +47,12 @@ func declaredComponents(spec v1alpha1.PlatformConfigSpec) map[string]componentDe
 				break
 			}
 		}
+		for _, repo := range spec.GitOps.Repositories {
+			if repo.GitHubApp != nil {
+				declared[componentGitHubAppCredentials] = componentDeclaration{declared: true, enabled: true}
+				break
+			}
+		}
 	}
 	if spec.CertManager != nil {
 		declared[componentCertManager] = componentDeclaration{declared: true, enabled: spec.CertManager.Enabled}
@@ -219,7 +225,7 @@ func deliveredStateFor(
 	// Not delivered through an engine object at all: the repository sync
 	// objects are applied directly, and their own reconcile result is the only
 	// verdict there is.
-	if component == componentPlatformRepositories {
+	if component == componentPlatformRepositories || component == componentGitHubAppCredentials {
 		return deliveryState{}, false
 	}
 

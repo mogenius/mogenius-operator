@@ -43,6 +43,9 @@ const (
 	// Not a Helm chart like the others: the condition reports whether the
 	// objects that make the engine sync spec.gitOps.repositories are in place.
 	componentPlatformRepositories = "platform-repositories"
+	// Not a Helm chart either: the condition reports whether the credentials
+	// of repositories that authenticate as a GitHub App are in place.
+	componentGitHubAppCredentials = "github-app-credentials"
 )
 
 // GitOps engine identities as reported in status.gitOpsStatus.engine. These are
@@ -142,20 +145,23 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 
 	// specEngine is the engine mogenius is asked to install; it is empty unless
 	// spec.gitOps enables one.
+	operatorNamespace := d.config.Get("MO_OWN_NAMESPACE")
 	specEngine, specEngineNs, err := inferGitOpsEngine(platformConfig.Spec.GitOps)
 	if err != nil {
-		d.patchPlatformStatus(ctx, obj.GetName(), platformConfig.Status, gitOpsStatus, configSource)
+		repositories := buildRepositoryStatus(platformConfig.Spec.GitOps, "", "", operatorNamespace)
+		d.patchPlatformStatus(ctx, obj.GetName(), platformConfig.Status, gitOpsStatus, configSource, repositories)
 		return []ReconcileResult{{Err: err}}
 	}
 
 	engine, engineNs := deliveryEngine(specEngine, specEngineNs, gitOpsStatus)
+	repositories := buildRepositoryStatus(platformConfig.Spec.GitOps, engine, engineNs, operatorNamespace)
 
 	// No engine anywhere: components ship as Applications/HelmReleases, so there
 	// is nothing to deliver them with. The status still gets reported.
 	if engine == "" {
 		d.logger.Info("skipping reconciliation of platform components, reporting GitOps status only",
 			"name", obj.GetName(), "specEngine", specEngine, "engine", gitOpsStatus.Engine, "installed", gitOpsStatus.Installed)
-		d.patchPlatformStatus(ctx, obj.GetName(), platformConfig.Status, gitOpsStatus, configSource)
+		d.patchPlatformStatus(ctx, obj.GetName(), platformConfig.Status, gitOpsStatus, configSource, repositories)
 		return nil
 	}
 
@@ -172,17 +178,24 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		result *ReconcileResult
 	}
 
-	// Capacity: the nine non-engine components plus the engine, when the spec
-	// asks mogenius to install one. It goes first and blocks until the engine
+	// Capacity: the non-engine components plus the engine, when the spec asks
+	// mogenius to install one. It goes first and blocks until the engine
 	// answers, because everything after it is delivered as a custom resource
 	// that engine has to pick up.
-	components := make([]componentResult, 0, 10)
+	components := make([]componentResult, 0, 12)
 	switch specEngine {
 	case gitOpsEngineArgoCD:
 		components = append(components, componentResult{name: componentArgoCD, result: d.reconcileArgoCD(ctx, platformConfig.Spec, installer, detection)})
 	case gitOpsEngineFlux:
 		components = append(components, componentResult{name: componentFluxCD, result: d.reconcileFluxCD(ctx, platformConfig.Spec, installer, detection)})
 	}
+
+	// Before the repository sync objects: a Flux source bound to a GitHub App
+	// fails until its credential exists.
+	components = append(components, componentResult{
+		name:   componentGitHubAppCredentials,
+		result: d.reconcileGitHubAppCredentials(ctx, platformConfig.Spec, engine, engineNs),
+	})
 
 	// Repositories the platform syncs itself. Only when mogenius does not own
 	// the engine: when it does, reconcileArgoCD/reconcileFluxCD ship the same
@@ -297,8 +310,9 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	// Only patch when status/message actually changed.
 	if !conditionsEqual(platformConfig.Status.Conditions, conditions) ||
 		!gitOpsStatusEqual(platformConfig.Status.GitOpsStatus, gitOpsStatus) ||
-		!configSourceEqual(platformConfig.Status.ConfigSource, configSource) {
-		if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), conditions, gitOpsStatus, configSource); err != nil {
+		!configSourceEqual(platformConfig.Status.ConfigSource, configSource) ||
+		!repositoryStatusEqual(platformConfig.Status.Repositories, repositories) {
+		if err := d.updatePlatformConfigStatus(ctx, obj.GetName(), conditions, gitOpsStatus, configSource, repositories); err != nil {
 			d.logger.Warn("failed to update PlatformConfig status", "name", obj.GetName(), "error", err)
 		}
 	}
@@ -306,8 +320,8 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 	return results
 }
 
-// patchPlatformStatus writes the GitOps status and the config source when
-// either differs from what the object already reports. Failures are logged,
+// patchPlatformStatus writes the GitOps status, the config source and the
+// repository status when any differs from what the object already reports. Failures are logged,
 // never propagated: the status is a report, not a precondition.
 func (d *reconcilerModule) patchPlatformStatus(
 	ctx context.Context,
@@ -315,11 +329,14 @@ func (d *reconcilerModule) patchPlatformStatus(
 	current v1alpha1.PlatformConfigStatus,
 	desiredGitOps *v1alpha1.GitOpsStatus,
 	desiredSource *v1alpha1.PlatformConfigSource,
+	desiredRepositories []v1alpha1.GitOpsRepositoryStatus,
 ) {
-	if gitOpsStatusEqual(current.GitOpsStatus, desiredGitOps) && configSourceEqual(current.ConfigSource, desiredSource) {
+	if gitOpsStatusEqual(current.GitOpsStatus, desiredGitOps) &&
+		configSourceEqual(current.ConfigSource, desiredSource) &&
+		repositoryStatusEqual(current.Repositories, desiredRepositories) {
 		return
 	}
-	if err := d.updatePlatformConfigStatus(ctx, name, nil, desiredGitOps, desiredSource); err != nil {
+	if err := d.updatePlatformConfigStatus(ctx, name, nil, desiredGitOps, desiredSource, desiredRepositories); err != nil {
 		d.logger.Warn("failed to update PlatformConfig status", "name", name, "error", err)
 	}
 }
@@ -345,6 +362,7 @@ func (d *reconcilerModule) updatePlatformConfigStatus(
 	conditions []metav1.Condition,
 	gitOpsStatus *v1alpha1.GitOpsStatus,
 	configSource *v1alpha1.PlatformConfigSource,
+	repositories []v1alpha1.GitOpsRepositoryStatus,
 ) error {
 	status := map[string]any{}
 	if conditions != nil {
@@ -356,6 +374,12 @@ func (d *reconcilerModule) updatePlatformConfigStatus(
 	if configSource != nil {
 		status["configSource"] = configSource
 	}
+	// Always written: a merge patch keeps an omitted key, and entries removed
+	// from the spec must disappear from the status too.
+	if repositories == nil {
+		repositories = []v1alpha1.GitOpsRepositoryStatus{}
+	}
+	status["repositories"] = repositories
 	patchBytes, err := json.Marshal(map[string]any{"status": status})
 	if err != nil {
 		return fmt.Errorf("marshal status patch: %w", err)

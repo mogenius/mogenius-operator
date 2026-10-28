@@ -512,6 +512,64 @@ spec:
                           required:
                           - path
                           type: object
+                        githubApp:
+                          description: |-
+                            GitHubApp authenticates as a GitHub App installation. The engine
+                            authenticates with the app directly; the platform commits with
+                            short-lived installation tokens the operator mints on request.
+                          properties:
+                            appId:
+                              format: int64
+                              minimum: 1
+                              type: integer
+                            enterpriseBaseUrl:
+                              description: |-
+                                EnterpriseBaseURL is the REST API root of a GitHub Enterprise Server,
+                                e.g. https://github.example.com/api/v3. Empty means github.com.
+                              type: string
+                            installationId:
+                              format: int64
+                              minimum: 1
+                              type: integer
+                            privateKey:
+                              description: |-
+                                PrivateKey is the app's PEM-encoded private key. secret.key and
+                                externalSecret.key default to "privateKey".
+                              properties:
+                                externalSecret:
+                                  description: |-
+                                    ExternalSecret points at one secret inside a vault declared in
+                                    spec.externalSecretsOperator.vaults. Vault may be left empty by the caller
+                                    and defaulted to the first declared vault (see e.g. ExternalDNSConfig).
+                                  properties:
+                                    key:
+                                      type: string
+                                    path:
+                                      type: string
+                                    vault:
+                                      type: string
+                                  required:
+                                  - path
+                                  type: object
+                                secret:
+                                  description: |-
+                                    SecretReference points at a Secret already present in the
+                                    mogenius-operator's namespace.
+                                  properties:
+                                    key:
+                                      description: Key of the Secret data to reference.
+                                      type: string
+                                    name:
+                                      description: Name of the Secret resource to
+                                        reference.
+                                      type: string
+                                  type: object
+                              type: object
+                          required:
+                          - appId
+                          - installationId
+                          - privateKey
+                          type: object
                         name:
                           type: string
                         path:
@@ -592,6 +650,12 @@ spec:
                       - name
                       - url
                       type: object
+                      x-kubernetes-validations:
+                      - message: externalSecret and githubApp are mutually exclusive
+                        rule: '!(has(self.externalSecret) && has(self.githubApp))'
+                      - message: write.secretRef cannot be combined with githubApp,
+                          the write token is minted from the app
+                        rule: '!(has(self.githubApp) && has(self.write) && has(self.write.secretRef))'
                     type: array
                 type: object
               kubePrometheusStack:
@@ -942,6 +1006,50 @@ spec:
                     description: Version of the engine, e.g. "v2.7.5".
                     type: string
                 type: object
+              repositories:
+                description: |-
+                  Repositories mirrors spec.gitOps.repositories with the credentials the
+                  operator resolved for them, so the platform never derives Secret names
+                  on its own.
+                items:
+                  description: GitOpsRepositoryStatus reports one entry of spec.gitOps.repositories.
+                  properties:
+                    name:
+                      type: string
+                    type:
+                      description: Type is the entry's type with the default applied.
+                      type: string
+                    url:
+                      type: string
+                    writeCredential:
+                      description: |-
+                        WriteCredential is the credential the platform commits with. Absent when
+                        the spec declares none; the platform then uses the token it stored
+                        itself.
+                      properties:
+                        key:
+                          description: Key holds the token for kind token.
+                          type: string
+                        kind:
+                          enum:
+                          - token
+                          - githubApp
+                          type: string
+                        name:
+                          type: string
+                        namespace:
+                          type: string
+                      required:
+                      - kind
+                      - name
+                      - namespace
+                      type: object
+                  required:
+                  - name
+                  - type
+                  - url
+                  type: object
+                type: array
             type: object
         required:
         - metadata

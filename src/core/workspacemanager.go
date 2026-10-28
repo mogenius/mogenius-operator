@@ -52,6 +52,9 @@ type WorkspaceManager interface {
 	// UpsertGitOpsCredentials materializes the read/write credential Secrets
 	// for a platform repository from a token the platform API pushes.
 	UpsertGitOpsCredentials(request GitOpsCredentialsRequest) (string, error)
+	// MintGitHubAppToken mints an installation token from a GitHub App
+	// repository credential in the cluster.
+	MintGitHubAppToken(request GitHubAppTokenRequest) (GitHubAppTokenResult, error)
 
 	GetAllMcpServers() ([]v1alpha1.McpServer, error)
 	GetMcpServer(name string) (*v1alpha1.McpServer, error)
@@ -312,6 +315,10 @@ func (self *workspaceManager) UpsertGitOpsCredentials(request GitOpsCredentialsR
 	self.namespaceLock.RLock()
 	defer self.namespaceLock.RUnlock()
 	return UpsertGitOpsCredentials(context.Background(), self.clientProvider.K8sClientSet(), self.logger, self.namespace, request)
+}
+
+func (self *workspaceManager) MintGitHubAppToken(request GitHubAppTokenRequest) (GitHubAppTokenResult, error) {
+	return MintGitHubAppToken(context.Background(), self.clientProvider.K8sClientSet(), githubAppTokenHTTPClient, self.logger, request)
 }
 
 func (self *workspaceManager) GetAllMcpServers() ([]v1alpha1.McpServer, error) {

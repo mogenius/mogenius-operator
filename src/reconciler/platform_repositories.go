@@ -2,6 +2,7 @@ package reconciler
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"mogenius-operator/src/crds/v1alpha1"
@@ -12,6 +13,7 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 )
 
 // repositorySecretSuffix is the conventional name of a repository's credential
@@ -53,6 +55,10 @@ func (d *reconcilerModule) reconcilePlatformRepositories(
 		}
 	}
 
+	// Each repository on its own: one that cannot be synced must not keep the
+	// others from it.
+	var errs []error
+	githubProvider := githubProviderUnknown
 	for _, repo := range spec.GitOps.Repositories {
 		// Application repositories are declared for the mogenius platform, not
 		// for this operator: no sync objects.
@@ -75,21 +81,79 @@ func (d *reconcilerModule) reconcilePlatformRepositories(
 			// by label, so the Secret stands on its own.
 			object := argoApplicationObject(name, repo, namespace, argoProjectName(spec.GitOps))
 			if err := d.applyPlatformObject(ctx, utils.ArgoApplicationResource, namespace, object); err != nil {
-				return &ReconcileResult{Err: fmt.Errorf("apply application %q: %w", name, err)}
+				errs = append(errs, fmt.Errorf("apply application %q: %w", name, err))
 			}
 
 		case gitOpsEngineFlux:
+			if repo.GitHubApp != nil {
+				if githubProvider == githubProviderUnknown {
+					githubProvider = d.fluxGitHubProviderSupport(ctx)
+				}
+				if githubProvider == githubProviderUnsupported {
+					errs = append(errs, fmt.Errorf("git repository %q: githubApp needs Flux v2.5 or later, the installed GitRepository CRD does not accept provider: github", name))
+					continue
+				}
+			}
 			source := fluxGitRepositoryObject(name, repo, namespace, d.fluxRepositorySecretName(ctx, name, repo, namespace))
 			if err := d.applyPlatformObject(ctx, utils.GitRepositoryResource, namespace, source); err != nil {
-				return &ReconcileResult{Err: fmt.Errorf("apply git repository %q: %w", name, err)}
+				errs = append(errs, fmt.Errorf("apply git repository %q: %w", name, err))
+				continue
 			}
 			if err := d.applyPlatformObject(ctx, utils.KustomizationResource, namespace, fluxKustomizationObject(name, repo, namespace)); err != nil {
-				return &ReconcileResult{Err: fmt.Errorf("apply kustomization %q: %w", name, err)}
+				errs = append(errs, fmt.Errorf("apply kustomization %q: %w", name, err))
 			}
 		}
 	}
 
+	if len(errs) > 0 {
+		return &ReconcileResult{Err: errors.Join(errs...)}
+	}
 	return nil
+}
+
+type githubProviderSupport int
+
+const (
+	githubProviderUnknown githubProviderSupport = iota
+	githubProviderSupported
+	githubProviderUnsupported
+)
+
+var customResourceDefinitionGVR = schema.GroupVersionResource{
+	Group:    "apiextensions.k8s.io",
+	Version:  "v1",
+	Resource: "customresourcedefinitions",
+}
+
+// fluxGitHubProviderSupport reads the GitRepository CRD's schema. provider:
+// github arrived with Flux v2.5; an older CRD rejects the whole object. A CRD
+// that cannot be read is given the benefit of the doubt, and the apply reports
+// whatever is actually wrong.
+func (d *reconcilerModule) fluxGitHubProviderSupport(ctx context.Context) githubProviderSupport {
+	crd, err := d.clientProvider.DynamicClient().Resource(customResourceDefinitionGVR).
+		Get(ctx, utils.GitRepositoryResource.Plural+".source.toolkit.fluxcd.io", metav1.GetOptions{})
+	if err != nil {
+		d.logger.Warn("could not read the GitRepository CRD to check for provider: github", "error", err)
+		return githubProviderSupported
+	}
+	return gitRepositoryCRDGitHubProviderSupport(crd)
+}
+
+func gitRepositoryCRDGitHubProviderSupport(crd *unstructured.Unstructured) githubProviderSupport {
+	versions, _, _ := unstructured.NestedSlice(crd.Object, "spec", "versions")
+	for _, version := range versions {
+		version, ok := version.(map[string]any)
+		if !ok || version["name"] != "v1" {
+			continue
+		}
+		enum, _, _ := unstructured.NestedSlice(version, "schema", "openAPIV3Schema", "properties", "spec", "properties", "provider", "enum")
+		for _, value := range enum {
+			if value == "github" {
+				return githubProviderSupported
+			}
+		}
+	}
+	return githubProviderUnsupported
 }
 
 // applyPlatformObject applies one object, labelled so it is recognisable as the
@@ -195,6 +259,11 @@ func (d *reconcilerModule) fluxRepositorySecretName(
 ) string {
 	if repo.ExternalSecret != nil {
 		return name
+	}
+	// Written by reconcileGitHubAppCredentials, possibly later in this same
+	// sweep, so its absence right now is not a reason to drop the reference.
+	if repo.GitHubApp != nil {
+		return name + repositorySecretSuffix
 	}
 	if d.platformRepositorySecretExists(ctx, namespace, name+repositorySecretSuffix) {
 		return name + repositorySecretSuffix

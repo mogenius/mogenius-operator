@@ -95,6 +95,7 @@ type Api interface {
 	DeleteAiModel(name string) (string, error)
 
 	UpsertGitOpsCredentials(request GitOpsCredentialsRequest) (string, error)
+	MintGitHubAppToken(request GitHubAppTokenRequest) (GitHubAppTokenResult, error)
 
 	GetWorkspaceResources(workspaceName string, whitelist []*utils.ResourceDescriptor, blacklist []*utils.ResourceDescriptor, namespaceWhitelist []string) ([]unstructured.Unstructured, error)
 	GetResourceListByWhitelistPaginated(req ResourcesPaginatedRequest) (ResourcesPaginatedResponse, error)
@@ -473,6 +474,12 @@ func (self *api) RequestAiModelUsageReset(name string) (string, error) {
 // both in place.
 func (self *api) UpsertGitOpsCredentials(request GitOpsCredentialsRequest) (string, error) {
 	return self.workspaceManager.UpsertGitOpsCredentials(request)
+}
+
+// MintGitHubAppToken mints a repository-scoped installation token from a
+// GitHub App credential in the cluster.
+func (self *api) MintGitHubAppToken(request GitHubAppTokenRequest) (GitHubAppTokenResult, error) {
+	return self.workspaceManager.MintGitHubAppToken(request)
 }
 
 // GetAiModelResult is the wire shape for AiModel CRs, mirroring GetAgentResult.
