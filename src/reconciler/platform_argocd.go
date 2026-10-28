@@ -86,12 +86,8 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 					}
 				}
 
-				if repo.Path != "" {
-					if strings.HasSuffix(repo.Path, "/**") {
-						extraObjects = append(extraObjects, argoAppSetObject(name, repo, namespace, project))
-					} else {
-						extraObjects = append(extraObjects, argoApplicationObject(name, repo, namespace, project))
-					}
+				if object := argoSyncObject(name, repo, namespace, project); object != nil {
+					extraObjects = append(extraObjects, object)
 				}
 
 				if repo.Write != nil &&
@@ -124,6 +120,20 @@ func (d *reconcilerModule) reconcileArgoCD(ctx context.Context, spec v1alpha1.Pl
 			return nil, nil
 		},
 	})
+}
+
+// argoSyncObject is the Application or ApplicationSet that syncs a repository,
+// nil for none. Application repositories get none: they are declared for the
+// mogenius platform to read. Their credential is still created, because the
+// Applications that do point at them need it.
+func argoSyncObject(name string, repo v1alpha1.GitOpsRepositoryConfig, namespace, project string) map[string]any {
+	if !repo.IsPlatformRepository() || repo.Path == "" {
+		return nil
+	}
+	if strings.HasSuffix(repo.Path, "/**") {
+		return argoAppSetObject(name, repo, namespace, project)
+	}
+	return argoApplicationObject(name, repo, namespace, project)
 }
 
 func argoApplicationObject(name string, repo v1alpha1.GitOpsRepositoryConfig, namespace, project string) map[string]any {
