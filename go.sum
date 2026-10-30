@@ -344,8 +344,8 @@ github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 h1:C3w9PqII01/Oq
 github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822/go.mod h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=
 github.com/nwidger/jsoncolor v0.3.2 h1:rVJJlwAWDJShnbTYOQ5RM7yTA20INyKXlJ/fg4JMhHQ=
 github.com/nwidger/jsoncolor v0.3.2/go.mod h1:Cs34umxLbJvgBMnVNVqhji9BhoT/N/KinHqZptQ7cf4=
-github.com/ollama/ollama v0.40.11 h1:GUkxzLCXBp8Q91knrkHOUE0JtVBI0pkadCk2A2PuFUc=
-github.com/ollama/ollama v0.40.11/go.mod h1:VB1qenaqFHAY/oJ9tMYSg9cJjehUpa9gL45FzN4/rsg=
+github.com/ollama/ollama v0.40.13 h1:bB+N1MLkzpq2n9Y2KsKQre9UXor+1ABQZ7nLMBTlZN8=
+github.com/ollama/ollama v0.40.13/go.mod h1:VB1qenaqFHAY/oJ9tMYSg9cJjehUpa9gL45FzN4/rsg=
 github.com/onsi/ginkgo/v2 v2.33.1 h1:62XfWJbEIjPSCSDYrsCPP/SHcmH7O0M8ne8zfqQ2iz4=
 github.com/onsi/ginkgo/v2 v2.33.1/go.mod h1:+aXOY+vzZ5mu2iI2HpTZUPmM//oQfsNFX6gU9kNcA44=
 github.com/onsi/gomega v1.44.0 h1:eAiGl3Pw5jz5GQdDff0BcxYpAX1JxW8xD7mFUuwNfZQ=
