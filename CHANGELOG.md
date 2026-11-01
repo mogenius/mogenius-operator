@@ -1,5 +1,86 @@
 # Changelog
 
+## [2.33.0](https://github.com/mogenius/mogenius-operator/compare/v2.32.0...v2.33.0) (2026-11-01)
+
+
+### Features
+
+* **ai:** route official OpenAI through Responses API for tool calls ([a2570f6](https://github.com/mogenius/mogenius-operator/commit/a2570f6d714c7d8ca3c1e6225748cfb7bee2e172))
+* **ai:** route official OpenAI through Responses API for tool calls ([f87e5b8](https://github.com/mogenius/mogenius-operator/commit/f87e5b88d03b2684f8b9da389d8f847c2ca8dbc0))
+* end-to-end tunnel domains with tls, acme certificates and acces… ([8a7757f](https://github.com/mogenius/mogenius-operator/commit/8a7757f305acbf458a48b0bf9c467cfdaff4d149))
+* end-to-end tunnel domains with tls, acme certificates and access checks in the operator ([3a54e7d](https://github.com/mogenius/mogenius-operator/commit/3a54e7dbcce91066b2d4931fdffcbf6744b96b69))
+* **gitops:** authenticate platform repositories as a GitHub App ([20ad558](https://github.com/mogenius/mogenius-operator/commit/20ad5582b85a5ffd6f6517b2a749fdbb20bb213d))
+* **security:** optional RBAC check for files, terminal, log stream and tunnels ([3b1fd25](https://github.com/mogenius/mogenius-operator/commit/3b1fd258a1901f78ffe7757074fdbc4c0cbec226))
+* **security:** optional RBAC check for files, terminal, log stream and tunnels ([86db0e8](https://github.com/mogenius/mogenius-operator/commit/86db0e8462464eaebca357290ac2252b2dab1d9a))
+
+
+### Bug Fixes
+
+* **ai:** hide cluster-scoped agent runs from workspace views ([2413188](https://github.com/mogenius/mogenius-operator/commit/2413188b8f211b48c06a510b47d69aeb828616d0))
+* **ai:** hide cluster-scoped agent runs from workspace views ([ddbe0c2](https://github.com/mogenius/mogenius-operator/commit/ddbe0c203810fa6788f22d3e1340e5c52cada0c2))
+* **ai:** list AI tasks from a ZSET index instead of keyspace scans ([eeb16f1](https://github.com/mogenius/mogenius-operator/commit/eeb16f1a78e828b7a376ea9c6a4fce4b906d88ed))
+* **ai:** list AI tasks from a ZSET index instead of keyspace scans ([ec66c3f](https://github.com/mogenius/mogenius-operator/commit/ec66c3f3de48962ec86db7cd1eaca8a1d4e6b5b2))
+* **ai:** read the task index once per workspace request ([a337851](https://github.com/mogenius/mogenius-operator/commit/a33785103c86519948851e09eee3d8228d97ed32))
+* **ai:** read the task index once per workspace request ([f3a9aa0](https://github.com/mogenius/mogenius-operator/commit/f3a9aa0cc4ff817a5a315b68c0ff74018f811a90))
+* argocd data race, helm repo file races and workspace stats window ([f920a3b](https://github.com/mogenius/mogenius-operator/commit/f920a3b381d8d63da0bedc68a9d3311518307e65))
+* argocd data race, helm repo file races and workspace stats window ([3723ab2](https://github.com/mogenius/mogenius-operator/commit/3723ab291660f193b64f8a585c4ab176d5ddce79))
+* **argocd:** skip sync objects for application repositories ([ea234c7](https://github.com/mogenius/mogenius-operator/commit/ea234c718fc50233c98f7978da7fe9deaa623567))
+* **ci:** lint all packages and surface build errors separately ([aa8d39a](https://github.com/mogenius/mogenius-operator/commit/aa8d39a8fb017e026b231235a227464521be033d))
+* **ci:** omit inferred types flagged by staticcheck QF1011 ([6da620b](https://github.com/mogenius/mogenius-operator/commit/6da620b43015489de2ce070a9a2d6ea07ca180a0))
+* **ci:** repair main after major bumps and lint all packages ([560df22](https://github.com/mogenius/mogenius-operator/commit/560df22fab5b02160b4ff9a33a4b5594eb40c542))
+* **core:** retry initial websocket connect instead of exiting ([da97257](https://github.com/mogenius/mogenius-operator/commit/da97257850b0ba7f785cf27cb9b14ce7caf39176))
+* crash and hang hardening for request and event paths ([b94ea8a](https://github.com/mogenius/mogenius-operator/commit/b94ea8a237efc7f59aa8a37321a599fa03f495c7))
+* crash and hang hardening for request and event paths ([84c22a8](https://github.com/mogenius/mogenius-operator/commit/84c22a867492977e55569572d63c46ffbbe01a1a))
+* **deps:** migrate to lego v5 and anthropic-sdk-go v2 APIs ([1d5e0a3](https://github.com/mogenius/mogenius-operator/commit/1d5e0a354650bc67b2577e1678fa653ce7c3e4e8))
+* **deps:** update kubernetes monorepo to v0.37.2 ([c56143c](https://github.com/mogenius/mogenius-operator/commit/c56143c834796dfa329f519da453f4330d7b1c59))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.84.0 ([302e64f](https://github.com/mogenius/mogenius-operator/commit/302e64fd83bed9ccc9e5eef5e0bc77d5d1b4da7b))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v1.84.0 ([b1ee470](https://github.com/mogenius/mogenius-operator/commit/b1ee470092b00f934ce0ac27dfef76dd062575c9))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v2 ([56296e0](https://github.com/mogenius/mogenius-operator/commit/56296e0480955fa8f7eef441a8de75680a2cf0d8))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go to v2 ([bfac3e9](https://github.com/mogenius/mogenius-operator/commit/bfac3e9082644f9e966852c77aa52c22f34b6bcc))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.4.0 ([41abd3f](https://github.com/mogenius/mogenius-operator/commit/41abd3f5f4cf132d51b05169ec229218e2e0b544))
+* **deps:** update module github.com/bitnami/sealed-secrets to v0.41.1 ([#1370](https://github.com/mogenius/mogenius-operator/issues/1370)) ([349234a](https://github.com/mogenius/mogenius-operator/commit/349234ac811f86c554a988ace6a6a0a6aa5b4f14))
+* **deps:** update module github.com/bitnami/sealed-secrets to v0.41.2 ([#1387](https://github.com/mogenius/mogenius-operator/issues/1387)) ([15effc9](https://github.com/mogenius/mogenius-operator/commit/15effc907f3e751e3764dd5aab6818a253fbe584))
+* **deps:** update module github.com/go-acme/lego/v4 to v5 ([9a893b8](https://github.com/mogenius/mogenius-operator/commit/9a893b85b91a85f51a46daa9ef3b72bf400c5a34))
+* **deps:** update module github.com/go-acme/lego/v4 to v5 ([59e6e33](https://github.com/mogenius/mogenius-operator/commit/59e6e338ee0b4a0b04c221e0699b96ab56118cd6))
+* **deps:** update module github.com/go-acme/lego/v5 to v5.6.0 ([e5b0b67](https://github.com/mogenius/mogenius-operator/commit/e5b0b67be6993a52803e9e9632f5d797064b3ba0))
+* **deps:** update module github.com/kimmachinegun/automemlimit to v1.0.1 ([#1361](https://github.com/mogenius/mogenius-operator/issues/1361)) ([98c8218](https://github.com/mogenius/mogenius-operator/commit/98c8218e4e3fd1a8ef4a0a68cea76c716b639536))
+* **deps:** update module github.com/ollama/ollama to v0.40.11 ([#1369](https://github.com/mogenius/mogenius-operator/issues/1369)) ([e18aa43](https://github.com/mogenius/mogenius-operator/commit/e18aa432b29d3915245a117841e0e4fb69aa611c))
+* **deps:** update module github.com/ollama/ollama to v0.40.13 ([b1fa63d](https://github.com/mogenius/mogenius-operator/commit/b1fa63d6096bcfca75c19d88e2676548425b8b3b))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.86.0 ([#1366](https://github.com/mogenius/mogenius-operator/issues/1366)) ([ce7538c](https://github.com/mogenius/mogenius-operator/commit/ce7538c94c607418c5a06440e9b1124320ec1033))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.90.0 ([#1391](https://github.com/mogenius/mogenius-operator/issues/1391)) ([4736845](https://github.com/mogenius/mogenius-operator/commit/4736845f0b8cb7316c877cf0d155ec1e4575c049))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.91.0 ([#1401](https://github.com/mogenius/mogenius-operator/issues/1401)) ([4e538b1](https://github.com/mogenius/mogenius-operator/commit/4e538b19edf65e59c75c02bf7f21a89c508f1fdb))
+* **deps:** update module github.com/pkg/sftp to v1.13.12 ([#1367](https://github.com/mogenius/mogenius-operator/issues/1367)) ([71b14da](https://github.com/mogenius/mogenius-operator/commit/71b14dae070778aa13f5f59a9ad3d527f98e6256))
+* **deps:** update module golang.org/x/net to v0.62.0 ([900fb13](https://github.com/mogenius/mogenius-operator/commit/900fb13c0882edc4b0916f95ae0cd0c6f2ff441b))
+* **files:** stream uploads into the target and cap them at a configurable size ([1f69025](https://github.com/mogenius/mogenius-operator/commit/1f690251d28e08760bb18b2f5d4cb36cdb050fdd))
+* **files:** stream uploads into the target and cap them at a configurable size ([95afcd8](https://github.com/mogenius/mogenius-operator/commit/95afcd8020f90c12b39648c7cc560aa26a2768a5))
+* live streams leaked frames across viewers, plus helm and memory data bugs ([225b6aa](https://github.com/mogenius/mogenius-operator/commit/225b6aae415d8e029fcde706a502b3ef46402a5e))
+* live streams leaked frames across viewers, plus helm and memory data bugs ([4644e52](https://github.com/mogenius/mogenius-operator/commit/4644e52b4c1bbe9ae106ccd954e9920a5da3930f))
+* **logging:** do not panic on unencodable payloads or custom levels ([d49db0e](https://github.com/mogenius/mogenius-operator/commit/d49db0e0545cd93b57f2c33dcbf6fa7d4ecde236))
+* operator robustness against platform outages and stuck dependencies ([3f2f5fa](https://github.com/mogenius/mogenius-operator/commit/3f2f5fa2b266e6475a740efc6f0b9456d819298b))
+* **platformconfig:** apply Argo ignoreDifferences on detected engines too ([7bcdae8](https://github.com/mogenius/mogenius-operator/commit/7bcdae8d0b6a74477dc1ea39ea75d87e11a69a69))
+* **platformconfig:** apply Argo ignoreDifferences on detected engines too ([302f76e](https://github.com/mogenius/mogenius-operator/commit/302f76e459bdbd34371b10e8c215cf013af1084d))
+* **reconciler:** reconcile PlatformConfigs when a referenced PlatformPatch changes ([1992290](https://github.com/mogenius/mogenius-operator/commit/19922902a7cb443a0109e2688a399fdec5281f0d))
+* **reconciler:** set external-dns txtOwnerId from cluster name ([fcec5b3](https://github.com/mogenius/mogenius-operator/commit/fcec5b38508a2bd8cf01e127ba76c5b8b41cc80d))
+* **security:** only dial stream gateways on platform hosts ([c256476](https://github.com/mogenius/mogenius-operator/commit/c2564762693ceaf219d907da4d16c94f3ad17fde))
+* **security:** only dial stream gateways on platform hosts ([f23d03f](https://github.com/mogenius/mogenius-operator/commit/f23d03fc67d79ae4249c66a73d7a290dc5980905))
+* **security:** restrict unauthenticated /socketapi and close injection and secret leaks ([df7b869](https://github.com/mogenius/mogenius-operator/commit/df7b8692614333b5f33814bad04ccce1c7d4dc1d))
+* **security:** restrict unauthenticated /socketapi and close injection and secret leaks ([4d842ea](https://github.com/mogenius/mogenius-operator/commit/4d842eadb05219620aeab82b7deae002db695ff4))
+* share timed http clients for prometheus and argocd ([f2488ca](https://github.com/mogenius/mogenius-operator/commit/f2488ca9cd6fb7063675e04c4e89602b62a225a6))
+* stream, tunnel, watcher, ssh and acme lifecycle hardening ([4412de2](https://github.com/mogenius/mogenius-operator/commit/4412de2fbadeb331e1d63cdb1f5c14fb1b7bd7d4))
+* stream, tunnel, watcher, ssh and acme lifecycle hardening ([5514b04](https://github.com/mogenius/mogenius-operator/commit/5514b04649e411fd5dd9d1bdda81ba4fb493f0fe))
+* **utils:** decode base64 zlib payloads of inbound datagrams ([2cebc29](https://github.com/mogenius/mogenius-operator/commit/2cebc290fbc0aaa429edf4ed6f7a6abce17d2e09))
+* **utils:** decode base64 zlib payloads of inbound datagrams ([23d9d2c](https://github.com/mogenius/mogenius-operator/commit/23d9d2c55b9102ff20afc7c9e7403e0026d84f04))
+* **utils:** make FillWith/TruncateText rune-safe ([d0d4bd6](https://github.com/mogenius/mogenius-operator/commit/d0d4bd670ebf9690ffbb0590825184c6d0299391))
+* **utils:** make FillWith/TruncateText rune-safe ([b81f93c](https://github.com/mogenius/mogenius-operator/commit/b81f93cc635461c341d1f616c8552ac8591a4876))
+
+
+### Performance Improvements
+
+* cut dashboard polling and live-stats load on Valkey ([0d1caea](https://github.com/mogenius/mogenius-operator/commit/0d1caea066af4b3a1bbd4ee414122f229118f842))
+* cut dashboard polling and live-stats load on Valkey ([8a5c67e](https://github.com/mogenius/mogenius-operator/commit/8a5c67e688b595a1f88c6fd925daf0c38b1fd534))
+* pod stats collector on the leader with batched writes, pod events via index ([690f4ad](https://github.com/mogenius/mogenius-operator/commit/690f4ad905cb5d91c54be99bd04c6c65ec0cc2aa))
+* pod stats collector on the leader with batched writes, pod events via index ([66e6ec7](https://github.com/mogenius/mogenius-operator/commit/66e6ec7eb848faeb50bc38361e4172a234b17c5b))
+
 ## [2.32.0](https://github.com/mogenius/mogenius-operator/compare/v2.31.1...v2.32.0) (2026-10-20)
 
 
