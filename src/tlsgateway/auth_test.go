@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -36,6 +37,8 @@ func appSeen(t *testing.T, cookies *string) http.Handler {
 
 func guard(t *testing.T, config AuthConfig, cookies *string) http.Handler {
 	t.Helper()
+	// The limiter is shared by the whole operator; every test starts with no failures.
+	passwordFailures = newLoginLimiter()
 	auth, err := NewAuthenticator(config)
 	require.NoError(t, err)
 	return auth.Wrap(appSeen(t, cookies))
@@ -109,6 +112,50 @@ func TestPasswordTunnelLocksOutAfterTooManyWrongPasswords(t *testing.T) {
 	}
 	locked := httptest.NewRecorder()
 	h.ServeHTTP(locked, request(http.MethodPost, loginPath, "password=secret-password"))
+	assert.Equal(t, http.StatusTooManyRequests, locked.Code)
+}
+
+func TestPasswordLockoutSurvivesANewStreamOfTheSameTunnel(t *testing.T) {
+	var cookies string
+	h := guard(t, passwordConfig(t), &cookies)
+	for range loginAttempts {
+		h.ServeHTTP(httptest.NewRecorder(), request(http.MethodPost, loginPath, "password=nope"))
+	}
+	// The platform opens a new stream (another API pod, or after a quiet minute): a new authenticator.
+	again, err := NewAuthenticator(passwordConfig(t))
+	require.NoError(t, err)
+	locked := httptest.NewRecorder()
+	again.Wrap(appSeen(t, &cookies)).ServeHTTP(locked, request(http.MethodPost, loginPath, "password=secret-password"))
+	assert.Equal(t, http.StatusTooManyRequests, locked.Code)
+
+	// Another tunnel and another address are not affected.
+	otherConfig := passwordConfig(t)
+	otherConfig.SessionID = "1c0dbad0c0ffee0ddba1"
+	other, err := NewAuthenticator(otherConfig)
+	require.NoError(t, err)
+	open := httptest.NewRecorder()
+	other.Wrap(appSeen(t, &cookies)).ServeHTTP(open, request(http.MethodPost, loginPath, "password=secret-password"))
+	assert.Equal(t, http.StatusFound, open.Code)
+
+	fromElsewhere := request(http.MethodPost, loginPath, "password=secret-password")
+	fromElsewhere.RemoteAddr = "198.51.100.9:0"
+	elsewhere := httptest.NewRecorder()
+	again.Wrap(appSeen(t, &cookies)).ServeHTTP(elsewhere, fromElsewhere)
+	assert.Equal(t, http.StatusFound, elsewhere.Code)
+}
+
+func TestPasswordTunnelLocksAfterTooManyWrongPasswordsFromManyAddresses(t *testing.T) {
+	var cookies string
+	h := guard(t, passwordConfig(t), &cookies)
+	for i := range loginTunnelAttempts {
+		r := request(http.MethodPost, loginPath, "password=nope")
+		r.RemoteAddr = net.JoinHostPort("2001:db8::"+strconv.FormatInt(int64(i), 16), "0")
+		h.ServeHTTP(httptest.NewRecorder(), r)
+	}
+	locked := httptest.NewRecorder()
+	fresh := request(http.MethodPost, loginPath, "password=secret-password")
+	fresh.RemoteAddr = "192.0.2.1:0"
+	h.ServeHTTP(locked, fresh)
 	assert.Equal(t, http.StatusTooManyRequests, locked.Code)
 }
 
