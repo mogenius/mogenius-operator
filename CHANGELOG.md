@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.33.1](https://github.com/mogenius/mogenius-operator/compare/v2.33.0...v2.33.1) (2026-11-02)
+
+
+### Bug Fixes
+
+* keep wrong tunnel passwords counted across streams and close idl… ([d36ced4](https://github.com/mogenius/mogenius-operator/commit/d36ced45d9517f724bf31072eeac4ebe061dec02))
+* keep wrong tunnel passwords counted across streams and close idle tunnel connections ([31a02a3](https://github.com/mogenius/mogenius-operator/commit/31a02a3dd5c5265493804d14db67d8fac7bea05d))
+
 ## [2.33.0](https://github.com/mogenius/mogenius-operator/compare/v2.32.0...v2.33.0) (2026-11-01)
 
 
