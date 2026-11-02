@@ -38,9 +38,12 @@ const (
 	passwordCookieTTL = 24 * time.Hour
 	// mogeniusCookieTTL is how long a mogenius sign-in unlocks the tunnel; a revoked role takes effect after it.
 	mogeniusCookieTTL = 8 * time.Hour
-	// loginAttempts wrong passwords from one address within loginWindow lock it out for the rest of the window.
-	loginAttempts = 10
-	loginWindow   = 5 * time.Minute
+	// loginAttempts wrong passwords from one address within loginWindow lock it out for the rest of the window;
+	// loginTunnelAttempts from all addresses together lock the whole tunnel, which caps attempts spread over many
+	// addresses. The same limits as the platform's own tunnel hosts.
+	loginAttempts       = 10
+	loginTunnelAttempts = 100
+	loginWindow         = 5 * time.Minute
 	// maxLoginBody bounds the password form's body.
 	maxLoginBody = 8 << 10
 )
@@ -98,7 +101,7 @@ func NewAuthenticator(config AuthConfig) (*Authenticator, error) {
 			return nil, fmt.Errorf("access mode %q needs an https handoff URL", config.Mode)
 		}
 	}
-	return &Authenticator{config: config, key: key, limit: newLoginLimiter()}, nil
+	return &Authenticator{config: config, key: key, limit: passwordFailures}, nil
 }
 
 // Wrap guards next: a request passes with a valid cookie, which is removed before it reaches the application.
@@ -148,7 +151,7 @@ func (a *Authenticator) challenge(w http.ResponseWriter, r *http.Request) {
 func (a *Authenticator) passwordLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	client := clientAddress(r)
-	if !a.limit.allowed(client) {
+	if !a.limit.allowed(a.config.SessionID, client) {
 		renderLoginForm(w, http.StatusTooManyRequests, a.config.SessionID, "Too many attempts. Try again in a few minutes.")
 		return
 	}
@@ -158,7 +161,7 @@ func (a *Authenticator) passwordLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if bcrypt.CompareHashAndPassword([]byte(a.config.PasswordHash), []byte(r.PostForm.Get("password"))) != nil {
-		a.limit.failed(client)
+		a.limit.failed(a.config.SessionID, client)
 		renderLoginForm(w, http.StatusUnauthorized, a.config.SessionID, "Wrong password.")
 		return
 	}
@@ -263,40 +266,57 @@ func clientAddress(r *http.Request) string {
 	return r.RemoteAddr
 }
 
-// loginLimiter counts wrong passwords per address.
+// passwordFailures is shared by every authenticator of this operator. A tunnel gets a new authenticator with each
+// stream the platform opens (per API pod, again after a minute without connections), so a limiter of its own would
+// forget the failures and let the same address try again.
+var passwordFailures = newLoginLimiter()
+
+// loginLimiter counts wrong passwords per tunnel and address, and per tunnel.
 type loginLimiter struct {
-	mu       sync.Mutex
-	failures map[string][]time.Time
+	mu        sync.Mutex
+	failures  map[string][]time.Time
+	lastSweep time.Time
 }
 
 func newLoginLimiter() *loginLimiter {
 	return &loginLimiter{failures: map[string][]time.Time{}}
 }
 
-func (l *loginLimiter) allowed(address string) bool {
+func (l *loginLimiter) allowed(sessionID, address string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return len(l.recent(address)) < loginAttempts
+	return len(l.recent(sessionID+"|"+address)) < loginAttempts && len(l.recent(sessionID)) < loginTunnelAttempts
 }
 
-func (l *loginLimiter) failed(address string) {
+func (l *loginLimiter) failed(sessionID, address string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.failures[address] = append(l.recent(address), time.Now())
+	now := time.Now()
+	for _, key := range []string{sessionID + "|" + address, sessionID} {
+		l.failures[key] = append(l.recent(key), now)
+	}
+	// Entries are only trimmed when their key comes again; drop the stale ones now and then so addresses that
+	// never return do not pile up.
+	if now.Sub(l.lastSweep) > loginWindow {
+		l.lastSweep = now
+		for key := range l.failures {
+			l.recent(key)
+		}
+	}
 }
 
-func (l *loginLimiter) recent(address string) []time.Time {
-	kept := l.failures[address][:0]
-	for _, at := range l.failures[address] {
+func (l *loginLimiter) recent(key string) []time.Time {
+	kept := l.failures[key][:0]
+	for _, at := range l.failures[key] {
 		if time.Since(at) < loginWindow {
 			kept = append(kept, at)
 		}
 	}
 	if len(kept) == 0 {
-		delete(l.failures, address)
+		delete(l.failures, key)
 		return nil
 	}
-	l.failures[address] = kept
+	l.failures[key] = kept
 	return kept
 }
 

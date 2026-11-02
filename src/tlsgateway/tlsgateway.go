@@ -38,6 +38,11 @@ const handshakeTimeout = 15 * time.Second
 // readHeaderTimeout bounds reading a request's header after the handshake.
 const readHeaderTimeout = 30 * time.Second
 
+// idleTimeout closes a kept-alive connection without a new request after this long, so idle connections do not
+// hold the tunnel's connection slots. No ReadTimeout or WriteTimeout: they would cut long uploads, downloads and
+// streams.
+const idleTimeout = 2 * time.Minute
+
 // Certificates is where the gateway takes the certificates it serves.
 type Certificates interface {
 	// Certificate is the certificate for hostname, or an error when there is
@@ -101,6 +106,7 @@ func Serve(conn net.Conn, opts Options) {
 	server := &http.Server{
 		Handler:           handler,
 		ReadHeaderTimeout: readHeaderTimeout,
+		IdleTimeout:       idleTimeout,
 		ErrorLog:          slog.NewLogLogger(opts.Logger.Handler(), slog.LevelDebug),
 	}
 	_ = server.Serve(newSingleConnListener(tlsConn))
