@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -113,6 +114,88 @@ func TestPasswordTunnelLocksOutAfterTooManyWrongPasswords(t *testing.T) {
 	locked := httptest.NewRecorder()
 	h.ServeHTTP(locked, request(http.MethodPost, loginPath, "password=secret-password"))
 	assert.Equal(t, http.StatusTooManyRequests, locked.Code)
+}
+
+// reserve must itself take the slot it checks, in one critical section: a
+// read-only check (the old allowed/failed split) would let any number of
+// concurrent requests pass before the first one's outcome is recorded.
+func TestLoginLimiterReserveTakesTheSlotItChecks(t *testing.T) {
+	limiter := newLoginLimiter()
+	for range loginAttempts {
+		assert.True(t, limiter.reserve(testSessionID, "203.0.113.7"))
+	}
+	assert.False(t, limiter.reserve(testSessionID, "203.0.113.7"), "the budget was spent by the reservations above")
+}
+
+// release only gives back the one slot a correct login reserved, not the
+// address's whole history: another client sharing the same NAT address must
+// stay locked out.
+func TestLoginLimiterReleaseKeepsOtherFailures(t *testing.T) {
+	limiter := newLoginLimiter()
+	for range loginAttempts - 1 {
+		assert.True(t, limiter.reserve(testSessionID, "203.0.113.7"))
+	}
+	assert.True(t, limiter.reserve(testSessionID, "203.0.113.7"))
+	limiter.release(testSessionID, "203.0.113.7")
+
+	// loginAttempts-1 failures are still on record; one more reservation
+	// reaches the budget, and the next after that is refused.
+	assert.True(t, limiter.reserve(testSessionID, "203.0.113.7"))
+	assert.False(t, limiter.reserve(testSessionID, "203.0.113.7"))
+}
+
+// The handler-level case from the issue: a correct password must not count
+// toward the lockout (no double counting with the attempt that reserved its
+// slot), and spending the full budget must answer 401 on the last wrong
+// attempt, not 429 — an off-by-one in reserve or a missing release would
+// surface here even though TestPasswordTunnelLocksOutAfterTooManyWrongPasswords
+// would not catch it.
+func TestPasswordLoginDoesNotCountACorrectPasswordTwice(t *testing.T) {
+	var cookies string
+	h := guard(t, passwordConfig(t), &cookies)
+
+	for range loginAttempts - 1 {
+		wrong := httptest.NewRecorder()
+		h.ServeHTTP(wrong, request(http.MethodPost, loginPath, "password=nope"))
+		assert.Equal(t, http.StatusUnauthorized, wrong.Code)
+	}
+
+	right := httptest.NewRecorder()
+	h.ServeHTTP(right, request(http.MethodPost, loginPath, "password=secret-password"))
+	require.Equal(t, http.StatusFound, right.Code)
+
+	last := httptest.NewRecorder()
+	h.ServeHTTP(last, request(http.MethodPost, loginPath, "password=nope"))
+	assert.Equal(t, http.StatusUnauthorized, last.Code, "the correct login must not have used up the lockout budget")
+}
+
+// Concurrent guesses must not all pass the check before any is recorded: this
+// is the issue's reproduction, deterministic via a stub bcrypt comparator
+// that blocks every goroutine until all have entered the handler, so the
+// check-then-act window is forced open the way parallel sub-connections do it
+// in production.
+func TestPasswordLoginRejectsConcurrentGuessesPastTheLimit(t *testing.T) {
+	const concurrency = loginAttempts * 3
+
+	var cookies string
+	h := guard(t, passwordConfig(t), &cookies)
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	codes := map[int]int{}
+	for range concurrency {
+		wg.Go(func() {
+			rec := httptest.NewRecorder()
+			h.ServeHTTP(rec, request(http.MethodPost, loginPath, "password=nope"))
+			mu.Lock()
+			codes[rec.Code]++
+			mu.Unlock()
+		})
+	}
+	wg.Wait()
+
+	assert.Equal(t, loginAttempts, codes[http.StatusUnauthorized], "exactly the budget should reach the bcrypt compare")
+	assert.Equal(t, concurrency-loginAttempts, codes[http.StatusTooManyRequests], "the rest must be rejected by reserve")
 }
 
 func TestPasswordLockoutSurvivesANewStreamOfTheSameTunnel(t *testing.T) {
