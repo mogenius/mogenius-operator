@@ -28,7 +28,7 @@ permissions:
 
 jobs:
   release-please:
-    uses: mogenius/github-actions/.github/workflows/release-please.yml@e298136cba54cfcb932537b8b318f83ca97c70c4 # v1.12.0
+    uses: mogenius/github-actions/.github/workflows/release-please.yml@b198c21dc984080a27bbda6f6d88f2c852c79020 # v1.13.3
     with:
       config_file: release-please-config.json
       manifest_file: .release-please-manifest.json
