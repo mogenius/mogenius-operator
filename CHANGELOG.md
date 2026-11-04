@@ -1,5 +1,22 @@
 # Changelog
 
+## [2.33.2](https://github.com/mogenius/mogenius-operator/compare/v2.33.1...v2.33.2) (2026-11-04)
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/alecthomas/kong to v1.17.0 ([78cbbae](https://github.com/mogenius/mogenius-operator/commit/78cbbae86d47fc0a5a42e02454abf6cc6f92b1d5))
+* **deps:** update module github.com/alecthomas/kong to v1.17.0 ([50fd04c](https://github.com/mogenius/mogenius-operator/commit/50fd04c20e1476663a6403e78fd3058ff2764aae))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.5.0 ([881af2e](https://github.com/mogenius/mogenius-operator/commit/881af2eccdca0fbbefeed17d1e36964c73caa705))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.5.0 ([90bb313](https://github.com/mogenius/mogenius-operator/commit/90bb3138ec567ea515441e31361c826e101f3ad9))
+* **deps:** update module github.com/go-playground/validator/v10 to v10.30.6 ([#1405](https://github.com/mogenius/mogenius-operator/issues/1405)) ([1ac301f](https://github.com/mogenius/mogenius-operator/commit/1ac301f80886616ca3198636c59c088d5d4a8f29))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.91.1 ([cfb3040](https://github.com/mogenius/mogenius-operator/commit/cfb3040adddfde3f6ec0cb04dabcc3d4ea6a4114))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.91.1 ([6514a38](https://github.com/mogenius/mogenius-operator/commit/6514a383a0939cc32f0c6647c76fba472fc55dd9))
+* **services:** don't hand out a still-starting session's placeholder ([7110ea2](https://github.com/mogenius/mogenius-operator/commit/7110ea25d12d944c304b7a6024303d80563e02c9))
+* **sshgateway:** make SFTP STAT/FSTAT follow symlinks ([2dcdb06](https://github.com/mogenius/mogenius-operator/commit/2dcdb068568ba7e977cb673d3210d969c7b42f11))
+* **sshgateway:** make SFTP STAT/FSTAT follow symlinks ([2db5d77](https://github.com/mogenius/mogenius-operator/commit/2db5d77b1a85df38ca22dcb3e2d2a31890aa67ac))
+* **tlsgateway:** make the password-tunnel login limiter atomic ([df9d737](https://github.com/mogenius/mogenius-operator/commit/df9d73710b46067a429feeef31a5f2e126313806))
+
 ## [2.33.1](https://github.com/mogenius/mogenius-operator/compare/v2.33.0...v2.33.1) (2026-11-02)
 
 
