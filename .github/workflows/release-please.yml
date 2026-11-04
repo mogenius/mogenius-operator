@@ -32,7 +32,6 @@ jobs:
     with:
       config_file: release-please-config.json
       manifest_file: .release-please-manifest.json
-      label_release_type: true
     secrets:
       APP_ID: ${{ secrets.RELEASE_APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_SECRET }}
