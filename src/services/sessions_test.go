@@ -322,6 +322,53 @@ func TestSessionIsBoundToItsOwner(t *testing.T) {
 	}
 }
 
+// A delete or exec sent while CreateSession's placeholder is still in the
+// registry (stdin == nil, no cancel func, no byId map) must not reach
+// podSession.close/exec: before the fix those panicked there — a nil pointer
+// dereference and a write to a nil map — and nothing in src/ recovers, so the
+// whole operator went down. The placeholder must instead be reported as not
+// usable yet.
+func TestSessionDeleteAndExecDuringCreateDoNotPanic(t *testing.T) {
+	useLocalShell(t)
+	ref := sessionRef("starting")
+
+	entered := make(chan struct{})
+	release := make(chan struct{})
+	oldTarget := sessionTargetFn
+	sessionTargetFn = func(ctx context.Context, req SessionCreateRequest) (*execPlan, error) {
+		close(entered)
+		<-release
+		return oldTarget(ctx, req)
+	}
+	t.Cleanup(func() { sessionTargetFn = oldTarget })
+
+	created := make(chan error, 1)
+	go func() {
+		_, err := CreateSession(SessionCreateRequest{SessionRequest: ref})
+		created <- err
+	}()
+	<-entered
+
+	if err := DeleteSession(ref); err != ErrSessionStarting {
+		t.Errorf("delete while starting = %v, want ErrSessionStarting", err)
+	}
+	if _, err := ExecSessionCommand(context.Background(), SessionExecRequest{SessionRequest: ref, Command: "true"}); err != ErrSessionStarting {
+		t.Errorf("exec while starting = %v, want ErrSessionStarting", err)
+	}
+
+	close(release)
+	select {
+	case err := <-created:
+		if err != nil {
+			t.Fatalf("create: %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("create did not return after release")
+	}
+
+	execSync(t, ref, "echo ok")
+}
+
 func TestSessionDeleteEndsTheShellAndTheRunningCommand(t *testing.T) {
 	useLocalShell(t)
 	ref := createTestSession(t, "delete")
