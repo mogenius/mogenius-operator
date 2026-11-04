@@ -151,7 +151,12 @@ func (a *Authenticator) challenge(w http.ResponseWriter, r *http.Request) {
 func (a *Authenticator) passwordLogin(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
 	client := clientAddress(r)
-	if !a.limit.allowed(a.config.SessionID, client) {
+	// reserve takes the guess's slot before the slow bcrypt compare (and the
+	// body read) rather than after, so concurrent requests cannot all pass a
+	// read-only check before any of them is recorded. A malformed or
+	// oversized form still holds its reservation: it counts as an attempt,
+	// same as a wrong password.
+	if !a.limit.reserve(a.config.SessionID, client) {
 		renderLoginForm(w, http.StatusTooManyRequests, a.config.SessionID, "Too many attempts. Try again in a few minutes.")
 		return
 	}
@@ -161,10 +166,12 @@ func (a *Authenticator) passwordLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if bcrypt.CompareHashAndPassword([]byte(a.config.PasswordHash), []byte(r.PostForm.Get("password"))) != nil {
-		a.limit.failed(a.config.SessionID, client)
 		renderLoginForm(w, http.StatusUnauthorized, a.config.SessionID, "Wrong password.")
 		return
 	}
+	// A correct password gives back the slot it reserved, so logging in does
+	// not itself count toward the lockout.
+	a.limit.release(a.config.SessionID, client)
 	a.setCookie(w, passwordCookieTTL)
 	http.Redirect(w, r, "/", http.StatusFound)
 }
@@ -271,7 +278,11 @@ func clientAddress(r *http.Request) string {
 // forget the failures and let the same address try again.
 var passwordFailures = newLoginLimiter()
 
-// loginLimiter counts wrong passwords per tunnel and address, and per tunnel.
+// loginLimiter counts login attempts per tunnel and address, and per tunnel.
+// A slot is taken by reserve before the attempt is checked and given back by
+// release only if it turns out to be the correct password, so the count is
+// really "attempts in flight or wrong", which is what the lockout is meant to
+// bound.
 type loginLimiter struct {
 	mu        sync.Mutex
 	failures  map[string][]time.Time
@@ -282,25 +293,43 @@ func newLoginLimiter() *loginLimiter {
 	return &loginLimiter{failures: map[string][]time.Time{}}
 }
 
-func (l *loginLimiter) allowed(sessionID, address string) bool {
+// reserve atomically checks the address's and the tunnel's budgets and, if
+// both have room, takes one slot from each — in the same critical section, so
+// no number of requests arriving before an earlier one's outcome is known can
+// all observe room and all proceed. Call it before whatever is slow (reading
+// the body, the bcrypt compare); call release after if the attempt turns out
+// to be the correct password.
+func (l *loginLimiter) reserve(sessionID, address string) bool {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	return len(l.recent(sessionID+"|"+address)) < loginAttempts && len(l.recent(sessionID)) < loginTunnelAttempts
-}
-
-func (l *loginLimiter) failed(sessionID, address string) {
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	now := time.Now()
-	for _, key := range []string{sessionID + "|" + address, sessionID} {
-		l.failures[key] = append(l.recent(key), now)
+	addrKey := sessionID + "|" + address
+	if len(l.recent(addrKey)) >= loginAttempts || len(l.recent(sessionID)) >= loginTunnelAttempts {
+		return false
 	}
+	now := time.Now()
+	l.failures[addrKey] = append(l.failures[addrKey], now)
+	l.failures[sessionID] = append(l.failures[sessionID], now)
 	// Entries are only trimmed when their key comes again; drop the stale ones now and then so addresses that
 	// never return do not pile up.
 	if now.Sub(l.lastSweep) > loginWindow {
 		l.lastSweep = now
 		for key := range l.failures {
 			l.recent(key)
+		}
+	}
+	return true
+}
+
+// release gives back the slot a correct login reserved. It drops one entry
+// rather than the key's whole history: the address bucket can hold other
+// clients' failures behind the same NAT address, and wiping it would let them
+// back in too.
+func (l *loginLimiter) release(sessionID, address string) {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	for _, key := range []string{sessionID + "|" + address, sessionID} {
+		if entries := l.failures[key]; len(entries) > 0 {
+			l.failures[key] = entries[:len(entries)-1]
 		}
 	}
 }
