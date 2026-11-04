@@ -62,6 +62,7 @@ var sessionIdPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.-]{0,62}$`)
 var (
 	ErrSessionInvalidId       = errors.New("invalid session id: 1-63 letters, digits, '_', '-' or '.', starting with a letter or digit")
 	ErrSessionNotFound        = errors.New("session not found")
+	ErrSessionStarting        = errors.New("the session is still starting")
 	ErrSessionExists          = errors.New("session already exists")
 	ErrSessionBusy            = errors.New("a command is still running in the session")
 	ErrSessionCommandNotFound = errors.New("command not found in the session")
@@ -242,12 +243,20 @@ func sessionKey(namespace, pod, id string) string {
 // get returns the session, if the requester owns it. Another user's session
 // is not found rather than forbidden: the shell runs as its owner, so nobody
 // else gets to type into it.
+//
+// CreateSession reserves the key with a placeholder (stdin == nil, same as
+// ListSessions and the janitor check for) while the shell is still starting;
+// handing that out would let a delete or exec reach a session with no stdin,
+// no cancel func and no byId map and panic.
 func (r *sessionRegistry) get(request SessionRequest) (*podSession, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	session, ok := r.sessions[sessionKey(request.Namespace, request.Pod, request.SessionId)]
 	if !ok || session.owner != request.UserEmail {
 		return nil, ErrSessionNotFound
+	}
+	if session.stdin == nil {
+		return nil, ErrSessionStarting
 	}
 	return session, nil
 }
