@@ -64,6 +64,10 @@ jobs:
       # Runs after failed tests too, so one CI run shows all findings at once.
       - name: golangci-lint
         if: ${{ !cancelled() && steps.build.outcome == 'success' }}
+        # Unbounded, a cold run peaks at ~3.6GB RSS and got the runner pod
+        # OOM-killed ("runner lost communication"); 2GiB caps it at ~2.6GB.
+        env:
+          GOMEMLIMIT: 2GiB
         uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           # Keep in sync with the golangci-lint recipe in the Justfile (Renovate updates both).
