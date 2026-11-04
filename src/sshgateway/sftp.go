@@ -209,6 +209,9 @@ func (h *sftpHandlers) openSpool(req *sftp.Request) (*spoolFile, error) {
 	flags := req.Pflags()
 
 	if flags.Excl {
+		// Non-following: a dangling symlink must still count as an existing
+		// path here, or O_CREAT|O_EXCL would succeed through it and the
+		// upload would write through the link instead of failing.
 		if _, err := h.stat(req.Context(), req.Filepath); err == nil {
 			return nil, os.ErrExist
 		} else if !errors.Is(err, os.ErrNotExist) {
@@ -428,15 +431,11 @@ func (h *sftpHandlers) Filelist(req *sftp.Request) (sftp.ListerAt, error) {
 		return listerat(infos), nil
 
 	case "Stat":
-		infos, err := h.statEntries(ctx, req.Filepath, []string{""})
-		if err != nil {
-			return nil, err
-		}
-		if len(infos) != 1 {
-			return nil, os.ErrNotExist
-		}
-		infos[0].name = path.Base(req.Filepath)
-		return listerat{infos[0]}, nil
+		// STAT (and FSTAT, which pkg/sftp also routes here as Method "Stat")
+		// must report the target of a symlink, not the link itself — this is
+		// what lets OpenSSH's sftp get/cd/scp follow links such as a
+		// ConfigMap or Secret mount's key -> ..data/key indirection.
+		return h.statOne(ctx, req.Filepath, true)
 
 	case "Readlink":
 		var out bytes.Buffer
@@ -449,6 +448,28 @@ func (h *sftpHandlers) Filelist(req *sftp.Request) (sftp.ListerAt, error) {
 	default:
 		return nil, fmt.Errorf("sftp: unsupported list method %q", req.Method)
 	}
+}
+
+// Lstat implements sftp.LstatFileLister. Without it, pkg/sftp falls back to
+// routing LSTAT through Filelist's "Stat" case too, so a symlink's LSTAT
+// would wrongly follow it instead of reporting the link.
+func (h *sftpHandlers) Lstat(req *sftp.Request) (sftp.ListerAt, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), cmdTimeout)
+	defer cancel()
+	return h.statOne(ctx, req.Filepath, false)
+}
+
+// statOne stats a single path for a Stat/Lstat response.
+func (h *sftpHandlers) statOne(ctx context.Context, filepath string, follow bool) (sftp.ListerAt, error) {
+	infos, err := h.statEntries(ctx, filepath, []string{""}, follow)
+	if err != nil {
+		return nil, err
+	}
+	if len(infos) != 1 {
+		return nil, os.ErrNotExist
+	}
+	infos[0].name = path.Base(filepath)
+	return listerat{infos[0]}, nil
 }
 
 // listDir reads a directory in two passes. The names come back NUL-separated
@@ -478,7 +499,10 @@ func (h *sftpHandlers) listDir(ctx context.Context, dir string) ([]os.FileInfo, 
 		end := min(start+statBatchSize, len(names))
 
 		batch := names[start:end]
-		stats, err := h.statEntries(ctx, dir, batch)
+		// Non-following, by convention (as OpenSSH's sftp-server does for
+		// READDIR): with -L a dangling symlink would fail to stat and be
+		// listed with mode 0 instead of as the link it is.
+		stats, err := h.statEntries(ctx, dir, batch, false)
 		if err != nil {
 			return nil, err
 		}
@@ -490,6 +514,23 @@ func (h *sftpHandlers) listDir(ctx context.Context, dir string) ([]os.FileInfo, 
 	return infos, nil
 }
 
+// statArgv builds the argv for statting dir/name for every name in one exec.
+// follow adds -L, so the result describes a symlink's target rather than the
+// link itself (STAT/FSTAT semantics). Callers that need lstat semantics
+// (LSTAT, directory listing, the O_EXCL existence check) pass false.
+func statArgv(dir string, names []string, follow bool) []string {
+	argv := make([]string, 0, len(names)+4)
+	argv = append(argv, "stat")
+	if follow {
+		argv = append(argv, "-L")
+	}
+	argv = append(argv, "-c", statFormat)
+	for _, name := range names {
+		argv = append(argv, containerPath(dir, name))
+	}
+	return argv
+}
+
 // statEntries stats dir/name for every name, in one exec. Results come back
 // in argument order, which is how they are paired with their names — the
 // output itself carries no name to parse. An empty name means dir itself.
@@ -497,12 +538,8 @@ func (h *sftpHandlers) listDir(ctx context.Context, dir string) ([]os.FileInfo, 
 // A short result means at least one entry could not be stat'ed (a file
 // removed underneath us is the common case), so the batch is retried one
 // entry at a time to keep the pairing honest rather than silently shifted.
-func (h *sftpHandlers) statEntries(ctx context.Context, dir string, names []string) ([]*sftpFileInfo, error) {
-	argv := make([]string, 0, len(names)+3)
-	argv = append(argv, "stat", "-c", statFormat)
-	for _, name := range names {
-		argv = append(argv, containerPath(dir, name))
-	}
+func (h *sftpHandlers) statEntries(ctx context.Context, dir string, names []string, follow bool) ([]*sftpFileInfo, error) {
+	argv := statArgv(dir, names, follow)
 
 	var out bytes.Buffer
 	err := h.execArgv(ctx, argv, nil, &out)
@@ -529,7 +566,7 @@ func (h *sftpHandlers) statEntries(ctx context.Context, dir string, names []stri
 
 	infos := make([]*sftpFileInfo, 0, len(names))
 	for _, name := range names {
-		single, singleErr := h.statEntries(ctx, dir, []string{name})
+		single, singleErr := h.statEntries(ctx, dir, []string{name}, follow)
 		if singleErr != nil {
 			// The entry vanished between listing and stat; report it with
 			// what is still known rather than failing the whole listing.
@@ -541,9 +578,11 @@ func (h *sftpHandlers) statEntries(ctx context.Context, dir string, names []stri
 	return infos, nil
 }
 
-// stat returns the attributes of a single path.
+// stat returns the lstat attributes of a single path, used by the O_EXCL
+// existence check: a dangling symlink must count as existing there (see
+// openSpool), which following with -L would hide.
 func (h *sftpHandlers) stat(ctx context.Context, remotePath string) (*sftpFileInfo, error) {
-	infos, err := h.statEntries(ctx, remotePath, []string{""})
+	infos, err := h.statEntries(ctx, remotePath, []string{""}, false)
 	if err != nil {
 		return nil, err
 	}

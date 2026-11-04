@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -294,6 +295,72 @@ func TestLimitedWriterStopsAtCap(t *testing.T) {
 	}
 	if sink.String() != "abcd" {
 		t.Errorf("sink = %q, want %q", sink.String(), "abcd")
+	}
+}
+
+// STAT/FSTAT must follow a symlink (-L); LSTAT, directory listing and the
+// O_EXCL existence check must not, or STAT on a ConfigMap/Secret-mounted key
+// (key -> ..data/key) would report the link instead of the file.
+func TestStatArgvFollowsOnlyWhenAsked(t *testing.T) {
+	following := statArgv("/dir", []string{"a", "b"}, true)
+	want := []string{"stat", "-L", "-c", statFormat, "/dir/a", "/dir/b"}
+	if !slices.Equal(following, want) {
+		t.Errorf("follow=true argv = %q, want %q", following, want)
+	}
+
+	notFollowing := statArgv("/dir", []string{"a", "b"}, false)
+	want = []string{"stat", "-c", statFormat, "/dir/a", "/dir/b"}
+	if !slices.Equal(notFollowing, want) {
+		t.Errorf("follow=false argv = %q, want %q", notFollowing, want)
+	}
+}
+
+// Exercises the real stat binary against an actual symlink, the way the
+// previous implementation did it (no -L) versus the fixed one (-L): a STAT on
+// a symlink must come back with the target's type and size, not the link's.
+// The container always runs GNU coreutils or busybox stat, both of which
+// support -c; a non-GNU stat on the host running this test (e.g. macOS) does
+// not, so the test skips rather than failing on an irrelevant local binary.
+func TestStatArgvAgainstARealSymlink(t *testing.T) {
+	if out, err := exec.Command("stat", "--version").Output(); err != nil || !strings.Contains(string(out), "GNU coreutils") {
+		t.Skip("host stat is not GNU coreutils; the container's is")
+	}
+
+	dir := t.TempDir()
+	target := filepath.Join(dir, "target")
+	if err := os.WriteFile(target, []byte("hello"), 0o600); err != nil {
+		t.Fatalf("write target: %v", err)
+	}
+	link := filepath.Join(dir, "link")
+	if err := os.Symlink(target, link); err != nil {
+		t.Fatalf("symlink: %v", err)
+	}
+
+	runStat := func(follow bool) *sftpFileInfo {
+		t.Helper()
+		argv := statArgv("", []string{link}, follow)
+		out, err := exec.Command(argv[0], argv[1:]...).Output()
+		if err != nil {
+			t.Fatalf("stat (follow=%v): %v", follow, err)
+		}
+		info, err := parseStatLine(strings.TrimSpace(string(out)))
+		if err != nil {
+			t.Fatalf("parseStatLine: %v", err)
+		}
+		return info
+	}
+
+	lstat := runStat(false)
+	if lstat.Mode()&os.ModeSymlink == 0 {
+		t.Errorf("non-following stat mode = %v, want a symlink", lstat.Mode())
+	}
+
+	stat := runStat(true)
+	if stat.Mode()&os.ModeSymlink != 0 {
+		t.Errorf("following stat mode = %v, should not be a symlink", stat.Mode())
+	}
+	if stat.Size() != int64(len("hello")) {
+		t.Errorf("following stat size = %d, want %d (the target's size)", stat.Size(), len("hello"))
 	}
 }
 
