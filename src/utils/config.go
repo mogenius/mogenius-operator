@@ -326,6 +326,13 @@ var GitRepositoryResource = ResourceDescriptor{
 	Namespaced: true,
 }
 
+var OCIRepositoryResource = ResourceDescriptor{
+	Kind:       "OCIRepository",
+	Plural:     "ocirepositories",
+	ApiVersion: "source.toolkit.fluxcd.io/v1",
+	Namespaced: true,
+}
+
 var ServiceMonitorResource = ResourceDescriptor{
 	Kind:       "ServiceMonitor",
 	Plural:     "servicemonitors",

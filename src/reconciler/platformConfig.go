@@ -40,6 +40,7 @@ const (
 	componentRenovateOperator        = "renovate-operator"
 	componentExternalSecretsOperator = "external-secrets-operator"
 	componentAgentSandboxes          = "agent-sandboxes"
+	componentPromptyard              = "promptyard"
 	// Not a Helm chart like the others: the condition reports whether the
 	// objects that make the engine sync spec.gitOps.repositories are in place.
 	componentPlatformRepositories = "platform-repositories"
@@ -217,6 +218,7 @@ func (d *reconcilerModule) reconcilePlatformConfig(ctx context.Context, obj *uns
 		componentResult{componentAlloy, d.reconcileAlloy(ctx, platformConfig.Spec, installer, op)},
 		componentResult{componentRenovateOperator, d.reconcileRenovateOperator(ctx, platformConfig.Spec, installer, op)},
 		componentResult{componentAgentSandboxes, d.reconcileAgentSandboxes(ctx, platformConfig.Spec, installer, op)},
+		componentResult{componentPromptyard, d.reconcilePromptyard(ctx, platformConfig.Spec, installer, op)},
 	)
 
 	// Index existing conditions so LastTransitionTime is preserved when status hasn't changed.

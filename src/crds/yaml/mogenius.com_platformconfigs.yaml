@@ -67,6 +67,13 @@ spec:
               a renamed or broken file path makes the block disappear — and treating that
               as enabled:false would tear down cert-manager, Traefik, Prometheus and Loki
               over a rename.
+
+              Promptyard does not follow that rule: it is not delivered component-by-component
+              but by pointing the Flux-installed FluxInstance at a single external GitOps
+              repository that then owns every component itself, so the two XValidation
+              rules below forbid combining it with any other component (agentSandboxes
+              excepted — it runs standalone, not through the GitOps repository promptyard
+              owns, so the two do not conflict) or with an engine other than Flux.
             properties:
               agentSandboxes:
                 description: |-
@@ -743,6 +750,32 @@ spec:
                 description: PlatformVersion is the version of the base platform config
                   that this is derived from
                 type: string
+              promptyard:
+                description: |-
+                  PromptyardConfig installs promptyard by pointing the FluxInstance that
+                  spec.gitOps.fluxcd installs directly at the signed
+                  ghcr.io/mogenius/promptyard-gitops-infra OCI artifact, instead of the
+                  per-component Helm/Flux delivery every other field in PlatformConfigSpec
+                  uses. Enabling it hands cert-manager, Traefik, external-dns and everything
+                  else over to promptyard's own repository, which is why it is mutually
+                  exclusive with every other component except agentSandboxes, which runs
+                  standalone rather than through that repository (see the XValidation rules
+                  on PlatformConfigSpec).
+
+                  Patch support (overriding the generated FluxInstance beyond Settings) is
+                  not implemented yet.
+                properties:
+                  enabled:
+                    type: boolean
+                  settings:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      Settings become the flux-runtime-info ConfigMap's data in the Flux
+                      namespace, which the FluxInstance's postBuild substitution reads into
+                      the manifests it syncs (CLUSTER_NAME, CLUSTER_DOMAIN, DNS_ZONE, ...).
+                    type: object
+                type: object
               renovateOperator:
                 description: |-
                   RenovateOperatorConfig installs renovate-operator, which runs a RenovateJob
@@ -879,6 +912,20 @@ spec:
                     x-kubernetes-preserve-unknown-fields: true
                 type: object
             type: object
+            x-kubernetes-validations:
+            - message: promptyard.enabled excludes every other platform component
+                except agentSandboxes; disable them first
+              rule: '!has(self.promptyard) || !self.promptyard.enabled || (!(has(self.certManager)
+                && self.certManager.enabled) && !(has(self.traefik) && self.traefik.enabled)
+                && !(has(self.externalDns) && self.externalDns.enabled) && !(has(self.kubePrometheusStack)
+                && self.kubePrometheusStack.enabled) && !(has(self.loki) && self.loki.enabled)
+                && !(has(self.alloy) && self.alloy.enabled) && !(has(self.renovateOperator)
+                && self.renovateOperator.enabled) && !(has(self.externalSecretsOperator)
+                && self.externalSecretsOperator.enabled))'
+            - message: promptyard requires gitOps.fluxcd.enabled; it only works with
+                Flux
+              rule: '!has(self.promptyard) || !self.promptyard.enabled || (has(self.gitOps)
+                && has(self.gitOps.fluxcd) && self.gitOps.fluxcd.enabled)'
           status:
             properties:
               conditions:
