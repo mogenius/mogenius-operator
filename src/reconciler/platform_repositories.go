@@ -49,7 +49,8 @@ func (d *reconcilerModule) reconcilePlatformRepositories(
 		// ships none. Absent on a cluster whose Flux was set up by hand, where
 		// the controllers exist already and this CRD does not.
 		if d.crdChecker.IsAvailable(utils.FluxInstanceResource) {
-			if err := d.applyPlatformObject(ctx, utils.FluxInstanceResource, namespace, fluxInstanceObject(namespace)); err != nil {
+			promptyardEnabled := spec.Promptyard != nil && spec.Promptyard.Enabled
+			if err := d.applyPlatformObject(ctx, utils.FluxInstanceResource, namespace, fluxInstanceObject(namespace, promptyardEnabled)); err != nil {
 				return &ReconcileResult{Err: fmt.Errorf("apply flux instance: %w", err)}
 			}
 		}
