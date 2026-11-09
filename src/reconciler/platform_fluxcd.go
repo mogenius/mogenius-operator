@@ -33,9 +33,9 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 		// an extra object, because those travel through a HelmRelease that
 		// needs the very helm-controller this resource brings up.
 		bootstrapObjects: func(namespace string) []engineBootstrapObject {
-			promptyardEnabled := spec.Promptyard != nil && spec.Promptyard.Enabled
+			vibeCodingEnabled := spec.VibeCoding != nil && spec.VibeCoding.Enabled
 			return []engineBootstrapObject{
-				{resource: utils.FluxInstanceResource, object: fluxInstanceObject(namespace, promptyardEnabled)},
+				{resource: utils.FluxInstanceResource, object: fluxInstanceObject(namespace, vibeCodingEnabled)},
 			}
 		},
 		extraObjects: func(ctx context.Context) ([]any, error) {
@@ -111,7 +111,7 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 	})
 }
 
-func fluxInstanceObject(namespace string, promptyardEnabled bool) map[string]any {
+func fluxInstanceObject(namespace string, vibeCodingEnabled bool) map[string]any {
 	spec := map[string]any{
 		"distribution": map[string]any{
 			"version":  "2.x",
@@ -125,11 +125,11 @@ func fluxInstanceObject(namespace string, promptyardEnabled bool) map[string]any
 		},
 	}
 
-	if promptyardEnabled {
+	if vibeCodingEnabled {
 		spec["kustomize"] = map[string]any{
 			"patches": []any{
 				// An undefined ${VAR} fails the build instead of becoming "" (also
-				// in the app Kustomizations promptyard's own repository owns).
+				// in the app Kustomizations vibeCoding's own repository owns).
 				map[string]any{
 					"patch": `- op: add
   path: /spec/template/spec/containers/0/args/-

@@ -85,7 +85,7 @@ func (d *reconcilerModule) reconcileComponent(
 }
 
 // hasChart reports whether cs names a Helm chart to install at all. Absent
-// one (see reconcilePromptyard), there is nothing to fetch default config or
+// one (see reconcileVibeCoding), there is nothing to fetch default config or
 // values for — the component is delivered purely through buildExtraObjects.
 func hasChart(cs componentSpec) bool {
 	return cs.defaultChart != "" || (cs.chart != nil && cs.chart.Chart != "")
@@ -105,7 +105,7 @@ func (d *reconcilerModule) buildComponentArtifact(
 	buildExtraValues func(ctx context.Context) (map[string]any, error),
 ) (gitops.GitOpsArtifact, *ReconcileResult) {
 	// No chart to fetch a default config or resolve a name/repo/version for
-	// (see reconcilePromptyard): the component is extra objects only.
+	// (see reconcileVibeCoding): the component is extra objects only.
 	var defaultComponentConfig componentDefaultSpec
 	var chart gitops.HelmChartReference
 	if hasChart(cs) {
