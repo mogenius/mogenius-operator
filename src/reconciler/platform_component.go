@@ -66,11 +66,29 @@ func (d *reconcilerModule) reconcileComponent(
 		return result
 	}
 
+	// No chart declared: the component ships entirely as extra objects, the
+	// same path the GitOps engine's own chart uses for what sits beside it
+	// (see ApplyExtras — the engine is installed by the Helm SDK directly, not
+	// through this installer, so there is no HelmRelease for it either).
+	if !hasChart(cs) {
+		if err := installer.ApplyExtras(cs.name, artifact); err != nil {
+			return &ReconcileResult{Err: fmt.Errorf("failed to apply %s: %w", cs.name, err)}
+		}
+		return nil
+	}
+
 	if err := installer.Install(cs.name, artifact); err != nil {
 		return &ReconcileResult{Err: fmt.Errorf("failed to install %s: %w", cs.name, err)}
 	}
 
 	return nil
+}
+
+// hasChart reports whether cs names a Helm chart to install at all. Absent
+// one (see reconcileVibeCoding), there is nothing to fetch default config or
+// values for — the component is delivered purely through buildExtraObjects.
+func hasChart(cs componentSpec) bool {
+	return cs.defaultChart != "" || (cs.chart != nil && cs.chart.Chart != "")
 }
 
 // buildComponentArtifact resolves a component's chart, values and extra objects
@@ -86,16 +104,23 @@ func (d *reconcilerModule) buildComponentArtifact(
 	buildExtraObjects func(ctx context.Context) ([]any, error),
 	buildExtraValues func(ctx context.Context) (map[string]any, error),
 ) (gitops.GitOpsArtifact, *ReconcileResult) {
-	defaultComponentConfig, err := getDefaultConfig(platformSpec.PlatformSource, platformSpec.PlatformVersion, cs.name)
-	if err != nil {
-		return gitops.GitOpsArtifact{}, &ReconcileResult{Err: fmt.Errorf("fetch default config for %s: %w", cs.name, err)}
-	}
+	// No chart to fetch a default config or resolve a name/repo/version for
+	// (see reconcileVibeCoding): the component is extra objects only.
+	var defaultComponentConfig componentDefaultSpec
+	var chart gitops.HelmChartReference
+	if hasChart(cs) {
+		var err error
+		defaultComponentConfig, err = getDefaultConfig(platformSpec.PlatformSource, platformSpec.PlatformVersion, cs.name)
+		if err != nil {
+			return gitops.GitOpsArtifact{}, &ReconcileResult{Err: fmt.Errorf("fetch default config for %s: %w", cs.name, err)}
+		}
 
-	chart := gitops.HelmChartReference{
-		Chart:      helmChartName(cs.chart, cs.defaultChart),
-		Repository: helmRepository(cs.chart, cs.defaultRepo),
-		Version:    helmVersion(cs.chart, defaultComponentConfig.Version),
-		Name:       helmReleaseName(cs.chart, cs.defaultName),
+		chart = gitops.HelmChartReference{
+			Chart:      helmChartName(cs.chart, cs.defaultChart),
+			Repository: helmRepository(cs.chart, cs.defaultRepo),
+			Version:    helmVersion(cs.chart, defaultComponentConfig.Version),
+			Name:       helmReleaseName(cs.chart, cs.defaultName),
+		}
 	}
 
 	var patches []v1alpha1.PlatformPatch

@@ -81,6 +81,9 @@ func declaredComponents(spec v1alpha1.PlatformConfigSpec) map[string]componentDe
 	if spec.AgentSandboxes != nil {
 		declared[componentAgentSandboxes] = componentDeclaration{declared: true, enabled: spec.AgentSandboxes.Enabled}
 	}
+	if spec.VibeCoding != nil {
+		declared[componentVibeCoding] = componentDeclaration{declared: true, enabled: spec.VibeCoding.Enabled}
+	}
 
 	return declared
 }

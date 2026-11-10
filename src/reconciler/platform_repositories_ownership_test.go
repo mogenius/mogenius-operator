@@ -58,7 +58,7 @@ func TestPreserveFluxInstanceSyncCarriesTheExistingSyncOver(t *testing.T) {
 			"sync": map[string]any{"kind": "GitRepository", "url": "https://github.com/acme/platform.git"},
 		},
 	}}
-	desired := &unstructured.Unstructured{Object: fluxInstanceObject("flux-system")}
+	desired := &unstructured.Unstructured{Object: fluxInstanceObject("flux-system", false)}
 
 	preserveFluxInstanceSync(existing, desired)
 
@@ -88,7 +88,7 @@ func TestPreserveFluxInstanceSyncLeavesADeclaredSyncAlone(t *testing.T) {
 	assert.Equal(t, "https://github.com/acme/declared.git", sync["url"])
 
 	bare := &unstructured.Unstructured{Object: map[string]any{"spec": map[string]any{}}}
-	desired = &unstructured.Unstructured{Object: fluxInstanceObject("flux-system")}
+	desired = &unstructured.Unstructured{Object: fluxInstanceObject("flux-system", false)}
 	preserveFluxInstanceSync(bare, desired)
 	_, found, _ := unstructured.NestedMap(desired.Object, "spec", "sync")
 	assert.False(t, found)

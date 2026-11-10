@@ -54,6 +54,16 @@ type PlatformConfig struct {
 // a renamed or broken file path makes the block disappear — and treating that
 // as enabled:false would tear down cert-manager, Traefik, Prometheus and Loki
 // over a rename.
+//
+// VibeCoding does not follow that rule: it is not delivered component-by-component
+// but by pointing the Flux-installed FluxInstance at a single external GitOps
+// repository that then owns every component itself, so the two XValidation
+// rules below forbid combining it with any other component (agentSandboxes
+// excepted — it runs standalone, not through the GitOps repository vibeCoding
+// owns, so the two do not conflict) or with an engine other than Flux.
+//
+// +kubebuilder:validation:XValidation:rule="!has(self.vibeCoding) || !self.vibeCoding.enabled || (!(has(self.certManager) && self.certManager.enabled) && !(has(self.traefik) && self.traefik.enabled) && !(has(self.externalDns) && self.externalDns.enabled) && !(has(self.kubePrometheusStack) && self.kubePrometheusStack.enabled) && !(has(self.loki) && self.loki.enabled) && !(has(self.alloy) && self.alloy.enabled) && !(has(self.renovateOperator) && self.renovateOperator.enabled) && !(has(self.externalSecretsOperator) && self.externalSecretsOperator.enabled))",message="vibeCoding.enabled excludes every other platform component except agentSandboxes; disable them first"
+// +kubebuilder:validation:XValidation:rule="!has(self.vibeCoding) || !self.vibeCoding.enabled || (has(self.gitOps) && has(self.gitOps.fluxcd) && self.gitOps.fluxcd.enabled)",message="vibeCoding requires gitOps.fluxcd.enabled; it only works with Flux"
 type PlatformConfigSpec struct {
 	// PlatformVersion is the version of the base platform config that this is derived from
 	PlatformVersion string `json:"platformVersion,omitempty"`
@@ -69,6 +79,7 @@ type PlatformConfigSpec struct {
 	RenovateOperator        *RenovateOperatorConfig        `json:"renovateOperator,omitempty"`
 	ExternalSecretsOperator *ExternalSecretsOperatorConfig `json:"externalSecretsOperator,omitempty"`
 	AgentSandboxes          *AgentSandboxesConfig          `json:"agentSandboxes,omitempty"`
+	VibeCoding              *VibeCodingConfig              `json:"vibeCoding,omitempty"`
 }
 
 // GitOpsConfig picks the GitOps engine (ArgoCD xor FluxCD — whichever block
@@ -198,6 +209,41 @@ type FluxCDInstallConfig struct {
 	Enabled bool                           `json:"enabled,omitempty"`
 	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
 	Chart   *HelmChartReference            `json:"chart,omitempty"`
+}
+
+// VibeCodingConfig installs vibeCoding by pointing the FluxInstance that
+// spec.gitOps.fluxcd installs directly at the signed
+// ghcr.io/mogenius/vibe-coding-gitops-infra OCI artifact, instead of the
+// per-component Helm/Flux delivery every other field in PlatformConfigSpec
+// uses. Enabling it hands cert-manager, Traefik, external-dns and everything
+// else over to vibeCoding's own repository, which is why it is mutually
+// exclusive with every other component except agentSandboxes, which runs
+// standalone rather than through that repository (see the XValidation rules
+// on PlatformConfigSpec).
+type VibeCodingConfig struct {
+	Enabled bool `json:"enabled,omitempty"`
+	// Settings become the flux-runtime-info ConfigMap's data in the Flux
+	// namespace, which the FluxInstance's postBuild substitution reads into
+	// the manifests it syncs (CLUSTER_NAME, CLUSTER_DOMAIN, DNS_ZONE, ...).
+	Settings map[string]string `json:"settings,omitempty"`
+	// Patches customize individual resources of the vibe-coding-gitops-infra
+	// repository, keyed by Target rather than merged into one component's
+	// values the way every other field's Patches are -- vibeCoding has no
+	// single chart for PlatformConfigPatchReference's values to land in.
+	Patches []VibeCodingPatchReference `json:"patches,omitempty"`
+}
+
+// VibeCodingPatchReference applies a PlatformPatch to one named resource of
+// the vibe-coding-gitops-infra repository. Its ValuesObject ships as a
+// "<target>-custom-values" ConfigMap for that repository's own manifests to
+// read (there is no chart for it to merge into, unlike PlatformConfigPatchReference);
+// its ExtraObjects ship as-is, same as everywhere else.
+type VibeCodingPatchReference struct {
+	// Target names the resource in the vibe-coding-gitops-infra repository
+	// this patch customizes, e.g. "external-dns".
+	Target string `json:"target,omitempty"`
+	// Name of the PlatformPatch resource to apply.
+	Name string `json:"name,omitempty"`
 }
 
 // CertManagerConfig installs cert-manager and the Issuers/ClusterIssuers it
