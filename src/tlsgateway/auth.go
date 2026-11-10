@@ -62,6 +62,9 @@ type AuthConfig struct {
 	// HandoffURL is where a visitor without a cookie signs in (AuthMogenius): the platform's own tunnel host, where
 	// the visitor's platform session lives.
 	HandoffURL string `json:"handoffUrl,omitempty"`
+	// PathPrefix lets only paths under it reach the application (e.g. "/webhook/github"), in every mode: others get
+	// 404, ambiguous paths 400. Empty when the whole port is open.
+	PathPrefix string `json:"pathPrefix,omitempty"`
 }
 
 // handoffToken is what the platform signs after it checked a visitor's sign-in and permissions.
@@ -81,9 +84,12 @@ type Authenticator struct {
 
 // NewAuthenticator checks that the config can work; a tunnel that cannot check its visitors must not open.
 func NewAuthenticator(config AuthConfig) (*Authenticator, error) {
+	if config.PathPrefix != "" && !validPathPrefix(config.PathPrefix) {
+		return nil, fmt.Errorf("invalid path prefix %q", config.PathPrefix)
+	}
 	switch config.Mode {
 	case "", AuthNone:
-		return &Authenticator{config: AuthConfig{Mode: AuthNone}}, nil
+		return &Authenticator{config: AuthConfig{Mode: AuthNone, PathPrefix: config.PathPrefix}}, nil
 	case AuthPassword, AuthMogenius:
 	default:
 		return nil, fmt.Errorf("unknown access mode %q", config.Mode)
@@ -104,8 +110,43 @@ func NewAuthenticator(config AuthConfig) (*Authenticator, error) {
 	return &Authenticator{config: config, key: key, limit: passwordFailures}, nil
 }
 
-// Wrap guards next: a request passes with a valid cookie, which is removed before it reaches the application.
+// Wrap guards next: a request passes with a valid cookie, which is removed before it reaches the application. With a
+// path prefix, only paths under it get that far — checked before the sign-in, so nobody is asked to sign in for a
+// path that does not exist; the sign-in's own paths stay reachable.
 func (a *Authenticator) Wrap(next http.Handler) http.Handler {
+	guarded := a.wrapAccess(next)
+	if a.config.PathPrefix == "" {
+		return guarded
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if a.isSignInPath(r) {
+			guarded.ServeHTTP(w, r)
+			return
+		}
+		path, ok := normalizeRequestPath(r.URL.EscapedPath())
+		if !ok {
+			http.Error(w, "Bad Request", http.StatusBadRequest)
+			return
+		}
+		if !pathMatchesPrefix(path, a.config.PathPrefix) {
+			http.NotFound(w, r)
+			return
+		}
+		// The application gets exactly the path that was checked.
+		r.URL.Path = path
+		r.URL.RawPath = ""
+		guarded.ServeHTTP(w, r)
+	})
+}
+
+// isSignInPath reports whether the request is one the access mode answers itself (password form, sign-in handoff).
+func (a *Authenticator) isSignInPath(r *http.Request) bool {
+	return (a.config.Mode == AuthPassword && r.URL.Path == loginPath && r.Method == http.MethodPost) ||
+		(a.config.Mode == AuthMogenius && r.URL.Path == callbackPath)
+}
+
+// wrapAccess checks the visitor by the access mode.
+func (a *Authenticator) wrapAccess(next http.Handler) http.Handler {
 	if a.config.Mode == AuthNone {
 		return next
 	}
