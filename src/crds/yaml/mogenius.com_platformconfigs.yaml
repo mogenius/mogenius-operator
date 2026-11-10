@@ -896,12 +896,33 @@ spec:
                   exclusive with every other component except agentSandboxes, which runs
                   standalone rather than through that repository (see the XValidation rules
                   on PlatformConfigSpec).
-
-                  Patch support (overriding the generated FluxInstance beyond Settings) is
-                  not implemented yet.
                 properties:
                   enabled:
                     type: boolean
+                  patches:
+                    description: |-
+                      Patches customize individual resources of the vibe-coding-gitops-infra
+                      repository, keyed by Target rather than merged into one component's
+                      values the way every other field's Patches are -- vibeCoding has no
+                      single chart for PlatformConfigPatchReference's values to land in.
+                    items:
+                      description: |-
+                        VibeCodingPatchReference applies a PlatformPatch to one named resource of
+                        the vibe-coding-gitops-infra repository. Its ValuesObject ships as a
+                        "<target>-custom-values" ConfigMap for that repository's own manifests to
+                        read (there is no chart for it to merge into, unlike PlatformConfigPatchReference);
+                        its ExtraObjects ship as-is, same as everywhere else.
+                      properties:
+                        name:
+                          description: Name of the PlatformPatch resource to apply.
+                          type: string
+                        target:
+                          description: |-
+                            Target names the resource in the vibe-coding-gitops-infra repository
+                            this patch customizes, e.g. "external-dns".
+                          type: string
+                      type: object
+                    type: array
                   settings:
                     additionalProperties:
                       type: string

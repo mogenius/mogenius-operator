@@ -2,10 +2,14 @@ package reconciler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
 	"mogenius-operator/src/utils"
+
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
+	"sigs.k8s.io/yaml"
 )
 
 // vibeCoding points Flux directly at the signed vibe-coding-gitops-infra OCI
@@ -50,14 +54,84 @@ func (d *reconcilerModule) reconcileVibeCoding(ctx context.Context, spec v1alpha
 				return nil, fmt.Errorf("fetch default config for %s: %w", componentVibeCoding, err)
 			}
 
-			return []any{
+			objects := []any{
 				d.vibeCodingOCIRepositoryObject(namespace, defaults.Version),
 				d.vibeCodingKustomizationObject(namespace),
 				vibeCodingRuntimeInfoConfigMap(namespace, c.Settings),
-			}, nil
+			}
+
+			patchObjects, err := d.vibeCodingPatchObjects(ctx, namespace, c.Patches)
+			if err != nil {
+				return nil, err
+			}
+
+			return append(objects, patchObjects...), nil
 		},
 		nil,
 	)
+}
+
+// vibeCodingPatchObjects turns each VibeCodingPatchReference into the objects
+// that customize its target: a ConfigMap carrying the referenced
+// PlatformPatch's ValuesObject as "<target>-custom-values" for that resource
+// in vibe-coding-gitops-infra to read, plus the patch's own ExtraObjects
+// verbatim -- there is no chart here for either to merge into, unlike every
+// other component's Patches (see mergeHelmValues).
+func (d *reconcilerModule) vibeCodingPatchObjects(ctx context.Context, namespace string, refs []v1alpha1.VibeCodingPatchReference) ([]any, error) {
+	var objects []any
+	for _, ref := range refs {
+		patch, err := d.fetchPlatformPatch(ctx, v1alpha1.PlatformConfigPatchReference{Name: ref.Name})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				continue
+			}
+			return nil, fmt.Errorf("fetch platform patch %q for vibeCoding target %q: %w", ref.Name, ref.Target, err)
+		}
+
+		if patch.Spec.ValuesObject != nil {
+			configMap, err := vibeCodingCustomValuesConfigMap(ref.Target, namespace, patch.Spec.ValuesObject.Raw)
+			if err != nil {
+				return nil, fmt.Errorf("build custom values configmap for vibeCoding target %q: %w", ref.Target, err)
+			}
+			objects = append(objects, configMap)
+		}
+
+		extraObjects, err := extractPatchExtraObjects([]v1alpha1.PlatformPatch{*patch})
+		if err != nil {
+			return nil, fmt.Errorf("extract extra objects for vibeCoding target %q: %w", ref.Target, err)
+		}
+		objects = append(objects, extraObjects...)
+	}
+	return objects, nil
+}
+
+// vibeCodingCustomValuesConfigMap carries a patch's ValuesObject into
+// vibe-coding-gitops-infra as YAML, the same shape a Helm values.yaml takes,
+// since its manifests have no chart to merge a values map into directly.
+func vibeCodingCustomValuesConfigMap(target, namespace string, rawValues []byte) (map[string]any, error) {
+	values := map[string]any{}
+	if len(rawValues) > 0 {
+		if err := json.Unmarshal(rawValues, &values); err != nil {
+			return nil, fmt.Errorf("parse values: %w", err)
+		}
+	}
+
+	valuesYAML, err := yaml.Marshal(values)
+	if err != nil {
+		return nil, fmt.Errorf("marshal values: %w", err)
+	}
+
+	return map[string]any{
+		"apiVersion": "v1",
+		"kind":       "ConfigMap",
+		"metadata": map[string]any{
+			"name":      target + "-custom-values",
+			"namespace": namespace,
+		},
+		"data": map[string]any{
+			"values.yaml": string(valuesYAML),
+		},
+	}, nil
 }
 
 // vibeCodingOCIRepositoryObject sources vibe-coding-gitops-infra directly.

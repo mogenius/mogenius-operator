@@ -220,15 +220,30 @@ type FluxCDInstallConfig struct {
 // exclusive with every other component except agentSandboxes, which runs
 // standalone rather than through that repository (see the XValidation rules
 // on PlatformConfigSpec).
-//
-// Patch support (overriding the generated FluxInstance beyond Settings) is
-// not implemented yet.
 type VibeCodingConfig struct {
 	Enabled bool `json:"enabled,omitempty"`
 	// Settings become the flux-runtime-info ConfigMap's data in the Flux
 	// namespace, which the FluxInstance's postBuild substitution reads into
 	// the manifests it syncs (CLUSTER_NAME, CLUSTER_DOMAIN, DNS_ZONE, ...).
 	Settings map[string]string `json:"settings,omitempty"`
+	// Patches customize individual resources of the vibe-coding-gitops-infra
+	// repository, keyed by Target rather than merged into one component's
+	// values the way every other field's Patches are -- vibeCoding has no
+	// single chart for PlatformConfigPatchReference's values to land in.
+	Patches []VibeCodingPatchReference `json:"patches,omitempty"`
+}
+
+// VibeCodingPatchReference applies a PlatformPatch to one named resource of
+// the vibe-coding-gitops-infra repository. Its ValuesObject ships as a
+// "<target>-custom-values" ConfigMap for that repository's own manifests to
+// read (there is no chart for it to merge into, unlike PlatformConfigPatchReference);
+// its ExtraObjects ship as-is, same as everywhere else.
+type VibeCodingPatchReference struct {
+	// Target names the resource in the vibe-coding-gitops-infra repository
+	// this patch customizes, e.g. "external-dns".
+	Target string `json:"target,omitempty"`
+	// Name of the PlatformPatch resource to apply.
+	Name string `json:"name,omitempty"`
 }
 
 // CertManagerConfig installs cert-manager and the Issuers/ClusterIssuers it
