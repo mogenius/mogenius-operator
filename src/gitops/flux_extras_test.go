@@ -46,3 +46,22 @@ func TestComponentExtrasDependOnTheComponent(t *testing.T) {
 	assert.Len(t, deps, 1)
 	assert.Equal(t, "traefik", deps[0].(map[string]any)["name"])
 }
+
+// A component without a chart (vibeCoding) has no release name to derive the
+// extras release from; "-resources" alone is rejected by Helm.
+func TestChartlessExtrasAreNamedAfterTheComponent(t *testing.T) {
+	artifact := moacArtifact()
+	artifact.HelmChart = HelmChartReference{}
+
+	release := buildFluxMoacHelmRelease("vibe-coding", artifact, "flux-system", false)
+
+	releaseName, _, _ := unstructured.NestedString(release.Object, "spec", "releaseName")
+	assert.Equal(t, "vibe-coding-resources", releaseName)
+}
+
+func TestExtrasReleaseIsNamedAfterTheChart(t *testing.T) {
+	release := buildFluxMoacHelmRelease("flux-operator", moacArtifact(), "flux-system", false)
+
+	releaseName, _, _ := unstructured.NestedString(release.Object, "spec", "releaseName")
+	assert.Equal(t, "flux-operator-resources", releaseName)
+}

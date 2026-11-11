@@ -7,6 +7,7 @@ import (
 	"mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/utils"
 
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
@@ -149,10 +150,39 @@ func (d *reconcilerModule) deliveryStates(ctx context.Context, engine string, na
 			states[name] = argoDeliveryState(&item)
 		}
 	}
+
+	if engine == gitOpsEngineFlux {
+		// vibeCoding has no HelmRelease of its own: its moac release only
+		// carries the Kustomization that does the work.
+		if root := d.vibeCodingRoot(ctx, namespace); root != nil {
+			states[componentVibeCoding] = fluxDeliveryState(root)
+		}
+	}
 	return states
 }
 
-// fluxDeliveryState reads a HelmRelease's Ready condition.
+// vibeCodingRoot is the Kustomization vibeCoding syncs the installation with,
+// or nil while it does not exist.
+func (d *reconcilerModule) vibeCodingRoot(ctx context.Context, namespace string) *unstructured.Unstructured {
+	if !d.crdChecker.IsAvailable(utils.KustomizationResource) {
+		return nil
+	}
+
+	root, err := d.clientProvider.DynamicClient().
+		Resource(kubernetes.CreateGroupVersionResource(utils.KustomizationResource.ApiVersion, utils.KustomizationResource.Plural)).
+		Namespace(namespace).
+		Get(ctx, vibeCodingKustomizationName, metav1.GetOptions{})
+	if err != nil {
+		if !apierrors.IsNotFound(err) {
+			d.logger.Warn("could not read component delivery status",
+				"kind", utils.KustomizationResource.Kind, "namespace", namespace, "error", err)
+		}
+		return nil
+	}
+	return root
+}
+
+// fluxDeliveryState reads the Ready condition of a HelmRelease or Kustomization.
 func fluxDeliveryState(object *unstructured.Unstructured) deliveryState {
 	conditions, found, err := unstructured.NestedSlice(object.Object, "status", "conditions")
 	if err != nil || !found {

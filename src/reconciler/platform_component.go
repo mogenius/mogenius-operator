@@ -137,9 +137,13 @@ func (d *reconcilerModule) buildComponentArtifact(
 		}
 	}
 
-	componentValues, err := buildExtraValues(ctx)
-	if err != nil {
-		return gitops.GitOpsArtifact{}, &ReconcileResult{Err: fmt.Errorf("failed to create component values for %s: %w", cs.name, err)}
+	var componentValues map[string]any
+	if buildExtraValues != nil {
+		var err error
+		componentValues, err = buildExtraValues(ctx)
+		if err != nil {
+			return gitops.GitOpsArtifact{}, &ReconcileResult{Err: fmt.Errorf("failed to create component values for %s: %w", cs.name, err)}
+		}
 	}
 
 	mergedValues, err := mergeHelmValues(defaultComponentConfig, componentValues, patches)

@@ -266,9 +266,15 @@ func buildFluxOCIHelmRelease(component string, artifact GitOpsArtifact, namespac
 // dependency a previous version wrote.
 func buildFluxMoacHelmRelease(component string, artifact GitOpsArtifact, namespace string, dependsOnComponent bool) *unstructured.Unstructured {
 	name := component + "-resources"
+	// A component without a chart (vibeCoding) has no release name to derive
+	// from; "-resources" alone is not a valid Helm release name.
+	releaseName := name
+	if artifact.HelmChart.Name != "" {
+		releaseName = artifact.HelmChart.Name + "-resources"
+	}
 	spec := map[string]any{
 		"interval":        "10m",
-		"releaseName":     artifact.HelmChart.Name + "-resources",
+		"releaseName":     releaseName,
 		"targetNamespace": artifact.Namespace,
 		"chart": map[string]any{
 			"spec": map[string]any{
