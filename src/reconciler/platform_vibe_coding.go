@@ -177,7 +177,7 @@ func (d *reconcilerModule) vibeCodingOCIRepositoryObject(namespace, version stri
 				"matchOIDCIdentity": []any{
 					map[string]any{
 						"issuer":  `^https://token\.actions\.githubusercontent\.com$`,
-						"subject": `^https://github\.com/mogenius/vibe-coding-gitops-infra/\.github/workflows/release\.yaml@refs/heads/main$`,
+						"subject": `^https://github\.com/mogenius/vibe-coding-gitops-infra/\.github/workflows/release\.yaml@refs/tags/\d+\.\d+\.\d+$`,
 					},
 				},
 			},
