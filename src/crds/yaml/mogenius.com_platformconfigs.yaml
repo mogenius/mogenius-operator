@@ -898,9 +898,6 @@ spec:
                   on PlatformConfigSpec).
                 properties:
                   enabled:
-                    description: |-
-                      Enabled false suspends the vibeCoding Kustomization instead of removing
-                      it: removing it would prune every app, database and generated secret.
                     type: boolean
                   patches:
                     description: |-

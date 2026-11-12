@@ -27,10 +27,6 @@ const (
 	vibeCodingKustomizationName = "vibe-coding-root"
 )
 
-// vibeCodingKeep keeps an object when the moac HelmRelease carrying it is
-// uninstalled, e.g. by garbage collection after the PlatformConfig is deleted.
-var vibeCodingKeep = map[string]any{"helm.sh/resource-policy": "keep"}
-
 // reconcileVibeCoding goes through reconcileComponent like every other
 // component. It declares no chart (see hasChart/buildComponentArtifact):
 // vibe-coding-gitops-infra is a plain Kustomize tree, not a Helm chart, so
@@ -38,11 +34,6 @@ var vibeCodingKeep = map[string]any{"helm.sh/resource-policy": "keep"}
 // Kustomization and the flux-runtime-info ConfigMap all ship as extra
 // objects instead, through installer.ApplyExtras — the same path the GitOps
 // engine's own chart uses for what sits beside it.
-//
-// Unlike every other component, enabled:false never uninstalls: the
-// Kustomization owns every app, database and generated secret of the
-// installation, so it is suspended instead and keeps the cluster on its last
-// release. Uninstalling vibeCoding is a manual runbook.
 func (d *reconcilerModule) reconcileVibeCoding(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, op operation) *ReconcileResult {
 	c := spec.VibeCoding
 	// Not declared: leave whatever is installed alone (see reconcileComponent).
@@ -57,8 +48,7 @@ func (d *reconcilerModule) reconcileVibeCoding(ctx context.Context, spec v1alpha
 
 	return d.reconcileComponent(ctx, spec, installer, op,
 		componentSpec{
-			// Always applied, see above: disabled suspends.
-			enabled:          true,
+			enabled:          c.Enabled,
 			name:             componentVibeCoding,
 			defaultNamespace: namespace,
 		},
@@ -74,7 +64,7 @@ func (d *reconcilerModule) reconcileVibeCoding(ctx context.Context, spec v1alpha
 
 			objects := []any{
 				d.vibeCodingOCIRepositoryObject(namespace, version),
-				d.vibeCodingKustomizationObject(namespace, !c.Enabled),
+				d.vibeCodingKustomizationObject(namespace),
 				vibeCodingRuntimeInfoConfigMap(namespace, c.Settings),
 			}
 
@@ -170,9 +160,8 @@ func (d *reconcilerModule) vibeCodingOCIRepositoryObject(namespace, version stri
 		"apiVersion": utils.OCIRepositoryResource.ApiVersion,
 		"kind":       utils.OCIRepositoryResource.Kind,
 		"metadata": map[string]any{
-			"name":        componentVibeCoding,
-			"namespace":   namespace,
-			"annotations": vibeCodingKeep,
+			"name":      componentVibeCoding,
+			"namespace": namespace,
 		},
 		"spec": map[string]any{
 			"interval": "10m",
@@ -198,9 +187,10 @@ func (d *reconcilerModule) vibeCodingOCIRepositoryObject(namespace, version stri
 
 // vibeCodingKustomizationObject syncs cluster/default of the OCIRepository
 // above, with the flux-runtime-info ConfigMap substituted into its manifests.
-// It is never removed (see reconcileVibeCoding), and if it is deleted anyway,
-// deletionPolicy Orphan leaves the installation running instead of pruning it.
-func (d *reconcilerModule) vibeCodingKustomizationObject(namespace string, suspend bool) map[string]any {
+// It owns every app, database and generated secret of the installation:
+// deletionPolicy Orphan leaves them running when it is deleted, e.g. by
+// enabled:false, instead of pruning them.
+func (d *reconcilerModule) vibeCodingKustomizationObject(namespace string) map[string]any {
 	if !d.crdChecker.IsAvailable(utils.KustomizationResource) {
 		return nil
 	}
@@ -209,13 +199,11 @@ func (d *reconcilerModule) vibeCodingKustomizationObject(namespace string, suspe
 		"apiVersion": utils.KustomizationResource.ApiVersion,
 		"kind":       utils.KustomizationResource.Kind,
 		"metadata": map[string]any{
-			"name":        vibeCodingKustomizationName,
-			"namespace":   namespace,
-			"annotations": vibeCodingKeep,
+			"name":      vibeCodingKustomizationName,
+			"namespace": namespace,
 		},
 		"spec": map[string]any{
 			"interval": "1m",
-			"suspend":  suspend,
 			"sourceRef": map[string]any{
 				"kind": "OCIRepository",
 				"name": componentVibeCoding,
@@ -242,9 +230,8 @@ func vibeCodingRuntimeInfoConfigMap(namespace string, settings map[string]string
 		"apiVersion": "v1",
 		"kind":       "ConfigMap",
 		"metadata": map[string]any{
-			"name":        vibeCodingRuntimeInfoConfigMapName,
-			"namespace":   namespace,
-			"annotations": vibeCodingKeep,
+			"name":      vibeCodingRuntimeInfoConfigMapName,
+			"namespace": namespace,
 			"labels": map[string]any{
 				"toolkit.fluxcd.io/runtime": "true",
 				"reconcile.fluxcd.io/watch": "Enabled",
