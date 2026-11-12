@@ -1,5 +1,34 @@
 # Changelog
 
+## [2.34.0](https://github.com/mogenius/mogenius-operator/compare/v2.33.2...v2.34.0) (2026-11-12)
+
+
+### Features
+
+* let end-to-end tunnels pass only paths under their path prefix ([abba286](https://github.com/mogenius/mogenius-operator/commit/abba286ca7c07525919d108683b3ac3b3e9e8ce8))
+* let end-to-end tunnels pass only paths under their path prefix ([693640b](https://github.com/mogenius/mogenius-operator/commit/693640b4caa454038f5ca4ee99bf3610a2c2bf51))
+* **vibe-coding:** add patches to vibe-coding config ([f4c734e](https://github.com/mogenius/mogenius-operator/commit/f4c734e027269c75605b2e7bc9d4b80077850bd4))
+* **vibe-coding:** adding promptyard to platform config management ([4eafd4a](https://github.com/mogenius/mogenius-operator/commit/4eafd4aa94434d975ca0bd2ea4c4ceb216b425ba))
+* **vibe-coding:** adding vibe-coding to platform config management ([354176d](https://github.com/mogenius/mogenius-operator/commit/354176dea812288831d73c2ba010c3d36bf10783))
+
+
+### Bug Fixes
+
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.7.0 ([#1420](https://github.com/mogenius/mogenius-operator/issues/1420)) ([b6db9a0](https://github.com/mogenius/mogenius-operator/commit/b6db9a098ef216dacd21886d6a037b7b072806cd))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.9.0 ([#1431](https://github.com/mogenius/mogenius-operator/issues/1431)) ([18af481](https://github.com/mogenius/mogenius-operator/commit/18af481ca32e7f0754c670ce51046098f994ec3e))
+* **deps:** update module github.com/ollama/ollama to v0.40.14 ([#1414](https://github.com/mogenius/mogenius-operator/issues/1414)) ([4f2dcd3](https://github.com/mogenius/mogenius-operator/commit/4f2dcd3501bb0ac171a49336eca16e03e0881cab))
+* **deps:** update module github.com/ollama/ollama to v0.40.15 ([#1423](https://github.com/mogenius/mogenius-operator/issues/1423)) ([5c98499](https://github.com/mogenius/mogenius-operator/commit/5c984992a1263fc0688e94f265df06c84c007862))
+* **deps:** update module github.com/ollama/ollama to v0.40.16 ([75a71bd](https://github.com/mogenius/mogenius-operator/commit/75a71bdfa6ea2d1f74d77af11f3727f417859235))
+* **deps:** update module github.com/ollama/ollama to v0.40.16 ([c5c4722](https://github.com/mogenius/mogenius-operator/commit/c5c47228a783e7bed45b6852454092e05e9a3fc1))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.96.0 ([#1421](https://github.com/mogenius/mogenius-operator/issues/1421)) ([872ce7e](https://github.com/mogenius/mogenius-operator/commit/872ce7e1a7ae5583b1584175735ba98203816425))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.98.0 ([#1427](https://github.com/mogenius/mogenius-operator/issues/1427)) ([3c59f76](https://github.com/mogenius/mogenius-operator/commit/3c59f764ea3b807ca456828020256510236d6e05))
+* **deps:** update module golang.org/x/term to v0.48.0 ([#1428](https://github.com/mogenius/mogenius-operator/issues/1428)) ([07d52e9](https://github.com/mogenius/mogenius-operator/commit/07d52e91f506f2e1d132c9d9c5430d25ad4359e0))
+* **vibe-coding:** kustomize flux instance if promptyard is enabled ([9093d2a](https://github.com/mogenius/mogenius-operator/commit/9093d2af889b99947321a2f4936673825ddfa960))
+* **vibe-coding:** name the root vibe-coding-root, suspend instead of uninstall ([b86f92e](https://github.com/mogenius/mogenius-operator/commit/b86f92e7ee9672f6437778c00028faab14c69e03))
+* **vibe-coding:** only deploy resources if crds are available ([1a5a797](https://github.com/mogenius/mogenius-operator/commit/1a5a7973bfc6748a92b997f872b431e351f612bc))
+* **vibe-coding:** uninstall on enabled:false like every other component ([5b1b6bd](https://github.com/mogenius/mogenius-operator/commit/5b1b6bd7b12eef50195d6a21bdba9a0d89191ac0))
+* **vibe-coding:** verify the release tag's signing identity ([cc7567f](https://github.com/mogenius/mogenius-operator/commit/cc7567fdf307773957cf5e0b5f67bd6a9984c8e1))
+
 ## [2.33.2](https://github.com/mogenius/mogenius-operator/compare/v2.33.1...v2.33.2) (2026-11-04)
 
 
