@@ -78,30 +78,20 @@ func TestVibeCodingEnabledAppliesTheSync(t *testing.T) {
 	spec := root["spec"].(map[string]any)
 	// "vibe-coding" is a layer of cluster/default in the same namespace.
 	assert.Equal(t, "vibe-coding-root", metadata["name"])
-	assert.Equal(t, false, spec["suspend"])
 	assert.Equal(t, "Orphan", spec["deletionPolicy"])
 	assert.Equal(t, componentVibeCoding, spec["sourceRef"].(map[string]any)["name"])
-
-	for _, kind := range []string{"OCIRepository", "Kustomization", "ConfigMap"} {
-		annotations := vibeCodingObject(t, installer.artifact, kind)["metadata"].(map[string]any)["annotations"]
-		assert.Equal(t, "keep", annotations.(map[string]any)["helm.sh/resource-policy"], kind)
-	}
 }
 
-// Uninstalling would prune every app, database and generated secret of the
-// installation: enabled:false suspends instead.
-func TestVibeCodingDisabledSuspendsInsteadOfUninstalling(t *testing.T) {
+// enabled:false uninstalls like every other component. The root's
+// deletionPolicy Orphan keeps the installation itself from being pruned.
+func TestVibeCodingDisabledIsUninstalled(t *testing.T) {
 	installer := &artifactInstaller{}
 
 	result := (*reconcilerModule).reconcileVibeCoding(vibeCodingTestModule(), context.Background(), vibeCodingSpec(false), installer, updateOperation)
 
 	assert.Nil(t, result)
-	assert.Empty(t, installer.uninstalled)
-	assert.Equal(t, []string{componentVibeCoding}, installer.extras)
-
-	root := vibeCodingObject(t, installer.artifact, "Kustomization")
-	assert.Equal(t, true, root["spec"].(map[string]any)["suspend"])
-	assert.NotNil(t, vibeCodingObject(t, installer.artifact, "ConfigMap"))
+	assert.Equal(t, []string{componentVibeCoding}, installer.uninstalled)
+	assert.Empty(t, installer.extras)
 }
 
 func TestVibeCodingDeleteOperationTouchesNothing(t *testing.T) {

@@ -221,8 +221,6 @@ type FluxCDInstallConfig struct {
 // standalone rather than through that repository (see the XValidation rules
 // on PlatformConfigSpec).
 type VibeCodingConfig struct {
-	// Enabled false suspends the vibeCoding Kustomization instead of removing
-	// it: removing it would prune every app, database and generated secret.
 	Enabled bool `json:"enabled,omitempty"`
 	// Version overrides the platform default's release of
 	// vibe-coding-gitops-infra: an exact version or a semver range.
