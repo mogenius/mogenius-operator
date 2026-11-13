@@ -118,29 +118,10 @@ func (self *core) InitializeValkey() {
 		}
 	}
 
-	const (
-		maxWait        = 3 * time.Minute
-		initialBackoff = 2 * time.Second
-		maxBackoff     = 30 * time.Second
-	)
-	deadline := time.Now().Add(maxWait)
-	backoff := initialBackoff
-	for {
-		err := self.valkeyClient.Connect()
-		if err == nil {
-			break
-		}
-		if time.Now().After(deadline) {
-			self.logger.Error("failed to connect to valkey, giving up", "error", err, "waited", maxWait)
-			shutdown.SendShutdownSignal(true)
-			select {}
-		}
-		self.logger.Warn("failed to connect to valkey, retrying", "error", err, "backoff", backoff)
-		time.Sleep(backoff)
-		backoff *= 2
-		if backoff > maxBackoff {
-			backoff = maxBackoff
-		}
+	if err := valkeyclient.ConnectWithRetry(self.valkeyClient, self.logger, 3*time.Minute); err != nil {
+		self.logger.Error("failed to connect to valkey, giving up", "error", err)
+		shutdown.SendShutdownSignal(true)
+		select {}
 	}
 	// Flush pending pipelined writes on shutdown instead of dropping them.
 	shutdown.Add(self.valkeyClient.Close)

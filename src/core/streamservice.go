@@ -6,6 +6,7 @@ import (
 	"mogenius-operator/src/cpumonitor"
 	"mogenius-operator/src/networkmonitor"
 	"mogenius-operator/src/rammonitor"
+	"mogenius-operator/src/statsdb"
 	"mogenius-operator/src/stream"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/valkeyclient"
@@ -29,11 +30,11 @@ type StreamService interface {
 
 type streamService struct {
 	logger       *slog.Logger
-	statsDb      ValkeyStatsDb
+	statsDb      statsdb.ValkeyStatsDb
 	streamEnrich func(nodeName string, data any) any
 }
 
-func NewStreamService(logger *slog.Logger, statsDb ValkeyStatsDb) StreamService {
+func NewStreamService(logger *slog.Logger, statsDb statsdb.ValkeyStatsDb) StreamService {
 	self := &streamService{}
 	self.logger = logger
 	self.statsDb = statsDb
@@ -60,15 +61,15 @@ func (self *streamService) LiveStreamConnection(conReq stream.WsConnectionReques
 	var valkeyKey string
 	switch datagram.Pattern {
 	case "live-stream/nodes-traffic", "live-stream/pod-traffic", "live-stream/workspace-traffic":
-		valkeyKey = strings.Join([]string{DB_STATS_LIVE_BUCKET_NAME, "traffic", conReq.NodeName}, ":")
+		valkeyKey = strings.Join([]string{statsdb.DB_STATS_LIVE_BUCKET_NAME, "traffic", conReq.NodeName}, ":")
 	case "live-stream/nodes-memory":
-		valkeyKey = strings.Join([]string{DB_STATS_LIVE_BUCKET_NAME, "memory", conReq.NodeName}, ":")
+		valkeyKey = strings.Join([]string{statsdb.DB_STATS_LIVE_BUCKET_NAME, "memory", conReq.NodeName}, ":")
 	case "live-stream/nodes-cpu":
-		valkeyKey = strings.Join([]string{DB_STATS_LIVE_BUCKET_NAME, "cpu", conReq.NodeName}, ":")
+		valkeyKey = strings.Join([]string{statsdb.DB_STATS_LIVE_BUCKET_NAME, "cpu", conReq.NodeName}, ":")
 	case "live-stream/pod-memory", "live-stream/workspace-memory":
-		valkeyKey = strings.Join([]string{DB_STATS_LIVE_BUCKET_NAME, "memory", "proc", conReq.NodeName}, ":")
+		valkeyKey = strings.Join([]string{statsdb.DB_STATS_LIVE_BUCKET_NAME, "memory", "proc", conReq.NodeName}, ":")
 	case "live-stream/pod-cpu", "live-stream/workspace-cpu":
-		valkeyKey = strings.Join([]string{DB_STATS_LIVE_BUCKET_NAME, "cpu", "proc", conReq.NodeName}, ":")
+		valkeyKey = strings.Join([]string{statsdb.DB_STATS_LIVE_BUCKET_NAME, "cpu", "proc", conReq.NodeName}, ":")
 	default:
 		logger.Error("Unsupported pattern for LiveStreamConnection", "pattern", datagram.Pattern)
 		return

@@ -9,6 +9,7 @@ import (
 	"mogenius-operator/src/logging"
 	moreconciler "mogenius-operator/src/reconciler"
 	"mogenius-operator/src/shutdown"
+	"mogenius-operator/src/statsdb"
 	"mogenius-operator/src/version"
 	"net/http"
 	_ "net/http/pprof"
@@ -22,13 +23,13 @@ import (
 
 type HttpService interface {
 	Run()
-	Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api, reconciler moreconciler.Reconciler)
+	Link(socketapi SocketApi, dbstats statsdb.ValkeyStatsDb, apiModule Api, reconciler moreconciler.Reconciler)
 }
 
 type httpService struct {
 	logger     *slog.Logger
 	config     cfg.ConfigModule
-	dbstats    ValkeyStatsDb
+	dbstats    statsdb.ValkeyStatsDb
 	api        Api
 	reconciler moreconciler.Reconciler
 
@@ -105,7 +106,7 @@ func (self *httpService) Run() {
 	}()
 }
 
-func (self *httpService) Link(socketapi SocketApi, dbstats ValkeyStatsDb, apiModule Api, reconciler moreconciler.Reconciler) {
+func (self *httpService) Link(socketapi SocketApi, dbstats statsdb.ValkeyStatsDb, apiModule Api, reconciler moreconciler.Reconciler) {
 	assert.Assert(socketapi != nil)
 	assert.Assert(dbstats != nil)
 	assert.Assert(apiModule != nil)

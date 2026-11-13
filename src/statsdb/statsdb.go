@@ -1,4 +1,4 @@
-package core
+package statsdb
 
 import (
 	"encoding/json"

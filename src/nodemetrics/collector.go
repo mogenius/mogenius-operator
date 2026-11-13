@@ -1,23 +1,16 @@
-package core
+package nodemetrics
 
 import (
-	"bufio"
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
-	"mogenius-operator/src/config"
 	"mogenius-operator/src/cpumonitor"
-	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/networkmonitor"
 	"mogenius-operator/src/rammonitor"
 	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/structs"
-	"os"
-	"os/exec"
-	"runtime"
 	"sync/atomic"
 	"time"
 )
@@ -43,137 +36,59 @@ func sleepCtx(ctx context.Context, d time.Duration) bool {
 	}
 }
 
-type NodeMetricsCollector interface {
-	// Run the nodemetrics collector locally.
-	Run()
-	Link(statsDb ValkeyStatsDb, leaderElector LeaderElector)
-	// Manage instances of nodemetrics collector.
-	// Either create the required DaemonSet or handle execution locally.
-	Orchestrate()
+// statsWriter is the part of statsdb.ValkeyStatsDb the collector writes to.
+type statsWriter interface {
+	AddMachineStatsToDb(nodeName string, stats structs.MachineStats) error
+	AddInterfaceStatsToDb(stats []networkmonitor.PodNetworkStats)
+	AddNodeTrafficMetricsToDb(nodeName string, data any) error
+	AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error
+	AddNodeCpuMetricsToDb(nodeName string, data any) error
+	AddNodeCpuProcessMetricsToDb(nodeName string, data any) error
+	AddNodeRamMetricsToDb(nodeName string, data any) error
+	AddNodeRamProcessMetricsToDb(nodeName string, data any) error
+	LiveProcessStatsSubscribed(nodeName string) (cpu bool, memory bool)
 }
 
-type nodeMetricsCollector struct {
+// Collector samples cpu, memory and network usage of its node and writes
+// them to Valkey: live values every second, history every minute.
+type Collector struct {
 	logger         *slog.Logger
-	config         config.ConfigModule
-	procPath       string
-	clientProvider k8sclient.K8sClientProvider
-	statsDb        ValkeyStatsDb
-	leaderElector  LeaderElector
-
+	nodeName       string
+	statsDb        statsWriter
 	cpuMonitor     cpumonitor.CpuMonitor
 	ramMonitor     rammonitor.RamMonitor
 	networkMonitor networkmonitor.NetworkMonitor
 }
 
-func NewNodeMetricsCollector(
+// NewCollector creates the collector for nodeName.
+func NewCollector(
 	logger *slog.Logger,
-	config config.ConfigModule,
-	clientProviderModule k8sclient.K8sClientProvider,
+	nodeName string,
+	statsDb statsWriter,
 	cpuMonitor cpumonitor.CpuMonitor,
 	ramMonitor rammonitor.RamMonitor,
 	networkMonitor networkmonitor.NetworkMonitor,
-) NodeMetricsCollector {
-	self := &nodeMetricsCollector{}
-
-	self.logger = logger
-	self.config = config
-	self.procPath = config.Get("MO_HOST_PROC_PATH")
-	self.clientProvider = clientProviderModule
-	self.cpuMonitor = cpuMonitor
-	self.ramMonitor = ramMonitor
-	self.networkMonitor = networkMonitor
-
-	return self
-}
-
-func (self *nodeMetricsCollector) Link(statsDb ValkeyStatsDb, leaderElector LeaderElector) {
+) *Collector {
+	assert.Assert(logger != nil)
+	assert.Assert(nodeName != "", "OWN_NODE_NAME has to be defined and non-empty")
 	assert.Assert(statsDb != nil)
-	assert.Assert(leaderElector != nil)
+	assert.Assert(cpuMonitor != nil)
+	assert.Assert(ramMonitor != nil)
+	assert.Assert(networkMonitor != nil)
 
-	self.statsDb = statsDb
-	self.leaderElector = leaderElector
-}
-
-func (self *nodeMetricsCollector) Orchestrate() {
-
-	ownDeploymentName := self.config.Get("OWN_DEPLOYMENT_NAME")
-	assert.Assert(ownDeploymentName != "")
-
-	trafficCollectorEnabled, err := self.config.TryGetBool("MO_ENABLE_TRAFFIC_COLLECTOR")
-	assert.Assert(err == nil, err)
-
-	self.logger.Info("node metrics collector configuration", "enabled", trafficCollectorEnabled)
-	if !trafficCollectorEnabled {
-		return
-	}
-
-	if runtime.GOOS == "darwin" {
-		self.logger.Error("SKIPPING node metrics collector setup on macOS", "reason", "not supported on macOS")
-		return
-	}
-
-	if !self.clientProvider.RunsInCluster() {
-		go func() {
-
-			bin, err := os.Executable()
-			assert.Assert(err == nil, "failed to get current executable path", err)
-
-			nodemetrics := exec.Command(bin, "nodemetrics")
-
-			// This buffer is allocated both for stdout and stderr.
-			// Since this only happens in local development we dont have to care for a few megabytes of statically allocated memory.
-			bufSize := 5 * 1024 * 1024 // 5MiB
-			stdoutPipe, err := nodemetrics.StdoutPipe()
-			assert.Assert(err == nil, "reading stdout of this child process has to work", err)
-			stderrPipe, err := nodemetrics.StderrPipe()
-			assert.Assert(err == nil, "reading stderr of this child process has to work", err)
-
-			go func() {
-				scanner := bufio.NewScanner(stdoutPipe)
-				scanner.Buffer(make([]byte, bufSize), bufSize)
-				for scanner.Scan() {
-					output := string(scanner.Bytes())
-					fmt.Fprintf(os.Stderr, "node-metrics %s | %s\n", "stdout", output)
-				}
-			}()
-
-			go func() {
-				scanner := bufio.NewScanner(stderrPipe)
-				scanner.Buffer(make([]byte, bufSize), bufSize)
-				for scanner.Scan() {
-					output := scanner.Bytes()
-					fmt.Fprintf(os.Stderr, "| node-metrics %s | %s\n", "stderr", output)
-				}
-			}()
-
-			err = nodemetrics.Start()
-			if err != nil {
-				self.logger.Error("failed to start node-metrics", "error", err)
-				shutdown.SendShutdownSignal(true)
-				select {}
-			}
-
-			err = nodemetrics.Wait()
-			if err != nil {
-				self.logger.Error("failed to wait for node-metrics", "error", err)
-				shutdown.SendShutdownSignal(true)
-				select {}
-			}
-		}()
+	return &Collector{
+		logger:         logger,
+		nodeName:       nodeName,
+		statsDb:        statsDb,
+		cpuMonitor:     cpuMonitor,
+		ramMonitor:     ramMonitor,
+		networkMonitor: networkMonitor,
 	}
 }
 
-func (self *nodeMetricsCollector) Run() {
-	assert.Assert(self.logger != nil)
-	assert.Assert(self.config != nil)
-	assert.Assert(self.clientProvider != nil)
-	assert.Assert(self.statsDb != nil)
-	assert.Assert(self.cpuMonitor != nil)
-	assert.Assert(self.ramMonitor != nil)
-	assert.Assert(self.networkMonitor != nil)
-
-	nodeName := self.config.Get("OWN_NODE_NAME")
-	assert.Assert(nodeName != "", "OWN_NODE_NAME has to be defined and non-empty", nodeName)
+// Run starts the sampling loops; they stop on shutdown.
+func (self *Collector) Run() {
+	nodeName := self.nodeName
 
 	ctx, cancel := context.WithCancel(context.Background())
 	shutdown.Add(cancel)

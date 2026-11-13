@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"mogenius-operator/src/bootstrap"
 	"mogenius-operator/src/cmd"
 	"mogenius-operator/src/config"
 	"mogenius-operator/src/logging"
@@ -130,7 +131,7 @@ func New(t *testing.T) *TestHarness {
 	setEnv(t, "MO_LOG_LEVEL", "error")
 
 	cfgModule := config.NewConfig()
-	cmd.LoadConfigDeclarations(cfgModule)
+	bootstrap.LoadConfigDeclarations(cfgModule)
 	cfgModule.LoadEnvs()
 
 	logManager := logging.NewSlogManager(slog.LevelError, []slog.Handler{slog.NewJSONHandler(os.Stderr, nil)})

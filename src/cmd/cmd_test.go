@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"mogenius-operator/src/bootstrap"
 	"mogenius-operator/src/config"
 	"testing"
 
@@ -25,7 +26,7 @@ var requiredEnvKeys = map[string]bool{
 
 func TestNewConfigKeysHaveDefaults(t *testing.T) {
 	configModule := config.NewConfig()
-	LoadConfigDeclarations(configModule)
+	bootstrap.LoadConfigDeclarations(configModule)
 
 	for _, usage := range configModule.GetUsage() {
 		if !usage.Initialized {
