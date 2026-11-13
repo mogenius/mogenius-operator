@@ -488,6 +488,23 @@ spec:
                         type: object
                       enabled:
                         type: boolean
+                      instance:
+                        description: Instance configures the FluxInstance the operator
+                          creates.
+                        properties:
+                          cluster:
+                            description: |-
+                              Cluster is the FluxInstance's spec.cluster, e.g. {size: medium} for
+                              more workers, CPU and memory per Flux controller.
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                          kustomize:
+                            description: |-
+                              Kustomize is the FluxInstance's spec.kustomize. Its patches are applied
+                              in addition to the ones the operator adds itself.
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                        type: object
                       patches:
                         items:
                           description: |-

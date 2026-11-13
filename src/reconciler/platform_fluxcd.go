@@ -2,10 +2,13 @@ package reconciler
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"mogenius-operator/src/crds/v1alpha1"
 	"mogenius-operator/src/gitops"
 	"mogenius-operator/src/utils"
+
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 )
 
 func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.PlatformConfigSpec, installer gitops.GitOpsInstaller, detection gitOpsDetection) *ReconcileResult {
@@ -33,9 +36,8 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 		// an extra object, because those travel through a HelmRelease that
 		// needs the very helm-controller this resource brings up.
 		bootstrapObjects: func(namespace string) []engineBootstrapObject {
-			vibeCodingEnabled := spec.VibeCoding != nil && spec.VibeCoding.Enabled
 			return []engineBootstrapObject{
-				{resource: utils.FluxInstanceResource, object: fluxInstanceObject(namespace, vibeCodingEnabled)},
+				{resource: utils.FluxInstanceResource, object: fluxInstanceObject(namespace, spec)},
 			}
 		},
 		extraObjects: func(ctx context.Context) ([]any, error) {
@@ -111,7 +113,7 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 	})
 }
 
-func fluxInstanceObject(namespace string, vibeCodingEnabled bool) map[string]any {
+func fluxInstanceObject(namespace string, platformSpec v1alpha1.PlatformConfigSpec) map[string]any {
 	spec := map[string]any{
 		"distribution": map[string]any{
 			"version":  "2.x",
@@ -125,22 +127,39 @@ func fluxInstanceObject(namespace string, vibeCodingEnabled bool) map[string]any
 		},
 	}
 
-	if vibeCodingEnabled {
-		spec["kustomize"] = map[string]any{
-			"patches": []any{
-				// An undefined ${VAR} fails the build instead of becoming "" (also
-				// in the app Kustomizations vibeCoding's own repository owns).
-				map[string]any{
-					"patch": `- op: add
+	var instance *v1alpha1.FluxInstanceConfig
+	if platformSpec.GitOps != nil && platformSpec.GitOps.FluxCD != nil {
+		instance = platformSpec.GitOps.FluxCD.Instance
+	}
+	if instance != nil {
+		if cluster := jsonObject(instance.Cluster); cluster != nil {
+			spec["cluster"] = cluster
+		}
+		if kustomize := jsonObject(instance.Kustomize); kustomize != nil {
+			spec["kustomize"] = kustomize
+		}
+	}
+
+	if platformSpec.VibeCoding != nil && platformSpec.VibeCoding.Enabled {
+		kustomize, _ := spec["kustomize"].(map[string]any)
+		if kustomize == nil {
+			kustomize = map[string]any{}
+			spec["kustomize"] = kustomize
+		}
+		patches, _ := kustomize["patches"].([]any)
+		kustomize["patches"] = append(patches,
+			// An undefined ${VAR} fails the build instead of becoming "" (also
+			// in the app Kustomizations vibeCoding's own repository owns).
+			map[string]any{
+				"patch": `- op: add
   path: /spec/template/spec/containers/0/args/-
   value: --feature-gates=StrictPostBuildSubstitutions=true`,
-					"target": map[string]any{
-						"kind": "Deployment",
-						"name": "kustomize-controller",
-					},
+				"target": map[string]any{
+					"kind": "Deployment",
+					"name": "kustomize-controller",
 				},
 			},
-		}
+		)
 	}
 
 	return map[string]any{
@@ -152,6 +171,19 @@ func fluxInstanceObject(namespace string, vibeCodingEnabled bool) map[string]any
 		},
 		"spec": spec,
 	}
+}
+
+// jsonObject decodes a free-form CRD field. The CRD schema only admits
+// objects, so nil means the field is unset.
+func jsonObject(raw *apiextensionsv1.JSON) map[string]any {
+	if raw == nil {
+		return nil
+	}
+	var object map[string]any
+	if err := json.Unmarshal(raw.Raw, &object); err != nil {
+		return nil
+	}
+	return object
 }
 
 func fluxKustomizationObject(name string, repo v1alpha1.GitOpsRepositoryConfig, namespace string) map[string]any {
