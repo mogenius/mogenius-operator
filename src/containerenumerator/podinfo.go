@@ -4,6 +4,8 @@ import (
 	"log/slog"
 	"mogenius-operator/src/assert"
 	"net/url"
+	"slices"
+	"strings"
 	"time"
 
 	v1 "k8s.io/api/core/v1"
@@ -73,12 +75,25 @@ func (self *PodInfo) NamespaceAndName() PodInfoIdentifier {
 	return self.Namespace + "/" + self.Name
 }
 
-func (self *PodInfo) ContainersWithFirstPid() map[ContainerId]ProcessId {
-	data := map[ContainerId]ProcessId{}
+// ContainerFirstPid pairs a container with the first process running in it.
+type ContainerFirstPid struct {
+	ContainerId ContainerId
+	Pid         ProcessId
+}
+
+// SortedContainersWithFirstPid returns every container with its first pid,
+// ordered by container id. All containers of a pod share the network
+// namespace of the pod sandbox, so traffic collectors attach to one of them;
+// the stable order keeps that choice the same across calls.
+func (self *PodInfo) SortedContainersWithFirstPid() []ContainerFirstPid {
+	data := make([]ContainerFirstPid, 0, len(self.Containers))
 	for containerId, pids := range self.Containers {
 		assert.Assert(len(pids) > 0, "podinfo should never contain information about containers with 0 processes")
-		data[containerId] = pids[0]
+		data = append(data, ContainerFirstPid{ContainerId: containerId, Pid: pids[0]})
 	}
+	slices.SortFunc(data, func(a, b ContainerFirstPid) int {
+		return strings.Compare(a.ContainerId, b.ContainerId)
+	})
 	return data
 }
 

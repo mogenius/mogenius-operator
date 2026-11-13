@@ -2,7 +2,9 @@ package core
 
 import (
 	"bufio"
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"mogenius-operator/src/assert"
@@ -18,6 +20,10 @@ import (
 	"runtime"
 	"time"
 )
+
+// snoopyStatusRefreshInterval rewrites an unchanged snoopy status so its key
+// (liveStatsTTL) never expires while the node-metrics pod is running.
+const snoopyStatusRefreshInterval = 5 * time.Minute
 
 // sleepCtx returns false when ctx is done so the caller can exit its loop.
 func sleepCtx(ctx context.Context, d time.Duration) bool {
@@ -212,11 +218,24 @@ func (self *nodeMetricsCollector) Run() {
 			if !sleepCtx(ctx, 200*time.Millisecond) {
 				return
 			}
+			// The status only changes when pods or interfaces come and go;
+			// rewriting the same JSON every second was pure Valkey write
+			// load. Write on change, and refresh well before the key's TTL.
+			var lastStatus []byte
+			var lastWrite time.Time
 			for {
 				status := self.networkMonitor.Snoopy().Status()
-				err := self.statsDb.AddSnoopyStatusToDb(nodeName, status)
+				encoded, err := json.Marshal(status)
 				if err != nil {
-					self.logger.Error("failed to store snoopy status", "error", err)
+					self.logger.Error("failed to encode snoopy status", "error", err)
+				} else if !bytes.Equal(encoded, lastStatus) || time.Since(lastWrite) >= snoopyStatusRefreshInterval {
+					err := self.statsDb.AddSnoopyStatusToDb(nodeName, status)
+					if err != nil {
+						self.logger.Error("failed to store snoopy status", "error", err)
+					} else {
+						lastStatus = encoded
+						lastWrite = time.Now()
+					}
 				}
 				if !sleepCtx(ctx, 1*time.Second) {
 					return

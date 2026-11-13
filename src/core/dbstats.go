@@ -125,10 +125,16 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 	self.lastPodNetworkStats = currentStats
 	self.lastPodNetworkStatsLock.Unlock()
 
-	// Build a map for O(1) lookup instead of O(n) linear search
+	// Build a map for O(1) lookup instead of O(n) linear search. The key
+	// includes the namespace: pod names repeat across namespaces (e.g. a
+	// StatefulSet "postgres-0" in two workspaces), and a name-only key mixed
+	// their counters into each other's deltas.
+	podKey := func(stat networkmonitor.PodNetworkStats) string {
+		return stat.Namespace + "/" + stat.Pod
+	}
 	lastStatsMap := make(map[string]networkmonitor.PodNetworkStats, len(lastStats))
 	for _, e := range lastStats {
-		lastStatsMap[e.Pod] = e
+		lastStatsMap[podKey(e)] = e
 	}
 
 	for _, currentStat := range currentStats {
@@ -147,7 +153,7 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 		// Strip before persisting; readers refill from the query context.
 		deltaStat.Namespace = ""
 
-		if lastEntry, ok := lastStatsMap[currentStat.Pod]; ok {
+		if lastEntry, ok := lastStatsMap[podKey(currentStat)]; ok {
 			// Guard against uint64 underflow: if the current counter is smaller than the
 			// last known value, the snoopy process or pod was restarted and the BPF counter
 			// reset to 0. In that case we skip this interval (delta = 0) rather than
