@@ -580,11 +580,6 @@ type metricsSnapshot struct {
 // not attach a counter to.
 const snoopyImplementationNone = "none"
 
-// loopbackInterface is never reported: its traffic stays inside the pod.
-// snoopy does not attach to it, and reading its /proc/net/dev counters on
-// every tick was wasted I/O.
-const loopbackInterface = "lo"
-
 func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]ContainerInfo {
 	// Snapshot phase: under the outer handlesLock, collect pointers to
 	// all current handles. Release the lock immediately so Register and
@@ -643,7 +638,9 @@ func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]C
 		var procFetched bool
 
 		for interfaceName := range snap.ingressStart {
-			if interfaceName == loopbackInterface {
+			// Only uplinks are reported (see isPodUplinkInterface); lo and
+			// in-pod bridges/veths would only cost /proc/net/dev reads.
+			if !isPodUplinkInterface(interfaceName) {
 				continue
 			}
 			interfaceInfo := MetricSnapshot{}

@@ -209,8 +209,7 @@ func (self *networkMonitor) metricsToPodstats(
 			CreatedAt: time.Now(),
 		}
 		for interfaceName, iMetrics := range containerInfo.Metrics {
-			// filter blacklisted interface names e.g. loopback
-			if interfaceName == "lo" {
+			if !isPodUplinkInterface(interfaceName) {
 				continue
 			}
 			podNetworkStat.ReceivedPackets += iMetrics.Ingress.Packets
@@ -229,6 +228,25 @@ func (self *networkMonitor) metricsToPodstats(
 	}
 
 	return data
+}
+
+// isPodUplinkInterface reports whether traffic on the interface leaves the
+// pod: eth<N> (the CNI interface; containerd numbers further networks eth1,
+// eth2, ...) and net<N> (Multus secondary networks). Everything else lives
+// inside the pod's network namespace: lo, and the bridges and veths of
+// nested runtimes such as docker-in-docker or kind. Their traffic crosses
+// eth0 as well, so summing them counted it two or three times.
+func isPodUplinkInterface(name InterfaceName) bool {
+	for _, prefix := range []string{"eth", "net"} {
+		suffix, ok := strings.CutPrefix(name, prefix)
+		if !ok || suffix == "" {
+			continue
+		}
+		if strings.Trim(suffix, "0123456789") == "" {
+			return true
+		}
+	}
+	return false
 }
 
 func (self *networkMonitor) GetPodNetworkUsage() []PodNetworkStats {

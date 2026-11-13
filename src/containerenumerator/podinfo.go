@@ -34,7 +34,14 @@ func NewPodInfoList(logger *slog.Logger, k8sPods []v1.Pod, nodecontainers map[Co
 		podInfo.PodIp = item.Status.PodIP
 		podInfo.StartTime = item.Status.StartTime.Format(time.RFC3339)
 		podInfo.Containers = map[ContainerId][]ProcessId{}
-		for _, container := range item.Status.ContainerStatuses {
+		// Native sidecars (init containers with restartPolicy Always, e.g.
+		// docker-in-docker or a service mesh proxy) only appear in
+		// initContainerStatuses. Regular init containers have exited and
+		// have no processes left, so the process lookup below drops them.
+		statuses := make([]v1.ContainerStatus, 0, len(item.Status.InitContainerStatuses)+len(item.Status.ContainerStatuses))
+		statuses = append(statuses, item.Status.InitContainerStatuses...)
+		statuses = append(statuses, item.Status.ContainerStatuses...)
+		for _, container := range statuses {
 			if !container.Ready {
 				// dont bother with containers which havent finished startup
 				continue

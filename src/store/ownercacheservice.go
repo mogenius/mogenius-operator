@@ -4,6 +4,7 @@ import (
 	"log/slog"
 	"mogenius-operator/src/config"
 	"mogenius-operator/src/utils"
+	"slices"
 	"sync"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -77,14 +78,33 @@ func (self *ownerCacheService) ControllerForPod(namespace string, podName string
 		return ctlr
 	}
 
-	// Special case for pods with no owner (often used by system pods)
+	// Special case for pods with no owner (often used by system pods). The
+	// answer cannot change for this pod, so it is cached like a resolved
+	// owner; uncached, every call loaded the full pod again.
 	if pod.OwnerReferences == nil {
-		return new(NewK8sController(utils.PodResource, pod.Name, namespace))
+		podController := NewK8sController(utils.PodResource, pod.Name, namespace)
+		ownerCache.Store(cacheKey, podController)
+		return &podController
 	}
 
-	self.logger.Debug("Pod has no owner.", "namespace", namespace, "pod", podName)
+	// An owner kind OwnerFromReference does not handle (e.g. a CRD such as
+	// EphemeralRunner) stays unresolvable for the pod's lifetime: cache the
+	// miss. Supported kinds that failed to resolve are not cached, their
+	// owner may just not be in the store yet.
+	if !slices.Contains(supportedOwnerKinds, pod.OwnerReferences[0].Kind) {
+		ownerCache.Store(cacheKey, ownerCacheMiss{})
+	}
+	self.logger.Debug("Pod owner could not be resolved.", "namespace", namespace, "pod", podName, "ownerKind", pod.OwnerReferences[0].Kind)
 	return nil
 }
+
+// ownerCacheMiss marks a pod whose owner cannot be resolved. ControllerForPod
+// returns nil for any cached value that is not a WorkloadSingleRequest.
+type ownerCacheMiss struct{}
+
+// supportedOwnerKinds are the owner kinds OwnerFromReference resolves; keep
+// it in sync with its switch.
+var supportedOwnerKinds = []string{"ReplicaSet", "Deployment", "StatefulSet", "DaemonSet", "Job", "CronJob", "Pod", "Node"}
 
 func (self *ownerCacheService) OwnerFromReference(namespace string, ownerRefs []metav1.OwnerReference) *utils.WorkloadSingleRequest {
 	var lastValidController *utils.WorkloadSingleRequest
