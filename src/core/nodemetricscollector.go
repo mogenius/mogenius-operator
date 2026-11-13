@@ -18,12 +18,18 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"sync/atomic"
 	"time"
 )
 
 // snoopyStatusRefreshInterval rewrites an unchanged snoopy status so its key
 // (liveStatsTTL) never expires while the node-metrics pod is running.
 const snoopyStatusRefreshInterval = 5 * time.Minute
+
+// processStatsDemandInterval is how often node-metrics checks for live
+// stream subscribers of the per-process stats; it bounds how long a newly
+// opened live view waits for its first frame.
+const processStatsDemandInterval = 2 * time.Second
 
 // sleepCtx returns false when ctx is done so the caller can exit its loop.
 func sleepCtx(ctx context.Context, d time.Duration) bool {
@@ -172,6 +178,21 @@ func (self *nodeMetricsCollector) Run() {
 	ctx, cancel := context.WithCancel(context.Background())
 	shutdown.Add(cancel)
 
+	// Per-process cpu and memory stats only feed live streams. Track whether
+	// one is open and skip the /proc scans and publishes while none is.
+	var cpuProcessStatsWanted, ramProcessStatsWanted atomic.Bool
+	updateProcessStatsDemand := func() {
+		cpu, memory := self.statsDb.LiveProcessStatsSubscribed(nodeName)
+		cpuProcessStatsWanted.Store(cpu)
+		ramProcessStatsWanted.Store(memory)
+	}
+	updateProcessStatsDemand()
+	go func() {
+		for sleepCtx(ctx, processStatsDemandInterval) {
+			updateProcessStatsDemand()
+		}
+	}()
+
 	// node-stats monitor
 	go func() {
 		machinestats := structs.MachineStats{
@@ -267,10 +288,12 @@ func (self *nodeMetricsCollector) Run() {
 			return
 		}
 		for {
-			metrics := self.cpuMonitor.CpuUsageProcesses()
-			err := self.statsDb.AddNodeCpuProcessMetricsToDb(nodeName, metrics)
-			if err != nil {
-				self.logger.Error("failed to add node cpu proc metrics", "error", err)
+			if cpuProcessStatsWanted.Load() {
+				metrics := self.cpuMonitor.CpuUsageProcesses()
+				err := self.statsDb.AddNodeCpuProcessMetricsToDb(nodeName, metrics)
+				if err != nil {
+					self.logger.Error("failed to add node cpu proc metrics", "error", err)
+				}
 			}
 			if !sleepCtx(ctx, 1*time.Second) {
 				return
@@ -301,10 +324,12 @@ func (self *nodeMetricsCollector) Run() {
 			return
 		}
 		for {
-			metrics := self.ramMonitor.RamUsageProcesses()
-			err := self.statsDb.AddNodeRamProcessMetricsToDb(nodeName, metrics)
-			if err != nil {
-				self.logger.Error("failed to add node ram proc metrics", "error", err)
+			if ramProcessStatsWanted.Load() {
+				metrics := self.ramMonitor.RamUsageProcesses()
+				err := self.statsDb.AddNodeRamProcessMetricsToDb(nodeName, metrics)
+				if err != nil {
+					self.logger.Error("failed to add node ram proc metrics", "error", err)
+				}
 			}
 			if !sleepCtx(ctx, 1*time.Second) {
 				return

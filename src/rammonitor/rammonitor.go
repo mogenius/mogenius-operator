@@ -94,22 +94,19 @@ func (self *ramMonitor) startCollector() {
 		globalMetricsUpdater := time.NewTicker(1 * time.Second)
 		defer globalMetricsUpdater.Stop()
 
-		processMetricsUpdater := time.NewTicker(1 * time.Second)
-		defer processMetricsUpdater.Stop()
-
 		globalMetrics := self.collectGlobalMetrics(nodeName)
-		processMetrics := self.collectProcessMetrics()
 
 		for {
 			select {
 			case <-globalMetricsUpdater.C:
 				globalMetrics = self.collectGlobalMetrics(nodeName)
-			case <-processMetricsUpdater.C:
-				processMetrics = self.collectProcessMetrics()
 			case <-self.ramUsageGlobalTx:
 				self.ramUsageGlobalRx <- globalMetrics
 			case <-self.ramUsageProcessesTx:
-				self.ramUsageProcessesRx <- processMetrics
+				// Collected on request: the per-pid values are absolute
+				// counters, and reading /proc/$pid/statm for every container
+				// process each second was wasted while nobody asked.
+				self.ramUsageProcessesRx <- self.collectProcessMetrics()
 			}
 		}
 	}()
