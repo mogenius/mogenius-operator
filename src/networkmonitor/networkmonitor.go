@@ -101,7 +101,7 @@ func (self *networkMonitor) Run() {
 		for _, podInfo := range podInfoList {
 			errs := self.snoopy.Register(podInfo)
 			if len(errs) > 0 {
-				self.logger.Error("failed to register snoopy", "podInfo", podInfo, "error", errs)
+				self.logger.Error("failed to register snoopy", "podInfo", podInfo, "error", errors.Join(errs...))
 				continue
 			}
 		}
@@ -143,7 +143,7 @@ func (self *networkMonitor) Run() {
 						self.logger.Info("Remove Pod", "podInfo", podInfo)
 						errs := self.snoopy.Remove(podInfo)
 						if len(errs) > 0 {
-							self.logger.Error("failed to remove old pod", "id", id, "errors", errs)
+							self.logger.Error("failed to remove old pod", "id", id, "error", errors.Join(errs...))
 						}
 					}
 				}
@@ -154,17 +154,17 @@ func (self *networkMonitor) Run() {
 						self.logger.Info("Register Pod", "nextPodInfo", nextPodInfo)
 						errs := self.snoopy.Register(nextPodInfo)
 						if len(errs) > 0 {
-							self.logger.Error("failed to register new pod", "id", id, "errors", errs)
+							self.logger.Error("failed to register new pod", "id", id, "error", errors.Join(errs...))
 						}
 					} else if !podInfo.Equals(&nextPodInfo) {
 						self.logger.Info("Update Pod", "podInfo", podInfo, "nextPodInfo", nextPodInfo)
 						errs := self.snoopy.Remove(podInfo)
 						if len(errs) > 0 {
-							self.logger.Error("failed to remove old pod", "id", id, "errors", errs)
+							self.logger.Error("failed to remove old pod", "id", id, "error", errors.Join(errs...))
 						}
 						errs = self.snoopy.Register(nextPodInfo)
 						if len(errs) > 0 {
-							self.logger.Error("failed to register new pod", "id", id, "errors", errs)
+							self.logger.Error("failed to register new pod", "id", id, "error", errors.Join(errs...))
 						}
 					}
 				}
