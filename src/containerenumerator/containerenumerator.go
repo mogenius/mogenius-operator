@@ -56,6 +56,10 @@ type containerEnumerator struct {
 	// Regular expressions to match and capture Container IDs
 	cgroupRegexes []*regexp.Regexp
 
+	// cgroupMatches caches the regex result per distinct cgroup file content
+	// from the previous enumeration pass. Only the worker goroutine touches it.
+	cgroupMatches map[string]cgroupMatch
+
 	getProcessesWithContainerIdsRx chan struct{}
 	getProcessesWithContainerIdsTx chan map[ContainerId][]ProcessId
 
@@ -140,8 +144,14 @@ func (self *containerEnumerator) GetPodsWithContainerIds() []PodInfo {
 //  3. Parsing happens using a list of regexes. If a known container engine is
 //     found the regex extracts the container id.
 //  4. The returned map consists of all found container ids as a key to all process ids running within that container.
+//
+// Every process of a container has the same cgroup file, so the regexes run
+// once per distinct content instead of once per PID. The cache is keyed by
+// the content, not the PID, so a reused PID can never inherit a stale match;
+// it only keeps the contents seen in this pass.
 func (self *containerEnumerator) collectContainers() map[ContainerId][]ProcessId {
 	data := map[ContainerId][]ProcessId{}
+	matches := make(map[string]cgroupMatch, len(self.cgroupMatches))
 
 	// to start get a list of all system processes
 	files, err := os.ReadDir(self.procPath)
@@ -163,12 +173,21 @@ func (self *containerEnumerator) collectContainers() map[ContainerId][]ProcessId
 			continue
 		}
 		// check if the pid is actually from a container and get its container id if it is
-		containerId, err := self.GetContainerIdFromCgroupWithPid(cgroup)
-		if err != nil {
+		match, cached := matches[cgroup]
+		if !cached {
+			match, cached = self.cgroupMatches[cgroup]
+		}
+		if !cached {
+			containerId, err := self.GetContainerIdFromCgroupWithPid(cgroup)
+			match = cgroupMatch{containerId: containerId, ok: err == nil}
+		}
+		matches[cgroup] = match
+		if !match.ok {
 			continue
 		}
-		data[containerId] = append(data[containerId], pidN)
+		data[match.containerId] = append(data[match.containerId], pidN)
 	}
+	self.cgroupMatches = matches
 
 	for key := range data {
 		slices.Sort(data[key])
@@ -191,6 +210,12 @@ func (self *containerEnumerator) readCgroupFile(pid ProcessId) (string, error) {
 	}
 
 	return filestring, nil
+}
+
+// cgroupMatch is the cached outcome of GetContainerIdFromCgroupWithPid.
+type cgroupMatch struct {
+	containerId ContainerId
+	ok          bool
 }
 
 var ErrorNoMatchFound = errors.New("no match found in cgroup")
@@ -236,7 +261,7 @@ func (self *containerEnumerator) generateCurrentPodList(
 ) []PodInfo {
 	// query for all pods on current node from store (node-indexed; the
 	// full-cluster scan previously ran on every node every few seconds)
-	allPods := store.GetPodsOnNode(nodeName)
+	allPods := store.GetPodProcessViewsOnNode(nodeName)
 
 	// important step: Remove all pods with HostNetwork=true and kube-system pods
 	filteredItems := []v1.Pod{}

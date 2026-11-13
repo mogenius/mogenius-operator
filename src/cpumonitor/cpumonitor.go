@@ -115,23 +115,20 @@ func (self *cpuMonitor) startCollector() {
 		globalMetricsUpdater := time.NewTicker(1 * time.Second)
 		defer globalMetricsUpdater.Stop()
 
-		processMetricsUpdater := time.NewTicker(1 * time.Second)
-		defer processMetricsUpdater.Stop()
-
 		lastProcStatCpu := ProcStatCpu{}
 		lastProcStatCpu, metrics := self.updateMetrics(statPath, lastProcStatCpu)
-		processMetrics := self.collectProcessMetrics()
 
 		for {
 			select {
 			case <-globalMetricsUpdater.C:
 				lastProcStatCpu, metrics = self.updateMetrics(statPath, lastProcStatCpu)
-			case <-processMetricsUpdater.C:
-				processMetrics = self.collectProcessMetrics()
 			case <-self.cpuUsageGlobalTx:
 				self.cpuUsageGlobalRx <- metrics
 			case <-self.cpuUsageProcessesTx:
-				self.cpuUsageProcessesRx <- processMetrics
+				// Collected on request: the per-pid values are absolute
+				// counters, and reading /proc/$pid/stat for every container
+				// process each second was wasted while nobody asked.
+				self.cpuUsageProcessesRx <- self.collectProcessMetrics()
 			}
 		}
 	}()

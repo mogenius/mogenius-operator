@@ -52,6 +52,7 @@ type ValkeyStatsDb interface {
 	AddNodeCpuProcessMetricsToDb(nodeName string, data any) error
 	AddNodeTrafficMetricsToDb(nodeName string, data any) error
 	AddSnoopyStatusToDb(nodeName string, data networkmonitor.SnoopyStatus) error
+	LiveProcessStatsSubscribed(nodeName string) (cpu bool, memory bool)
 	GetCniData(nodeNames []string) ([]structs.CniData, error)
 	GetLatestNodeStatsForNode(nodeName string) (*structs.NodeStats, error)
 	GetMachineStatsForNode(nodeName string) (*structs.MachineStats, error)
@@ -683,6 +684,29 @@ func (self *valkeyStatsDb) AddNodeStatsToDb(stats []structs.NodeStats) error {
 		_ = self.valkey.SetObject(stat, liveStatsTTL, DB_STATS_NODE_STATS_LATEST_BUCKET_NAME, stat.Name)
 	}
 	return nil
+}
+
+// LiveProcessStatsSubscribed reports whether a live stream currently listens
+// to the per-process cpu and memory channels of nodeName. Collecting those
+// stats reads /proc for every container process, so node-metrics only does
+// it while someone watches. In cluster mode PUBSUB NUMSUB only counts the
+// shard it hits, and on any error the answer is unknown: both report true,
+// which keeps the previous always-collect behavior.
+func (self *valkeyStatsDb) LiveProcessStatsSubscribed(nodeName string) (cpu bool, memory bool) {
+	client := self.valkey.GetValkeyClient()
+	if client.Mode() == valkey.ClientModeCluster {
+		return true, true
+	}
+	cpuChannel := strings.Join([]string{DB_STATS_LIVE_BUCKET_NAME, DB_STATS_CPU_NAME, DB_STATS_PROCESSES_NAME, nodeName}, ":")
+	memoryChannel := strings.Join([]string{DB_STATS_LIVE_BUCKET_NAME, DB_STATS_MEMORY_NAME, DB_STATS_PROCESSES_NAME, nodeName}, ":")
+	reply, err := client.Do(self.valkey.GetContext(), client.B().PubsubNumsub().Channel(cpuChannel, memoryChannel).Build()).ToArray()
+	if err != nil || len(reply) != 4 {
+		self.logger.Debug("failed to count live process stats subscribers", "error", err, "replyLength", len(reply))
+		return true, true
+	}
+	cpuSubscribers, cpuErr := reply[1].AsInt64()
+	memorySubscribers, memoryErr := reply[3].AsInt64()
+	return cpuErr != nil || cpuSubscribers > 0, memoryErr != nil || memorySubscribers > 0
 }
 
 // publishAndSet notifies subscribers and stores the live-stats snapshot.
