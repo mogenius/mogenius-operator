@@ -8,21 +8,18 @@ import (
 	"mogenius-operator/src/argocd"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/config"
-	"mogenius-operator/src/containerenumerator"
 	"mogenius-operator/src/core"
-	"mogenius-operator/src/cpumonitor"
 	"mogenius-operator/src/debugcontainer"
 	"mogenius-operator/src/flux"
 	"mogenius-operator/src/helm"
 	mokubernetes "mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/logging"
-	"mogenius-operator/src/networkmonitor"
-	"mogenius-operator/src/rammonitor"
 	moreconciler "mogenius-operator/src/reconciler"
 	"mogenius-operator/src/services"
 	"mogenius-operator/src/shell"
 	"mogenius-operator/src/shutdown"
 	"mogenius-operator/src/sshgateway"
+	"mogenius-operator/src/statsdb"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/stream"
 	"mogenius-operator/src/structs"
@@ -41,28 +38,27 @@ import (
 // It embeds baseSystems so that fields like versionModule and logger are promoted.
 type clusterSystems struct {
 	baseSystems
-	valkeyClient          valkeyclient.ValkeyClient
-	watcherModule         watcher.WatcherModule
-	jobClients            []websocket.WebsocketClient
-	eventConnectionClient websocket.WebsocketClient
-	networkmonitor        networkmonitor.NetworkMonitor
-	mocore                core.Core
-	moKubernetes          core.MoKubernetes
-	workspaceManager      core.WorkspaceManager
-	apiModule             core.Api
-	socketApi             core.SocketApi
-	httpApi               core.HttpService
-	streamService         core.StreamService
-	aiWebsocketConnection ai.AiWebsocketConnection
-	valkeyLoggerService   core.ValkeyLogger
-	podStatsCollector     core.PodStatsCollector
-	nodeMetricsCollector  core.NodeMetricsCollector
-	dbstatsService        core.ValkeyStatsDb
-	leaderElector         core.LeaderElector
-	reconciler            moreconciler.Reconciler
-	sealedSecret          core.SealedSecretManager
-	argocd                argocd.Argocd
-	aiManager             ai.AiManager
+	valkeyClient            valkeyclient.ValkeyClient
+	watcherModule           watcher.WatcherModule
+	jobClients              []websocket.WebsocketClient
+	eventConnectionClient   websocket.WebsocketClient
+	mocore                  core.Core
+	moKubernetes            core.MoKubernetes
+	workspaceManager        core.WorkspaceManager
+	apiModule               core.Api
+	socketApi               core.SocketApi
+	httpApi                 core.HttpService
+	streamService           core.StreamService
+	aiWebsocketConnection   ai.AiWebsocketConnection
+	valkeyLoggerService     core.ValkeyLogger
+	podStatsCollector       core.PodStatsCollector
+	nodeMetricsOrchestrator core.NodeMetricsOrchestrator
+	dbstatsService          statsdb.ValkeyStatsDb
+	leaderElector           core.LeaderElector
+	reconciler              moreconciler.Reconciler
+	sealedSecret            core.SealedSecretManager
+	argocd                  argocd.Argocd
+	aiManager               ai.AiManager
 }
 
 // initializeClusterSystems layers all cluster-mode services on top of the shared base.
@@ -124,11 +120,6 @@ func initializeClusterSystems(
 			auditEventLogger.Error("failed to push audit log event", "error", err, "seq", entry.Seq)
 		}
 	}
-
-	containerEnumerator := containerenumerator.NewContainerEnumerator(logManagerModule.CreateLogger("container-enumerator"), configModule, base.clientProvider)
-	cpuMonitor := cpumonitor.NewCpuMonitor(logManagerModule.CreateLogger("cpu-monitor"), configModule, base.clientProvider, containerEnumerator)
-	ramMonitor := rammonitor.NewRamMonitor(logManagerModule.CreateLogger("ram-monitor"), configModule, base.clientProvider, containerEnumerator)
-	networkMonitor := networkmonitor.NewNetworkMonitor(logManagerModule.CreateLogger("network-monitor"), configModule, containerEnumerator, configModule.Get("MO_HOST_PROC_PATH"))
 
 	ownerCacheService := store.NewOwnerCacheService(logManagerModule.CreateLogger("owner-cache"), configModule)
 	// The leader elector is constructed before the AI manager because agent
@@ -215,18 +206,15 @@ func initializeClusterSystems(
 	httpApi := core.NewHttpApi(logManagerModule, configModule)
 	alertmanager := core.NewAlertmanagerService(logManagerModule.CreateLogger("alertmanager"), configModule)
 	socketApi := core.NewSocketApi(logManagerModule.CreateLogger("socketapi"), configModule, jobClients, eventConnectionClient, base.valkeyClient, argocdModule, fluxModule, alertmanager)
-	dbstatsService := core.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, base.valkeyClient, ownerCacheService)
+	dbstatsService := statsdb.NewValkeyStatsModule(logManagerModule.CreateLogger("db-stats"), configModule, base.valkeyClient, ownerCacheService)
 	streamService := core.NewStreamService(logManagerModule.CreateLogger("stream-service"), dbstatsService)
 	aiWebsocketConnection := ai.NewAiWebsocketConnection(logManagerModule.CreateLogger("ai-websocket-connection"), aiManager)
 	valkeyLoggerService := core.NewValkeyLogger(base.valkeyClient, valkeyLogChannel)
 	podStatsCollector := core.NewPodStatsCollector(logManagerModule.CreateLogger("pod-stats-collector"), configModule, base.clientProvider)
-	nodeMetricsCollector := core.NewNodeMetricsCollector(
+	nodeMetricsOrchestrator := core.NewNodeMetricsOrchestrator(
 		logManagerModule.CreateLogger("traffic-collector"),
 		configModule,
 		base.clientProvider,
-		cpuMonitor,
-		ramMonitor,
-		networkMonitor,
 	)
 	moKubernetes := core.NewMoKubernetes(logManagerModule.CreateLogger("mokubernetes"), configModule, base.clientProvider)
 	mocore := core.NewCore(logManagerModule.CreateLogger("core"), configModule, base.clientProvider, base.valkeyClient, eventConnectionClient, jobClients)
@@ -236,36 +224,34 @@ func initializeClusterSystems(
 	// Link phase: wire service dependencies.
 	mocore.Link(moKubernetes)
 	podStatsCollector.Link(dbstatsService, leaderElector.IsLeading)
-	nodeMetricsCollector.Link(dbstatsService, leaderElector)
 	socketApi.Link(httpApi, streamService, dbstatsService, apiModule, moKubernetes, sealedSecret, aiApi, aiWebsocketConnection)
 	moKubernetes.Link(dbstatsService)
 	httpApi.Link(socketApi, dbstatsService, apiModule, reconciler)
 	apiModule.Link(workspaceManager)
 
 	return clusterSystems{
-		baseSystems:           base,
-		valkeyClient:          base.valkeyClient,
-		watcherModule:         watcherModule,
-		jobClients:            jobClients,
-		eventConnectionClient: eventConnectionClient,
-		networkmonitor:        networkMonitor,
-		mocore:                mocore,
-		moKubernetes:          moKubernetes,
-		workspaceManager:      workspaceManager,
-		apiModule:             apiModule,
-		socketApi:             socketApi,
-		httpApi:               httpApi,
-		streamService:         streamService,
-		aiWebsocketConnection: aiWebsocketConnection,
-		valkeyLoggerService:   valkeyLoggerService,
-		podStatsCollector:     podStatsCollector,
-		nodeMetricsCollector:  nodeMetricsCollector,
-		dbstatsService:        dbstatsService,
-		leaderElector:         leaderElector,
-		reconciler:            reconciler,
-		sealedSecret:          sealedSecret,
-		argocd:                argocdModule,
-		aiManager:             aiManager,
+		baseSystems:             base,
+		valkeyClient:            base.valkeyClient,
+		watcherModule:           watcherModule,
+		jobClients:              jobClients,
+		eventConnectionClient:   eventConnectionClient,
+		mocore:                  mocore,
+		moKubernetes:            moKubernetes,
+		workspaceManager:        workspaceManager,
+		apiModule:               apiModule,
+		socketApi:               socketApi,
+		httpApi:                 httpApi,
+		streamService:           streamService,
+		aiWebsocketConnection:   aiWebsocketConnection,
+		valkeyLoggerService:     valkeyLoggerService,
+		podStatsCollector:       podStatsCollector,
+		nodeMetricsOrchestrator: nodeMetricsOrchestrator,
+		dbstatsService:          dbstatsService,
+		leaderElector:           leaderElector,
+		reconciler:              reconciler,
+		sealedSecret:            sealedSecret,
+		argocd:                  argocdModule,
+		aiManager:               aiManager,
 	}
 }
 
@@ -323,7 +309,7 @@ func startClusterSystems(logManagerModule logging.SlogManager, configModule *con
 	services.StartSandboxAutoStop(systems.leaderElector.IsLeading)
 	logStep("Sandbox auto-stop started")
 
-	systems.nodeMetricsCollector.Orchestrate()
+	systems.nodeMetricsOrchestrator.Orchestrate()
 	logStep("Node metrics collector started")
 
 	systems.valkeyLoggerService.Run()

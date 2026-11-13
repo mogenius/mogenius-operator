@@ -22,6 +22,7 @@ import (
 	"mogenius-operator/src/schema"
 	"mogenius-operator/src/services"
 	"mogenius-operator/src/shutdown"
+	"mogenius-operator/src/statsdb"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/stream"
 	"mogenius-operator/src/structs"
@@ -87,7 +88,7 @@ type SocketApi interface {
 	Link(
 		httpService HttpService,
 		streamService StreamService,
-		dbstatsModule ValkeyStatsDb,
+		dbstatsModule statsdb.ValkeyStatsDb,
 		apiService Api,
 		moKubernetes MoKubernetes,
 		sealedSecret SealedSecretManager,
@@ -139,7 +140,7 @@ type socketApi struct {
 
 	config       config.ConfigModule
 	valkeyClient valkeyclient.ValkeyClient
-	dbstats      ValkeyStatsDb
+	dbstats      statsdb.ValkeyStatsDb
 
 	status     SocketApiStatus
 	statusLock sync.RWMutex
@@ -224,7 +225,7 @@ func NewSocketApi(
 func (self *socketApi) Link(
 	httpService HttpService,
 	streamService StreamService,
-	dbstatsModule ValkeyStatsDb,
+	dbstatsModule statsdb.ValkeyStatsDb,
 	apiService Api,
 	moKubernetes MoKubernetes,
 	sealedSecret SealedSecretManager,
@@ -587,7 +588,7 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "stats/workspace-cpu-utilization"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) ([]GenericChartEntry, error) {
+			func(datagram structs.Datagram, request Request) ([]statsdb.GenericChartEntry, error) {
 				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName)
 				if err != nil {
 					return nil, err
@@ -599,7 +600,7 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "stats/workspace-memory-utilization"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) ([]GenericChartEntry, error) {
+			func(datagram structs.Datagram, request Request) ([]statsdb.GenericChartEntry, error) {
 				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName)
 				if err != nil {
 					return nil, err
@@ -611,7 +612,7 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "stats/workspace-traffic-utilization"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Request) ([]GenericChartEntry, error) {
+			func(datagram structs.Datagram, request Request) ([]statsdb.GenericChartEntry, error) {
 				resources, err := self.apiService.GetWorkspaceControllers(request.WorkspaceName)
 				if err != nil {
 					return nil, err
@@ -634,7 +635,7 @@ func (self *socketApi) registerPatterns() {
 			if timeOffsetMinutes <= 0 {
 				timeOffsetMinutes = 5
 			}
-			prefix := DB_STATS_POD_STATS_BUCKET_NAME + ":" + namespace + ":"
+			prefix := statsdb.DB_STATS_POD_STATS_BUCKET_NAME + ":" + namespace + ":"
 			keys, err := self.valkeyClient.Keys(prefix + "*")
 			if err != nil {
 				return nil, err
@@ -695,10 +696,10 @@ func (self *socketApi) registerPatterns() {
 		RegisterPatternHandler(
 			PatternHandle{self, "cluster/dashboard-stats"},
 			PatternConfig{},
-			func(datagram structs.Datagram, request Void) (ClusterDashboardStats, error) {
+			func(datagram structs.Datagram, request Void) (statsdb.ClusterDashboardStats, error) {
 				workspaces, err := self.apiService.GetAllWorkspaces()
 				if err != nil {
-					return ClusterDashboardStats{}, fmt.Errorf("get workspaces: %w", err)
+					return statsdb.ClusterDashboardStats{}, fmt.Errorf("get workspaces: %w", err)
 				}
 
 				names := make([]string, len(workspaces))
@@ -3225,9 +3226,9 @@ func (self *socketApi) registerPatterns() {
 				keys := make([]string, 0, len(nodes)*3)
 				for _, node := range nodes {
 					keys = append(keys,
-						DB_STATS_LIVE_BUCKET_NAME+":"+DB_STATS_CPU_NAME+":"+node.Name,
-						DB_STATS_LIVE_BUCKET_NAME+":"+DB_STATS_MEMORY_NAME+":"+node.Name,
-						DB_STATS_LIVE_BUCKET_NAME+":"+DB_STATS_TRAFFIC_NAME+":"+node.Name,
+						statsdb.DB_STATS_LIVE_BUCKET_NAME+":"+statsdb.DB_STATS_CPU_NAME+":"+node.Name,
+						statsdb.DB_STATS_LIVE_BUCKET_NAME+":"+statsdb.DB_STATS_MEMORY_NAME+":"+node.Name,
+						statsdb.DB_STATS_LIVE_BUCKET_NAME+":"+statsdb.DB_STATS_TRAFFIC_NAME+":"+node.Name,
 					)
 				}
 				values := make([]string, len(keys))

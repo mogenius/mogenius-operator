@@ -9,6 +9,7 @@ import (
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/podstatscollector"
 	"mogenius-operator/src/shutdown"
+	"mogenius-operator/src/statsdb"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/structs"
 	"sync"
@@ -20,9 +21,21 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
+// sleepCtx returns false when ctx is done so the caller can exit its loop.
+func sleepCtx(ctx context.Context, d time.Duration) bool {
+	t := time.NewTimer(d)
+	defer t.Stop()
+	select {
+	case <-ctx.Done():
+		return false
+	case <-t.C:
+		return true
+	}
+}
+
 type PodStatsCollector interface {
 	Run()
-	Link(statsDb ValkeyStatsDb, isLeading func() bool)
+	Link(statsDb statsdb.ValkeyStatsDb, isLeading func() bool)
 }
 
 // nodeMetricsConcurrency bounds the parallel kubelet /stats/summary requests
@@ -33,7 +46,7 @@ const nodeMetricsConcurrency = 10
 type podStatsCollector struct {
 	logger         *slog.Logger
 	clientProvider k8sclient.K8sClientProvider
-	statsDb        ValkeyStatsDb
+	statsDb        statsdb.ValkeyStatsDb
 	config         config.ConfigModule
 	// isLeading gates collection to the leading replica: every replica
 	// wrote the same per-controller streams, multiplying the entries the
@@ -60,7 +73,7 @@ func NewPodStatsCollector(
 	return self
 }
 
-func (self *podStatsCollector) Link(statsDb ValkeyStatsDb, isLeading func() bool) {
+func (self *podStatsCollector) Link(statsDb statsdb.ValkeyStatsDb, isLeading func() bool) {
 	assert.Assert(statsDb != nil)
 	assert.Assert(isLeading != nil)
 

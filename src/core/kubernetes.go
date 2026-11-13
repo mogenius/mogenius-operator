@@ -10,6 +10,7 @@ import (
 	"mogenius-operator/src/k8sclient"
 	"mogenius-operator/src/kubernetes"
 	"mogenius-operator/src/podstatscollector"
+	"mogenius-operator/src/statsdb"
 	"mogenius-operator/src/store"
 	"mogenius-operator/src/utils"
 
@@ -43,7 +44,7 @@ type CleanUpResultEntry struct {
 }
 type MoKubernetes interface {
 	Run()
-	Link(valkeyStatsDb ValkeyStatsDb)
+	Link(valkeyStatsDb statsdb.ValkeyStatsDb)
 	CreateOrUpdateClusterSecret() (utils.ClusterSecret, error)
 	CreateOrUpdateResourceTemplateConfigmap() error
 	GetNodeStats() ([]dtos.NodeStat, error)
@@ -55,7 +56,7 @@ type moKubernetes struct {
 	config         config.ConfigModule
 	clientProvider k8sclient.K8sClientProvider
 
-	valkeyStatsDb ValkeyStatsDb
+	valkeyStatsDb statsdb.ValkeyStatsDb
 }
 
 func NewMoKubernetes(
@@ -74,7 +75,7 @@ func NewMoKubernetes(
 
 func (self *moKubernetes) Run() {}
 
-func (self *moKubernetes) Link(valkeyStatsDb ValkeyStatsDb) {
+func (self *moKubernetes) Link(valkeyStatsDb statsdb.ValkeyStatsDb) {
 	assert.Assert(valkeyStatsDb != nil)
 
 	self.valkeyStatsDb = valkeyStatsDb

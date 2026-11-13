@@ -62,8 +62,7 @@ spec:
           image: {{ .Values.image.registry }}/{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion}}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command:
-            - "/usr/local/bin/mogenius-operator"
-            - "nodemetrics"
+            - "/usr/local/bin/mogenius-nodemetrics"
             - "--metrics-rate"
             - "2000"
           {{- with .Values.nodeMetrics.containerSecurityContext }}

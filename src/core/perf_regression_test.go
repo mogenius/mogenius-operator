@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"mogenius-operator/src/config"
+	"mogenius-operator/src/statsdb"
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/valkeyclient"
 
@@ -100,7 +101,7 @@ func newRecordingValkeyClient(t *testing.T) *recordingValkeyClient {
 func TestGetMachineStatsForNodesBatchesIntoOneRoundTrip(t *testing.T) {
 	vc := newRecordingValkeyClient(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	db := NewValkeyStatsModule(logger, nil, vc, nil)
+	db := statsdb.NewValkeyStatsModule(logger, nil, vc, nil)
 
 	nodeNames := []string{"node-a", "node-b", "node-c", "node-d", "node-e"}
 	for _, name := range nodeNames {
@@ -125,7 +126,7 @@ func TestGetMachineStatsForNodesBatchesIntoOneRoundTrip(t *testing.T) {
 func TestReplaceCniDataBatchesIntoOneRoundTripAndWritesPerNodeData(t *testing.T) {
 	vc := newRecordingValkeyClient(t)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
-	db := NewValkeyStatsModule(logger, nil, vc, nil)
+	db := statsdb.NewValkeyStatsModule(logger, nil, vc, nil)
 
 	data := []structs.CniData{
 		{Name: "cni-a", Node: "node-a", CNIVersion: "1.0.0"},
@@ -145,7 +146,7 @@ func TestReplaceCniDataBatchesIntoOneRoundTripAndWritesPerNodeData(t *testing.T)
 	// node's key must unmarshal to that node's own CniData, not the entire
 	// input slice duplicated under every node's key.
 	for _, want := range data {
-		got, err := valkeyclient.GetObjectForKey[structs.CniData](vc, DB_STATS_CNI_BUCKET_NAME, want.Node)
+		got, err := valkeyclient.GetObjectForKey[structs.CniData](vc, statsdb.DB_STATS_CNI_BUCKET_NAME, want.Node)
 		require.NoError(t, err, "node %s", want.Node)
 		assert.Equal(t, want, *got)
 	}

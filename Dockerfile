@@ -100,7 +100,8 @@ COPY . .
 # Generate code
 RUN go generate ./...
 
-# Build the operator binary.
+# Build the operator binary and the slim node-metrics binary. The second
+# build reuses the compiled packages of the first and mostly just links.
 #
 # Deliberately NOT built with -gcflags='all=-l'. That flag disables inlining in
 # every package and was introduced purely as an image-size optimization
@@ -130,16 +131,22 @@ RUN set -e && \
     echo "Host arch: $(uname -m)" && \
     echo "===========================" && \
     go mod tidy && \
-    go build -v -trimpath \
-        ${GO_BUILD_PARALLELISM:+-p ${GO_BUILD_PARALLELISM}} \
-        -ldflags="-s -w \
+    LDFLAGS="-s -w \
             -X mogenius-operator/src/utils.DevBuild=${DEV_BUILD} \
             -X mogenius-operator/src/version.GitCommitHash=${COMMIT_HASH} \
             -X mogenius-operator/src/version.Branch=${GIT_BRANCH} \
             -X mogenius-operator/src/version.BuildTimestamp=${BUILD_TIMESTAMP} \
-            -X mogenius-operator/src/version.Ver=${VERSION}" \
+            -X mogenius-operator/src/version.Ver=${VERSION}" && \
+    go build -v -trimpath \
+        ${GO_BUILD_PARALLELISM:+-p ${GO_BUILD_PARALLELISM}} \
+        -ldflags="${LDFLAGS}" \
         -o bin/mogenius-operator \
-        ./src/main.go
+        ./src/main.go && \
+    go build -v -trimpath \
+        ${GO_BUILD_PARALLELISM:+-p ${GO_BUILD_PARALLELISM}} \
+        -ldflags="${LDFLAGS}" \
+        -o bin/mogenius-nodemetrics \
+        ./src/nodemetrics/mogenius-nodemetrics
 
 # Verify binary was created
 RUN ls -lh bin/ 
@@ -160,6 +167,9 @@ COPY --from=alpine:3.24 /lib/ld-musl-*.so.1 /lib/
 
 # Operator binary (CGO_ENABLED=0, statically linked)
 COPY --from=builder /app/bin/mogenius-operator /usr/local/bin/mogenius-operator
+
+# Slim node-metrics binary run by the DaemonSet (same build flags)
+COPY --from=builder /app/bin/mogenius-nodemetrics /usr/local/bin/mogenius-nodemetrics
 
 # Snoopy binary (Rust + musl target, statically linked)
 COPY --from=snoopy-source /usr/local/bin/snoopy /usr/local/bin/mogenius-snoopy
