@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"encoding/json"
+	"errors"
 )
 
 type SnoopyManager interface {
@@ -862,18 +863,33 @@ func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error
 
 // podNetnsTarget picks the container whose first process is used to enter
 // the pod's network namespace: the first one, in stable order, whose
-// namespace handle still exists. Short-lived first processes can vanish
-// between enumeration and attach; trying the next container avoids a failed
-// registration in that case.
+// namespace handle can be opened. Short-lived first processes can vanish
+// between enumeration and attach; those are skipped in favor of the next
+// container.
+//
+// A namespace that exists but cannot be opened is still a valid target.
+// node-metrics runs under the container runtime's AppArmor profile, which
+// denies the ptrace read that /proc/$pid/ns/net needs for unconfined
+// processes, e.g. those of privileged pods. nsenter fails for such a pod as
+// well, but the handle keeps it on the /proc/$pid/net/dev fallback, which
+// the profile allows; rejecting the pod here dropped its traffic entirely.
 func podNetnsTarget(procPath string, podInfo containerenumerator.PodInfo) (containerenumerator.ContainerFirstPid, error) {
 	containers := podInfo.SortedContainersWithFirstPid()
+	var blocked *containerenumerator.ContainerFirstPid
 	for _, container := range containers {
 		netnsPath := procPath + "/" + strconv.FormatUint(container.Pid, 10) + "/ns/net"
-		if _, err := os.Stat(netnsPath); err == nil {
+		_, err := os.Stat(netnsPath)
+		if err == nil {
 			return container, nil
 		}
+		if blocked == nil && !errors.Is(err, os.ErrNotExist) {
+			blocked = &container
+		}
 	}
-	return containerenumerator.ContainerFirstPid{}, fmt.Errorf("no container of pod %s has a reachable network namespace (%d containers)", podInfo.NamespaceAndName(), len(containers))
+	if blocked != nil {
+		return *blocked, nil
+	}
+	return containerenumerator.ContainerFirstPid{}, fmt.Errorf("no container of pod %s has a running first process (%d containers)", podInfo.NamespaceAndName(), len(containers))
 }
 
 func (self *snoopyManager) Remove(podInfo containerenumerator.PodInfo) []error {
