@@ -11,11 +11,15 @@ import (
 	"mogenius-operator/src/config"
 	"mogenius-operator/src/containerenumerator"
 	"mogenius-operator/src/shutdown"
+	"os"
 	"os/exec"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
+	"time"
 
 	"encoding/json"
 )
@@ -102,7 +106,8 @@ type SnoopyStatusEventRegisterFailure struct {
 	PodName      string      `json:"podName"`
 	ContainerId  ContainerId `json:"containerId"`
 	NsProcessPid ProcessId   `json:"NsProcessId"`
-	Err          error       `json:"error"`
+	// Error is the message text: an error value marshals to `{}`.
+	Error string `json:"error"`
 }
 
 type SnoopyStatusEventRemove struct {
@@ -153,12 +158,12 @@ type SnoopyHandle struct {
 	SnoopyPid    ProcessId
 	ContainerPid ProcessId // PID of the monitored container process (for procdev fallback)
 
-	StartBytesLock      *sync.RWMutex
-	IngressStartBytes   map[InterfaceName]uint64
-	EgressStartBytes    map[InterfaceName]uint64
-	IngressStartPackets map[InterfaceName]uint64 // protected by StartBytesLock
-	EgressStartPackets  map[InterfaceName]uint64 // protected by StartBytesLock
-	BpfFailedInterfaces map[InterfaceName]bool   // interfaces where eBPF init failed; protected by StartBytesLock
+	StartBytesLock        *sync.RWMutex
+	IngressStartBytes     map[InterfaceName]uint64
+	EgressStartBytes      map[InterfaceName]uint64
+	IngressStartPackets   map[InterfaceName]uint64 // protected by StartBytesLock
+	EgressStartPackets    map[InterfaceName]uint64 // protected by StartBytesLock
+	BpfAttachedInterfaces map[InterfaceName]bool   // interfaces with both eBPF counters attached; protected by StartBytesLock
 
 	LastMetricsLock *sync.RWMutex
 	LastMetrics     map[InterfaceName]SnoopyInterfaceMetrics
@@ -340,6 +345,21 @@ func (self *snoopyManager) Run() {
 	go self.startStatusEventHandler()
 }
 
+func (self SnoopyStatus) clone() SnoopyStatus {
+	processes := make([]SnoopyStatusProcess, len(self.SnoopyProcesses))
+	for idx, process := range self.SnoopyProcesses {
+		processes[idx] = SnoopyStatusProcess{
+			Pid:        process.Pid,
+			Interfaces: slices.Clone(process.Interfaces),
+		}
+	}
+	return SnoopyStatus{
+		Initializing:    slices.Clone(self.Initializing),
+		Failure:         slices.Clone(self.Failure),
+		SnoopyProcesses: processes,
+	}
+}
+
 func (self *snoopyManager) startStatusEventHandler() {
 	status := SnoopyStatus{
 		Initializing:    []SnoopyStatusEventRegisterRequest{},
@@ -353,7 +373,9 @@ func (self *snoopyManager) startStatusEventHandler() {
 		case <-ctx.Done():
 			return
 		case <-self.statusTx:
-			self.statusRx <- status
+			// The handler keeps mutating these slices in place; the caller
+			// marshals the status concurrently, so it gets its own copy.
+			self.statusRx <- status.clone()
 		case event := <-self.statusEventTx:
 			switch event.Type {
 			case SnoopyStatusEventTypeRegisterRequest:
@@ -550,7 +572,17 @@ type metricsSnapshot struct {
 	ingressStartPackets map[InterfaceName]uint64
 	egressStartPackets  map[InterfaceName]uint64
 	last                map[InterfaceName]SnoopyInterfaceMetrics
+	bpfAttached         map[InterfaceName]bool
 }
+
+// snoopyImplementationNone is what snoopy reports for a direction it could
+// not attach a counter to.
+const snoopyImplementationNone = "none"
+
+// loopbackInterface is never reported: its traffic stays inside the pod.
+// snoopy does not attach to it, and reading its /proc/net/dev counters on
+// every tick was wasted I/O.
+const loopbackInterface = "lo"
 
 func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]ContainerInfo {
 	// Snapshot phase: under the outer handlesLock, collect pointers to
@@ -579,12 +611,14 @@ func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]C
 			ingressStartPackets: make(map[InterfaceName]uint64),
 			egressStartPackets:  make(map[InterfaceName]uint64),
 			last:                make(map[InterfaceName]SnoopyInterfaceMetrics),
+			bpfAttached:         make(map[InterfaceName]bool),
 		}
 		handle.StartBytesLock.RLock()
 		maps.Copy(snap.ingressStart, handle.IngressStartBytes)
 		maps.Copy(snap.egressStart, handle.EgressStartBytes)
 		maps.Copy(snap.ingressStartPackets, handle.IngressStartPackets)
 		maps.Copy(snap.egressStartPackets, handle.EgressStartPackets)
+		maps.Copy(snap.bpfAttached, handle.BpfAttachedInterfaces)
 		handle.StartBytesLock.RUnlock()
 
 		handle.LastMetricsLock.RLock()
@@ -608,16 +642,20 @@ func (self *snoopyManager) Metrics() map[containerenumerator.PodInfoIdentifier]C
 		var procFetched bool
 
 		for interfaceName := range snap.ingressStart {
+			if interfaceName == loopbackInterface {
+				continue
+			}
 			interfaceInfo := MetricSnapshot{}
 			interfaceInfo.Ingress.StartBytes = snap.ingressStart[interfaceName]
 			interfaceInfo.Egress.StartBytes = snap.egressStart[interfaceName]
-			// Use eBPF metrics if they have reported any data.
-			// If LastMetrics is all-zero the eBPF program either failed to
-			// initialize (explicitly or silently, e.g. after removing
-			// privileged:true) or snoopy just started. Fall back to
-			// /proc/net/dev so that traffic is always captured.
+			// Use eBPF metrics once snoopy attached both counters, even
+			// while they are still zero (an idle pod). Otherwise the eBPF
+			// program failed or is not attached yet: fall back to
+			// /proc/net/dev so that traffic is always captured. Deciding
+			// by "all-zero" instead read /proc/net/dev every second for
+			// every idle pod.
 			lastM := snap.last[interfaceName]
-			if lastM.Ingress.Bytes > 0 || lastM.Egress.Bytes > 0 || lastM.Ingress.Packets > 0 || lastM.Egress.Packets > 0 {
+			if snap.bpfAttached[interfaceName] {
 				interfaceInfo.Ingress.Bytes = lastM.Ingress.Bytes
 				interfaceInfo.Ingress.Packets = lastM.Ingress.Packets
 				interfaceInfo.Egress.Bytes = lastM.Egress.Bytes
@@ -664,183 +702,235 @@ func (self *snoopyManager) SetArgs(args SnoopyArgs) {
 	self.args = args
 }
 
+// Register starts one snoopy instance for the pod. All containers of a pod
+// share the network namespace of the pod sandbox; one snoopy per container
+// attached the same counters to the same interfaces several times (stacking
+// a TC program per extra container on every packet) and the per-pod metrics
+// then flipped between those instances.
 func (self *snoopyManager) Register(podInfo containerenumerator.PodInfo) []error {
-	errors := []error{}
-	for containerId, pid := range podInfo.ContainersWithFirstPid() {
+	target, err := podNetnsTarget(self.procPath, podInfo)
+	if err != nil {
+		return []error{err}
+	}
+	containerId := target.ContainerId
+	pid := target.Pid
+
+	self.statusEventTx <- SnoopyStatusEvent{
+		Type: SnoopyStatusEventTypeRegisterRequest,
+		RegisterRequest: &SnoopyStatusEventRegisterRequest{
+			PodNamespace: podInfo.Namespace,
+			PodName:      podInfo.Name,
+			ContainerId:  containerId,
+			NsProcessPid: pid,
+		},
+	}
+	handle, err := self.attachToPidNamespace(pid)
+	if err != nil {
 		self.statusEventTx <- SnoopyStatusEvent{
-			Type: SnoopyStatusEventTypeRegisterRequest,
-			RegisterRequest: &SnoopyStatusEventRegisterRequest{
-				podInfo.Namespace,
-				podInfo.Name,
-				containerId,
-				pid,
+			Type: SnoopyStatusEventTypeRegisterFailure,
+			RegisterFailure: &SnoopyStatusEventRegisterFailure{
+				PodNamespace: podInfo.Namespace,
+				PodName:      podInfo.Name,
+				ContainerId:  containerId,
+				NsProcessPid: pid,
+				Error:        err.Error(),
 			},
 		}
-		handle, err := self.attachToPidNamespace(pid)
-		if err != nil {
-			self.statusEventTx <- SnoopyStatusEvent{
-				Type: SnoopyStatusEventTypeRegisterFailure,
-				RegisterFailure: &SnoopyStatusEventRegisterFailure{
-					podInfo.Namespace,
-					podInfo.Name,
-					containerId,
-					pid,
-					err,
-				},
-			}
-			errors = append(errors, fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %w", containerId, pid, err))
-			continue
-		}
-		self.statusEventTx <- SnoopyStatusEvent{
-			Type: SnoopyStatusEventTypeRegisterSuccess,
-			RegisterSuccess: &SnoopyStatusEventRegisterSuccess{
-				podInfo.Namespace,
-				podInfo.Name,
-				containerId,
-				pid,
-				handle.SnoopyPid,
-			},
-		}
-
-		handle.PodInfo = podInfo
-
-		go func() {
-			for {
-				select {
-				case <-handle.Ctx.Done():
-					return
-				case logMessage := <-handle.Stderr:
-					switch logMessage.Level {
-					case "DEBUG":
-						self.logger.Debug("snoppy debug", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
-					case "INFO":
-						self.logger.Info("snoppy info", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
-					case "WARN":
-						// The Rust snoopy binary logs the setrlimit(RLIMIT_MEMLOCK) failure
-						// as WARN, but its own message says "this is fine on kernels >=5.11"
-						// because eBPF on modern kernels uses cgroup-v2 memory accounting
-						// instead of locked memory. Demote to Debug so it doesn't pollute
-						// operator telemetry on every snoopy attach.
-						if strings.Contains(logMessage.Message, "running without raised memlock limit") {
-							self.logger.Debug("snoppy warning", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
-							break
-						}
-						self.logger.Warn("snoppy warning", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
-					case "ERROR":
-						self.logger.Error("snoppy error", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
-					}
-				case metrics := <-handle.Stdout:
-					// InterfaceMetrics (the most frequent event) and
-					// InterfaceChanged are ignored by the status handler;
-					// don't funnel them through the serial status channel
-					// just to be dropped there.
-					if metrics.Type != SnoopyEventTypeInterfaceMetrics && metrics.Type != SnoopyEventTypeInterfaceChanged {
-						self.statusEventTx <- SnoopyStatusEvent{
-							Type: SnoopyStatusEventTypeSnoopyEvent,
-							SnoopyEvent: &SnoopyStatusEventSnoopyEvent{
-								SnoopyPid:   handle.SnoopyPid,
-								SnoopyEvent: metrics,
-							},
-						}
-					}
-					switch metrics.Type {
-					case SnoopyEventTypeInterfaceAdded:
-						iface := metrics.InterfaceAdded.Interface.Name
-						rxBytes, txBytes, rxPkts, txPkts := self.readStartMetricsFromPidAndInterface(pid, iface)
-						handle.StartBytesLock.Lock()
-						handle.IngressStartBytes[iface] = rxBytes
-						handle.EgressStartBytes[iface] = txBytes
-						handle.IngressStartPackets[iface] = rxPkts
-						handle.EgressStartPackets[iface] = txPkts
-						handle.StartBytesLock.Unlock()
-					case SnoopyEventTypeInterfaceRemoved:
-						iface := metrics.InterfaceRemoved.Interface.Name
-						handle.StartBytesLock.Lock()
-						delete(handle.IngressStartBytes, iface)
-						delete(handle.EgressStartBytes, iface)
-						delete(handle.IngressStartPackets, iface)
-						delete(handle.EgressStartPackets, iface)
-						delete(handle.BpfFailedInterfaces, iface)
-						handle.StartBytesLock.Unlock()
-					case SnoopyEventTypeInterfaceChanged:
-						// ignore
-					case SnoopyEventTypeInterfaceMetrics:
-						handle.LastMetricsLock.Lock()
-						handle.LastMetrics[metrics.InterfaceMetric.Interface] = *metrics.InterfaceMetric
-						handle.LastMetricsLock.Unlock()
-					case SnoopyEventTypeInterfaceBpfInitialized:
-						// ignore
-					case SnoopyEventTypeInterfaceBpfInitializationFailed:
-						// eBPF failed for this interface; mark it so Metrics() can fall back to /proc/net/dev
-						handle.StartBytesLock.Lock()
-						handle.BpfFailedInterfaces[metrics.InterfaceBpfInitializationFailed.Interface] = true
-						handle.StartBytesLock.Unlock()
-					default:
-						self.logger.Warn("unknown metric type", "type", metrics.Type, "metric", metrics)
-					}
-				}
-			}
-		}()
-
-		handleId := self.formatHandleId(podInfo.Namespace, podInfo.Name, containerId)
-		self.handlesLock.Lock()
-		if old, exists := self.handles[handleId]; exists {
-			// Stale handle from a previous registration of the same
-			// container; kill it so its snoopy child doesn't leak.
-			self.logger.Warn("replacing stale snoopy handle", "handleId", handleId, "snoopyPid", old.SnoopyPid)
-			go func() {
-				if err := old.Cmd.Process.Kill(); err == nil {
-					_, _ = old.Cmd.Process.Wait()
-				}
-			}()
-		}
-		self.handles[handleId] = handle
-		self.handlesLock.Unlock()
+		return []error{fmt.Errorf("failed to attach snoopy to containerId(%s) pid(%d): %w", containerId, pid, err)}
+	}
+	self.statusEventTx <- SnoopyStatusEvent{
+		Type: SnoopyStatusEventTypeRegisterSuccess,
+		RegisterSuccess: &SnoopyStatusEventRegisterSuccess{
+			PodNamespace: podInfo.Namespace,
+			PodName:      podInfo.Name,
+			ContainerId:  containerId,
+			NsProcessPid: pid,
+			SnoopyPid:    handle.SnoopyPid,
+		},
 	}
 
-	return errors
+	handle.PodInfo = podInfo
+
+	go func() {
+		for {
+			select {
+			case <-handle.Ctx.Done():
+				return
+			case logMessage := <-handle.Stderr:
+				switch logMessage.Level {
+				case "DEBUG":
+					self.logger.Debug("snoppy debug", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+				case "INFO":
+					self.logger.Info("snoppy info", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+				case "WARN":
+					// The Rust snoopy binary logs the setrlimit(RLIMIT_MEMLOCK) failure
+					// as WARN, but its own message says "this is fine on kernels >=5.11"
+					// because eBPF on modern kernels uses cgroup-v2 memory accounting
+					// instead of locked memory. Demote to Debug so it doesn't pollute
+					// operator telemetry on every snoopy attach.
+					if strings.Contains(logMessage.Message, "running without raised memlock limit") {
+						self.logger.Debug("snoppy warning", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+						break
+					}
+					self.logger.Warn("snoppy warning", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+				case "ERROR":
+					self.logger.Error("snoppy error", "containerId", containerId, "snoopyPid", handle.SnoopyPid, "attachedProcessPid", pid, "level", logMessage.Level, "target", logMessage.Target, "msg", logMessage.Message)
+				}
+			case metrics := <-handle.Stdout:
+				// InterfaceMetrics (the most frequent event) and
+				// InterfaceChanged are ignored by the status handler;
+				// don't funnel them through the serial status channel
+				// just to be dropped there.
+				if metrics.Type != SnoopyEventTypeInterfaceMetrics && metrics.Type != SnoopyEventTypeInterfaceChanged {
+					self.statusEventTx <- SnoopyStatusEvent{
+						Type: SnoopyStatusEventTypeSnoopyEvent,
+						SnoopyEvent: &SnoopyStatusEventSnoopyEvent{
+							SnoopyPid:   handle.SnoopyPid,
+							SnoopyEvent: metrics,
+						},
+					}
+				}
+				switch metrics.Type {
+				case SnoopyEventTypeInterfaceAdded:
+					iface := metrics.InterfaceAdded.Interface.Name
+					rxBytes, txBytes, rxPkts, txPkts := self.readStartMetricsFromPidAndInterface(pid, iface)
+					handle.StartBytesLock.Lock()
+					handle.IngressStartBytes[iface] = rxBytes
+					handle.EgressStartBytes[iface] = txBytes
+					handle.IngressStartPackets[iface] = rxPkts
+					handle.EgressStartPackets[iface] = txPkts
+					handle.StartBytesLock.Unlock()
+				case SnoopyEventTypeInterfaceRemoved:
+					iface := metrics.InterfaceRemoved.Interface.Name
+					handle.StartBytesLock.Lock()
+					delete(handle.IngressStartBytes, iface)
+					delete(handle.EgressStartBytes, iface)
+					delete(handle.IngressStartPackets, iface)
+					delete(handle.EgressStartPackets, iface)
+					delete(handle.BpfAttachedInterfaces, iface)
+					handle.StartBytesLock.Unlock()
+				case SnoopyEventTypeInterfaceChanged:
+					// ignore
+				case SnoopyEventTypeInterfaceMetrics:
+					handle.LastMetricsLock.Lock()
+					handle.LastMetrics[metrics.InterfaceMetric.Interface] = *metrics.InterfaceMetric
+					handle.LastMetricsLock.Unlock()
+				case SnoopyEventTypeInterfaceBpfInitialized:
+					// Only an interface with both counters attached reports
+					// eBPF values; anything else is read from /proc/net/dev.
+					payload := metrics.InterfaceBpfInitialized
+					attached := payload.IngressImplementation != snoopyImplementationNone && payload.EgressImplementation != snoopyImplementationNone
+					handle.StartBytesLock.Lock()
+					if attached {
+						handle.BpfAttachedInterfaces[payload.Interface] = true
+					} else {
+						delete(handle.BpfAttachedInterfaces, payload.Interface)
+					}
+					handle.StartBytesLock.Unlock()
+				case SnoopyEventTypeInterfaceBpfInitializationFailed:
+					// eBPF failed for this interface; Metrics() falls back to /proc/net/dev
+					handle.StartBytesLock.Lock()
+					delete(handle.BpfAttachedInterfaces, metrics.InterfaceBpfInitializationFailed.Interface)
+					handle.StartBytesLock.Unlock()
+				default:
+					self.logger.Warn("unknown metric type", "type", metrics.Type, "metric", metrics)
+				}
+			}
+		}
+	}()
+
+	// The key is the pod, not a pid or container: a container's first PID
+	// can change during its lifetime while PodInfo.Equals treats the pod as
+	// unchanged, and Remove() has to find the handle again from the pod.
+	handleId := podInfo.NamespaceAndName()
+	self.handlesLock.Lock()
+	if old, exists := self.handles[handleId]; exists {
+		// Stale handle from a previous registration of the same pod; stop
+		// it so its snoopy child doesn't leak.
+		self.logger.Warn("replacing stale snoopy handle", "handleId", handleId, "snoopyPid", old.SnoopyPid)
+		self.statusEventTx <- SnoopyStatusEvent{
+			Type:   SnoopyStatusEventTypeRemove,
+			Remove: &SnoopyStatusEventRemove{SnoopyPid: old.SnoopyPid},
+		}
+		go self.stopSnoopy(old)
+	}
+	self.handles[handleId] = handle
+	self.handlesLock.Unlock()
+
+	return nil
 }
 
-// formatHandleId deliberately excludes the PID: a container's first PID can
-// change during its lifetime (init/wrapper process exits) while PodInfo.Equals
-// treats the pod as unchanged. With the PID in the key, Remove() could no
-// longer find the handle and the snoopy child process leaked forever.
-func (self *snoopyManager) formatHandleId(namespace string, name string, containerId string) string {
-	return namespace + "/" + name + "/" + containerId
+// podNetnsTarget picks the container whose first process is used to enter
+// the pod's network namespace: the first one, in stable order, whose
+// namespace handle still exists. Short-lived first processes can vanish
+// between enumeration and attach; trying the next container avoids a failed
+// registration in that case.
+func podNetnsTarget(procPath string, podInfo containerenumerator.PodInfo) (containerenumerator.ContainerFirstPid, error) {
+	containers := podInfo.SortedContainersWithFirstPid()
+	for _, container := range containers {
+		netnsPath := procPath + "/" + strconv.FormatUint(container.Pid, 10) + "/ns/net"
+		if _, err := os.Stat(netnsPath); err == nil {
+			return container, nil
+		}
+	}
+	return containerenumerator.ContainerFirstPid{}, fmt.Errorf("no container of pod %s has a reachable network namespace (%d containers)", podInfo.NamespaceAndName(), len(containers))
 }
 
 func (self *snoopyManager) Remove(podInfo containerenumerator.PodInfo) []error {
-	errors := []error{}
+	handleId := podInfo.NamespaceAndName()
 
 	self.handlesLock.Lock()
 	defer self.handlesLock.Unlock()
-	for containerId := range podInfo.ContainersWithFirstPid() {
-		handleId := self.formatHandleId(podInfo.Namespace, podInfo.Name, containerId)
-		handle, ok := self.handles[handleId]
-		if ok {
-			delete(self.handles, handleId)
-			self.statusEventTx <- SnoopyStatusEvent{
-				Type: SnoopyStatusEventTypeRemove,
-				Remove: &SnoopyStatusEventRemove{
-					SnoopyPid: handle.SnoopyPid,
-				},
-			}
-			go func() {
-				err := handle.Cmd.Process.Kill()
-				if err != nil {
-					self.logger.Debug("failed to kill process", "process", handle.Cmd.Process, "error", err)
-					return
-				}
-				_, err = handle.Cmd.Process.Wait()
-				if err != nil {
-					self.logger.Debug("failed to wait for process", "process", handle.Cmd.Process, "error", err)
-					return
-				}
-			}()
-		}
+	handle, ok := self.handles[handleId]
+	if !ok {
+		return nil
+	}
+	delete(self.handles, handleId)
+	self.statusEventTx <- SnoopyStatusEvent{
+		Type: SnoopyStatusEventTypeRemove,
+		Remove: &SnoopyStatusEventRemove{
+			SnoopyPid: handle.SnoopyPid,
+		},
+	}
+	go self.stopSnoopy(handle)
+
+	return nil
+}
+
+// snoopyStopTimeout bounds how long a snoopy instance gets to detach its
+// eBPF programs after SIGTERM before it is killed.
+const snoopyStopTimeout = 5 * time.Second
+
+// stopSnoopy asks the snoopy process to exit and reaps it. SIGTERM comes
+// first because SIGKILL gives the process no chance to detach: on kernels
+// without tcx (<6.6) the TC filters are attached through netlink and outlive
+// the process, so every re-registration added another filter to a pod
+// network namespace that survives container restarts.
+func (self *snoopyManager) stopSnoopy(handle *SnoopyHandle) {
+	process := handle.Cmd.Process
+	if err := process.Signal(syscall.SIGTERM); err != nil {
+		self.logger.Debug("failed to send SIGTERM to snoopy", "snoopyPid", handle.SnoopyPid, "error", err)
 	}
 
-	return errors
+	exited := make(chan struct{})
+	go func() {
+		defer close(exited)
+		if _, err := process.Wait(); err != nil {
+			self.logger.Debug("failed to wait for snoopy", "snoopyPid", handle.SnoopyPid, "error", err)
+		}
+	}()
+
+	timer := time.NewTimer(snoopyStopTimeout)
+	defer timer.Stop()
+	select {
+	case <-exited:
+	case <-timer.C:
+		self.logger.Warn("snoopy did not exit after SIGTERM, killing it", "snoopyPid", handle.SnoopyPid, "timeout", snoopyStopTimeout)
+		if err := process.Kill(); err != nil {
+			self.logger.Debug("failed to kill snoopy", "snoopyPid", handle.SnoopyPid, "error", err)
+		}
+		<-exited
+	}
 }
 
 // readStartMetricsFromPidAndInterface reads the current byte and packet counters from
@@ -902,7 +992,7 @@ func (self *snoopyManager) attachToPidNamespace(pid ProcessId) (*SnoopyHandle, e
 	snoopy.EgressStartBytes = map[InterfaceName]uint64{}
 	snoopy.IngressStartPackets = map[InterfaceName]uint64{}
 	snoopy.EgressStartPackets = map[InterfaceName]uint64{}
-	snoopy.BpfFailedInterfaces = map[InterfaceName]bool{}
+	snoopy.BpfAttachedInterfaces = map[InterfaceName]bool{}
 	snoopy.LastMetricsLock = &sync.RWMutex{}
 	snoopy.LastMetrics = map[InterfaceName]SnoopyInterfaceMetrics{}
 

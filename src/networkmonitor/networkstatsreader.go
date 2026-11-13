@@ -17,12 +17,12 @@ type networkStatsReader struct {
 	procPath string
 
 	metricsTx chan struct{}
-	metricsRx chan map[ContainerId]ContainerInfo
+	metricsRx chan map[containerenumerator.PodInfoIdentifier]ContainerInfo
 
 	registerTx chan networkStatsReaderDeviceBaseInfo
 	registerRx chan error
 
-	removeTx chan ContainerId
+	removeTx chan containerenumerator.PodInfoIdentifier
 	removeRx chan error
 
 	running atomic.Bool
@@ -46,10 +46,10 @@ func NewNetworkStatsReader(logger *slog.Logger, cne containerenumerator.Containe
 	self.running = atomic.Bool{}
 
 	self.metricsTx = make(chan struct{})
-	self.metricsRx = make(chan map[ContainerId]ContainerInfo)
+	self.metricsRx = make(chan map[containerenumerator.PodInfoIdentifier]ContainerInfo)
 	self.registerTx = make(chan networkStatsReaderDeviceBaseInfo)
 	self.registerRx = make(chan error)
-	self.removeTx = make(chan ContainerId)
+	self.removeTx = make(chan containerenumerator.PodInfoIdentifier)
 	self.removeRx = make(chan error)
 
 	self.cne = cne
@@ -70,7 +70,7 @@ func (self *networkStatsReader) startWorker() {
 
 	go func() {
 		baseDeviceInfos := []networkStatsReaderDeviceBaseInfo{}
-		metrics := map[ContainerId]ContainerInfo{}
+		metrics := map[containerenumerator.PodInfoIdentifier]ContainerInfo{}
 		containers := self.cne.GetProcessesWithContainerIds()
 
 		networkEnumeratorTicker := time.NewTicker(5 * time.Second)
@@ -83,28 +83,30 @@ func (self *networkStatsReader) startWorker() {
 			case <-self.metricsTx:
 				self.metricsRx <- metrics
 			case newDeviceInfo := <-self.registerTx:
+				newPodId := newDeviceInfo.PodInfo.NamespaceAndName()
 				alreadyRegistered := false
 				for _, info := range baseDeviceInfos {
-					if info.ContainerId == newDeviceInfo.ContainerId {
+					if info.PodInfo.NamespaceAndName() == newPodId {
 						alreadyRegistered = true
 						break
 					}
 				}
 				if alreadyRegistered {
-					self.registerRx <- fmt.Errorf("network device is already registered: %s", newDeviceInfo.ContainerId)
+					self.registerRx <- fmt.Errorf("pod network is already registered: %s", newPodId)
 					continue
 				}
 				baseDeviceInfos = append(baseDeviceInfos, newDeviceInfo)
 				self.registerRx <- nil
-			case containerId := <-self.removeTx:
+			case podId := <-self.removeTx:
 				removeIdx := -1
 				for idx, info := range baseDeviceInfos {
-					if info.ContainerId == containerId {
+					if info.PodInfo.NamespaceAndName() == podId {
 						removeIdx = idx
+						break
 					}
 				}
 				if removeIdx == -1 {
-					self.removeRx <- fmt.Errorf("failed to find containerId in tracked container list: %s", containerId)
+					self.removeRx <- fmt.Errorf("failed to find pod in tracked pod list: %s", podId)
 					continue
 				}
 				baseDeviceInfos = slices.Delete(baseDeviceInfos, removeIdx, removeIdx+1)
@@ -112,7 +114,7 @@ func (self *networkStatsReader) startWorker() {
 			case <-networkEnumeratorTicker.C:
 				containers = self.cne.GetProcessesWithContainerIds()
 			case <-updateTicker.C:
-				newMetrics := map[ContainerId]ContainerInfo{}
+				newMetrics := map[containerenumerator.PodInfoIdentifier]ContainerInfo{}
 
 				baseDeviceIdsWithBrokenPid := []int{}
 				for idx, baseInfo := range baseDeviceInfos {
@@ -163,7 +165,7 @@ func (self *networkStatsReader) startWorker() {
 							metricSnapshot.Egress.Packets = 0
 							containerInfo.Metrics[baseStartInfo.Interface] = metricSnapshot
 						}
-						newMetrics[baseInfo.ContainerId] = containerInfo
+						newMetrics[baseInfo.PodInfo.NamespaceAndName()] = containerInfo
 						continue
 					}
 
@@ -191,7 +193,7 @@ func (self *networkStatsReader) startWorker() {
 						containerInfo.Metrics[baseStartInfo.Interface] = metricSnapshot
 					}
 
-					newMetrics[baseInfo.ContainerId] = containerInfo
+					newMetrics[baseInfo.PodInfo.NamespaceAndName()] = containerInfo
 				}
 				metrics = newMetrics
 			}
@@ -199,7 +201,7 @@ func (self *networkStatsReader) startWorker() {
 	}()
 }
 
-func (self *networkStatsReader) Metrics() map[ContainerId]ContainerInfo {
+func (self *networkStatsReader) Metrics() map[containerenumerator.PodInfoIdentifier]ContainerInfo {
 	self.Run()
 
 	self.metricsTx <- struct{}{}
@@ -208,43 +210,40 @@ func (self *networkStatsReader) Metrics() map[ContainerId]ContainerInfo {
 	return metrics
 }
 
+// Register tracks the pod's network namespace once: all containers of a pod
+// share it, so reading /proc/$pid/net/dev per container counted the same
+// interfaces several times and reported the pod once per container.
 func (self *networkStatsReader) Register(podInfo containerenumerator.PodInfo) []error {
 	errors := []error{}
-	for containerId, pid := range podInfo.ContainersWithFirstPid() {
-		kernelNetworkInterfaceInfos, err := getNetworkInterfaceInfo(self.procPath, strconv.FormatUint(pid, 10))
+	for _, container := range podInfo.SortedContainersWithFirstPid() {
+		kernelNetworkInterfaceInfos, err := getNetworkInterfaceInfo(self.procPath, strconv.FormatUint(container.Pid, 10))
 		if err != nil {
+			// the first process may already be gone; try the next container
 			errors = append(errors, err)
 			continue
 		}
 
 		self.registerTx <- networkStatsReaderDeviceBaseInfo{
 			PodInfo:     podInfo,
-			ContainerId: containerId,
-			Pid:         pid,
+			ContainerId: container.ContainerId,
+			Pid:         container.Pid,
 			StartInfos:  kernelNetworkInterfaceInfos,
 		}
-		err = <-self.registerRx
-		if err != nil {
-			errors = append(errors, err)
-			continue
+		if err := <-self.registerRx; err != nil {
+			return []error{err}
 		}
+		return nil
 	}
 
 	return errors
 }
 
 func (self *networkStatsReader) Remove(podInfo containerenumerator.PodInfo) []error {
-	errors := []error{}
-	for containerId := range podInfo.ContainersWithFirstPid() {
-		self.removeTx <- containerId
-		err := <-self.removeRx
-		if err != nil {
-			errors = append(errors, err)
-			continue
-		}
+	self.removeTx <- podInfo.NamespaceAndName()
+	if err := <-self.removeRx; err != nil {
+		return []error{err}
 	}
-
-	return errors
+	return nil
 }
 
 func (self *networkStatsReader) SetArgs(args SnoopyArgs) {}

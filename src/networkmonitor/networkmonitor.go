@@ -107,7 +107,7 @@ func (self *networkMonitor) Run() {
 		}
 
 		// get initial collected stats
-		var metrics map[ContainerId]ContainerInfo
+		var metrics map[containerenumerator.PodInfoIdentifier]ContainerInfo
 		var collectedStats []PodNetworkStats
 		metrics = self.snoopy.Metrics()
 		collectedStats = self.metricsToPodstats(metrics)
@@ -192,7 +192,7 @@ func (self *networkMonitor) Snoopy() SnoopyManager {
 }
 
 func (self *networkMonitor) metricsToPodstats(
-	metrics map[ContainerId]ContainerInfo,
+	metrics map[containerenumerator.PodInfoIdentifier]ContainerInfo,
 ) []PodNetworkStats {
 	data := []PodNetworkStats{}
 
