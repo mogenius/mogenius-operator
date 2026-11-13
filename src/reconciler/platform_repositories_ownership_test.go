@@ -3,6 +3,8 @@ package reconciler
 import (
 	"testing"
 
+	"mogenius-operator/src/crds/v1alpha1"
+
 	"github.com/stretchr/testify/assert"
 
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
@@ -58,7 +60,7 @@ func TestPreserveFluxInstanceSyncCarriesTheExistingSyncOver(t *testing.T) {
 			"sync": map[string]any{"kind": "GitRepository", "url": "https://github.com/acme/platform.git"},
 		},
 	}}
-	desired := &unstructured.Unstructured{Object: fluxInstanceObject("flux-system", false)}
+	desired := &unstructured.Unstructured{Object: fluxInstanceObject("flux-system", v1alpha1.PlatformConfigSpec{})}
 
 	preserveFluxInstanceSync(existing, desired)
 
@@ -88,7 +90,7 @@ func TestPreserveFluxInstanceSyncLeavesADeclaredSyncAlone(t *testing.T) {
 	assert.Equal(t, "https://github.com/acme/declared.git", sync["url"])
 
 	bare := &unstructured.Unstructured{Object: map[string]any{"spec": map[string]any{}}}
-	desired = &unstructured.Unstructured{Object: fluxInstanceObject("flux-system", false)}
+	desired = &unstructured.Unstructured{Object: fluxInstanceObject("flux-system", v1alpha1.PlatformConfigSpec{})}
 	preserveFluxInstanceSync(bare, desired)
 	_, found, _ := unstructured.NestedMap(desired.Object, "spec", "sync")
 	assert.False(t, found)

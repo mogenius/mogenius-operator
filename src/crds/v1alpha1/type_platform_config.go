@@ -1,6 +1,7 @@
 package v1alpha1
 
 import (
+	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 )
@@ -209,6 +210,26 @@ type FluxCDInstallConfig struct {
 	Enabled bool                           `json:"enabled,omitempty"`
 	Patches []PlatformConfigPatchReference `json:"patches,omitempty"`
 	Chart   *HelmChartReference            `json:"chart,omitempty"`
+	// Instance configures the FluxInstance the operator creates.
+	// +optional
+	Instance *FluxInstanceConfig `json:"instance,omitempty"`
+}
+
+// FluxInstanceConfig is copied into the spec of the FluxInstance the operator
+// creates. Each field takes the FluxInstance field of the same name as is.
+type FluxInstanceConfig struct {
+	// Cluster is the FluxInstance's spec.cluster, e.g. {size: medium} for
+	// more workers, CPU and memory per Flux controller.
+	// +kubebuilder:validation:Type=object
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +optional
+	Cluster *apiextensionsv1.JSON `json:"cluster,omitempty"`
+	// Kustomize is the FluxInstance's spec.kustomize. Its patches are applied
+	// in addition to the ones the operator adds itself.
+	// +kubebuilder:validation:Type=object
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +optional
+	Kustomize *apiextensionsv1.JSON `json:"kustomize,omitempty"`
 }
 
 // VibeCodingConfig installs vibeCoding by pointing the FluxInstance that

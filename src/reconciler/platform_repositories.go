@@ -49,8 +49,7 @@ func (d *reconcilerModule) reconcilePlatformRepositories(
 		// ships none. Absent on a cluster whose Flux was set up by hand, where
 		// the controllers exist already and this CRD does not.
 		if d.crdChecker.IsAvailable(utils.FluxInstanceResource) {
-			vibeCodingEnabled := spec.VibeCoding != nil && spec.VibeCoding.Enabled
-			if err := d.applyPlatformObject(ctx, utils.FluxInstanceResource, namespace, fluxInstanceObject(namespace, vibeCodingEnabled)); err != nil {
+			if err := d.applyPlatformObject(ctx, utils.FluxInstanceResource, namespace, fluxInstanceObject(namespace, spec)); err != nil {
 				return &ReconcileResult{Err: fmt.Errorf("apply flux instance: %w", err)}
 			}
 		}
