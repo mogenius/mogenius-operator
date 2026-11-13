@@ -60,6 +60,12 @@ type containerEnumerator struct {
 	// from the previous enumeration pass. Only the worker goroutine touches it.
 	cgroupMatches map[string]cgroupMatch
 
+	// The node's pods as of podsVersion (see store.NodePodsVersion), already
+	// filtered. Only the worker goroutine touches these.
+	nodePods         []v1.Pod
+	nodePodsVersion  string
+	nodePodsLoadedAt time.Time
+
 	getProcessesWithContainerIdsRx chan struct{}
 	getProcessesWithContainerIdsTx chan map[ContainerId][]ProcessId
 
@@ -259,20 +265,37 @@ func (self *containerEnumerator) generateCurrentPodList(
 	nodeName string,
 	containers map[ContainerId][]ProcessId,
 ) []PodInfo {
-	// query for all pods on current node from store (node-indexed; the
-	// full-cluster scan previously ran on every node every few seconds)
-	allPods := store.GetPodProcessViewsOnNode(nodeName)
+	// merge and normalize a list of pods with containers and processes
+	return NewPodInfoList(self.logger, self.podsOnNode(nodeName), containers)
+}
+
+// nodePodsMaxAge bounds how long an unchanged pod list is reused. The
+// version counter catches every write; this only covers keys that expire
+// without one (e.g. the watcher stopped refreshing the store).
+const nodePodsMaxAge = 5 * time.Minute
+
+// podsOnNode returns the pods on nodeName without hostNetwork and outside
+// kube-system. It reloads them only when the node's pod version changed (or
+// is unknown) or the list is older than nodePodsMaxAge; fetching every pod
+// of the node every 5 seconds was the largest Valkey read load of
+// node-metrics. The version is read before the pods, so a write racing the
+// reload bumps it again and the next pass reloads.
+func (self *containerEnumerator) podsOnNode(nodeName string) []v1.Pod {
+	version := store.NodePodsVersion(nodeName)
+	if version != "" && version == self.nodePodsVersion && time.Since(self.nodePodsLoadedAt) < nodePodsMaxAge {
+		return self.nodePods
+	}
 
 	// important step: Remove all pods with HostNetwork=true and kube-system pods
 	filteredItems := []v1.Pod{}
-	for _, pod := range allPods {
+	for _, pod := range store.GetPodProcessViewsOnNode(nodeName) {
 		if !pod.Spec.HostNetwork && pod.Namespace != "kube-system" && pod.Spec.NodeName == nodeName {
 			filteredItems = append(filteredItems, pod)
 		}
 	}
 
-	// merge and normalize a list of pods with containers and processes
-	podInfoList := NewPodInfoList(self.logger, filteredItems, containers)
-
-	return podInfoList
+	self.nodePods = filteredItems
+	self.nodePodsVersion = version
+	self.nodePodsLoadedAt = time.Now()
+	return filteredItems
 }
