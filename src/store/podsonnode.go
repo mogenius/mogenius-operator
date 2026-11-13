@@ -22,13 +22,20 @@ type podProcessView struct {
 		HostNetwork bool   `json:"hostNetwork"`
 	} `json:"spec"`
 	Status struct {
-		PodIP             string       `json:"podIP"`
-		StartTime         *metav1.Time `json:"startTime"`
-		ContainerStatuses []struct {
-			ContainerID string `json:"containerID"`
-			Ready       bool   `json:"ready"`
-		} `json:"containerStatuses"`
+		PodIP                 string                    `json:"podIP"`
+		StartTime             *metav1.Time              `json:"startTime"`
+		InitContainerStatuses []podProcessViewContainer `json:"initContainerStatuses"`
+		ContainerStatuses     []podProcessViewContainer `json:"containerStatuses"`
 	} `json:"status"`
+}
+
+type podProcessViewContainer struct {
+	ContainerID string `json:"containerID"`
+	Ready       bool   `json:"ready"`
+}
+
+func (self podProcessViewContainer) toStatus() coreV1.ContainerStatus {
+	return coreV1.ContainerStatus{ContainerID: self.ContainerID, Ready: self.Ready}
 }
 
 func (self *podProcessView) toPod() coreV1.Pod {
@@ -39,18 +46,21 @@ func (self *podProcessView) toPod() coreV1.Pod {
 	pod.Spec.HostNetwork = self.Spec.HostNetwork
 	pod.Status.PodIP = self.Status.PodIP
 	pod.Status.StartTime = self.Status.StartTime
+	pod.Status.InitContainerStatuses = make([]coreV1.ContainerStatus, len(self.Status.InitContainerStatuses))
+	for idx, status := range self.Status.InitContainerStatuses {
+		pod.Status.InitContainerStatuses[idx] = status.toStatus()
+	}
 	pod.Status.ContainerStatuses = make([]coreV1.ContainerStatus, len(self.Status.ContainerStatuses))
 	for idx, status := range self.Status.ContainerStatuses {
-		pod.Status.ContainerStatuses[idx].ContainerID = status.ContainerID
-		pod.Status.ContainerStatuses[idx].Ready = status.Ready
+		pod.Status.ContainerStatuses[idx] = status.toStatus()
 	}
 	return pod
 }
 
 // GetPodProcessViewsOnNode returns the pods scheduled on nodeName with only
 // these fields set: namespace, name, spec.nodeName, spec.hostNetwork,
-// status.podIP, status.startTime and the containerID/ready of each container
-// status. It reads the same per-node index as GetPodsOnNode and falls back
+// status.podIP, status.startTime and the containerID/ready of each
+// (init) container status. It reads the same per-node index as GetPodsOnNode and falls back
 // to it (full objects) when the index is empty or unreadable.
 func GetPodProcessViewsOnNode(nodeName string) []coreV1.Pod {
 	client := valkeyClient.GetValkeyClient()
