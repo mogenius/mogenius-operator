@@ -57,6 +57,19 @@ func (self *podProcessView) toPod() coreV1.Pod {
 	return pod
 }
 
+// NodePodsVersion returns the counter that changes with every pod write or
+// delete on nodeName, or "" when it does not exist (store just wiped, or an
+// operator that does not maintain it yet) or cannot be read. Callers treat
+// "" as "changed".
+func NodePodsVersion(nodeName string) string {
+	client := valkeyClient.GetValkeyClient()
+	version, err := client.Do(valkeyClient.GetContext(), client.B().Get().Key(resourceNodeVersionKey(nodeName)).Build()).ToString()
+	if err != nil {
+		return ""
+	}
+	return version
+}
+
 // GetPodProcessViewsOnNode returns the pods scheduled on nodeName with only
 // these fields set: namespace, name, spec.nodeName, spec.hostNetwork,
 // status.podIP, status.startTime and the containerID/ready of each

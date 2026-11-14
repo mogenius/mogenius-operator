@@ -61,6 +61,13 @@ const (
 	// deserialized every pod in the cluster on every node.
 	VALKEY_RESOURCE_INDEX_NODE_PREFIX = "resources-idx-node"
 
+	// VALKEY_RESOURCE_INDEX_NODE_VERSION_PREFIX is the root for a counter per
+	// node that every pod write or delete on that node increments. The
+	// node-metrics DaemonSet reads it every few seconds and reloads its pods
+	// only when it changed, instead of fetching every pod of the node each
+	// time. Disjoint from "resources-idx-node:*" (no ':' after "node").
+	VALKEY_RESOURCE_INDEX_NODE_VERSION_PREFIX = "resources-idx-node-version"
+
 	resourceIndexSortByCreation = "by-creation"
 	resourceIndexSortByName     = "by-name"
 
@@ -375,6 +382,7 @@ func DropAllResourcesFromValkey(valkeyClient valkeyclient.ValkeyClient, logger *
 		VALKEY_RESOURCE_INDEX_PREFIX+":*",
 		VALKEY_RESOURCE_INDEX_NS_PREFIX+":*",
 		VALKEY_RESOURCE_INDEX_NODE_PREFIX+":*",
+		VALKEY_RESOURCE_INDEX_NODE_VERSION_PREFIX+":*",
 	)
 	if err != nil {
 		logger.Error("failed to DropAllResourcesFromValkey", "error", err)
@@ -596,9 +604,12 @@ func SetResourceWithIndex(
 	}
 	if nodeName := podNodeName(apiVersion, kind, obj); nodeName != "" {
 		nodeIndexKey := resourceNodeIndexKey(nodeName)
+		nodeVersionKey := resourceNodeVersionKey(nodeName)
 		cmds = append(cmds,
 			client.B().Sadd().Key(nodeIndexKey).Member(primaryKey).Build(),
 			client.B().Expire().Key(nodeIndexKey).Seconds(ttlSeconds).Build(),
+			client.B().Incr().Key(nodeVersionKey).Build(),
+			client.B().Expire().Key(nodeVersionKey).Seconds(ttlSeconds).Build(),
 		)
 	}
 
@@ -621,6 +632,12 @@ func podNodeName(apiVersion, kind string, obj *unstructured.Unstructured) string
 // pods scheduled on the given node.
 func resourceNodeIndexKey(nodeName string) string {
 	return VALKEY_RESOURCE_INDEX_NODE_PREFIX + ":" + nodeName
+}
+
+// resourceNodeVersionKey returns the counter key that changes with every pod
+// write or delete on the given node.
+func resourceNodeVersionKey(nodeName string) string {
+	return VALKEY_RESOURCE_INDEX_NODE_VERSION_PREFIX + ":" + nodeName
 }
 
 // DeleteResourceWithIndex removes the primary key and both index members in
@@ -646,7 +663,13 @@ func DeleteResourceWithIndex(
 		client.B().Zrem().Key(byNameKey).Member(name).Build(),
 	}
 	if nodeName := podNodeName(apiVersion, kind, obj); nodeName != "" {
-		cmds = append(cmds, client.B().Srem().Key(resourceNodeIndexKey(nodeName)).Member(primaryKey).Build())
+		cmds = append(cmds,
+			client.B().Srem().Key(resourceNodeIndexKey(nodeName)).Member(primaryKey).Build(),
+			client.B().Incr().Key(resourceNodeVersionKey(nodeName)).Build(),
+			// INCR creates a missing counter without TTL; give it the TTL
+			// the watcher writes resources with so it cannot outlive them.
+			client.B().Expire().Key(resourceNodeVersionKey(nodeName)).Seconds(int64((utils.ResourceResyncTime * 2).Seconds())).Build(),
+		)
 	}
 
 	if err := checkPipeline(client.DoMulti(valkey.GetContext(), cmds...)); err != nil {
