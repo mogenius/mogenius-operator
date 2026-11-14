@@ -4,39 +4,18 @@
 # traffic collection) NET_ADMIN/SYS_ADMIN/BPF/SYS_PTRACE — a large attack
 # surface. It must NOT carry the cluster-admin token of the main operator.
 #
-# The nodemetrics code path only ever touches the Kubernetes API to:
-#   - list nodes once for cloud-provider detection (cluster-scoped, non-fatal)
-#   - read the valkey secret + read/create/update the cluster secret, both in
-#     the operator's own namespace
-# Everything else (pod inventory, cpu/ram/network stats) comes from Valkey and
-# the host /proc filesystem, so no pod/watch/lease permissions are needed.
+# The mogenius-nodemetrics binary touches the Kubernetes API only to read the
+# valkey secret in the operator's own namespace, and only when
+# MO_VALKEY_PASSWORD is not set. It neither lists nodes (cloud-provider
+# detection is not linked into it) nor creates or updates the cluster secret
+# (the operator does). Everything else (pod inventory, cpu/ram/network stats)
+# comes from Valkey and the host /proc filesystem, so no pod/watch/lease
+# permissions are needed.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: {{ .Values.fullnameOverride }}-node-metrics
   namespace: {{ .Release.Namespace }}
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: {{ .Values.fullnameOverride }}-node-metrics
-rules:
-- apiGroups: [""]
-  resources: ["nodes"]
-  verbs: ["list"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: {{ .Values.fullnameOverride }}-node-metrics
-subjects:
-- kind: ServiceAccount
-  name: {{ .Values.fullnameOverride }}-node-metrics
-  namespace: {{ .Release.Namespace }}
-roleRef:
-  kind: ClusterRole
-  name: {{ .Values.fullnameOverride }}-node-metrics
-  apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
@@ -46,7 +25,8 @@ metadata:
 rules:
 - apiGroups: [""]
   resources: ["secrets"]
-  verbs: ["get", "create", "update"]
+  resourceNames: ["mogenius-operator-valkey"]
+  verbs: ["get"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
