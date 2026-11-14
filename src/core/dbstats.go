@@ -139,15 +139,7 @@ func (self *valkeyStatsDb) AddInterfaceStatsToDb(currentStats []networkmonitor.P
 	}
 
 	for _, currentStat := range currentStats {
-		controller := self.ownerCacheService.ControllerForPod(currentStat.Namespace, currentStat.Pod)
-		if controller == nil {
-			// in case we cannot determine a controller
-			controller = &utils.WorkloadSingleRequest{
-				ResourceDescriptor: utils.PodResource,
-				ResourceName:       currentStat.Pod,
-				Namespace:          currentStat.Namespace,
-			}
-		}
+		controller := self.controllerForPodOrPod(currentStat.Namespace, currentStat.Pod)
 
 		deltaStat := currentStat
 		// Namespace is redundant in the entry (it's already part of the stream key).
@@ -612,6 +604,23 @@ func (self *valkeyStatsDb) GetWorkspaceStatsTrafficUtilization(timeOffsetInMinut
 	return sortedEntries, nil
 }
 
+// controllerForPodOrPod returns the controller the pod's stats are stored
+// under, or the pod itself when no controller can be resolved (no owner, or
+// an owner kind the owner cache does not handle, e.g. CRDs such as an ARC
+// EphemeralRunner). Pod and traffic stats use the same rule, so both land
+// under the same key; pod stats used to be dropped for such pods while
+// their traffic was kept.
+func (self *valkeyStatsDb) controllerForPodOrPod(namespace string, podName string) *utils.WorkloadSingleRequest {
+	if controller := self.ownerCacheService.ControllerForPod(namespace, podName); controller != nil {
+		return controller
+	}
+	return &utils.WorkloadSingleRequest{
+		ResourceDescriptor: utils.PodResource,
+		ResourceName:       podName,
+		Namespace:          namespace,
+	}
+}
+
 // AddPodStatsToDb stores one stream entry per container. It runs every
 // minute for every container of the cluster, so the writes are pipelined in
 // batches (StoreSortedListEntries) instead of two round trips per container,
@@ -621,11 +630,7 @@ func (self *valkeyStatsDb) AddPodStatsToDb(stats []structs.PodStats) error {
 	minute := now.Truncate(time.Minute).Unix()
 	entries := make([]valkeyclient.SortedListEntry, 0, len(stats))
 	for _, stat := range stats {
-		controller := self.ownerCacheService.ControllerForPod(stat.Namespace, stat.PodName)
-		if controller == nil {
-			self.logger.Debug("No controller found for pod", "podName", stat.PodName, "namespace", stat.Namespace)
-			continue
-		}
+		controller := self.controllerForPodOrPod(stat.Namespace, stat.PodName)
 
 		stat.CreatedAt = now
 		// Capture before stripping; Namespace is redundant in the entry payload
