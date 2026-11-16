@@ -3,7 +3,7 @@ module mogenius-operator
 go 1.27.3
 
 require (
-	github.com/KimMachineGun/automemlimit v1.0.1
+	github.com/KimMachineGun/automemlimit v1.0.2
 	github.com/alecthomas/kong v1.17.0
 	github.com/alicebob/miniredis/v2 v2.40.0
 	github.com/anthropics/anthropic-sdk-go/v2 v2.9.0
