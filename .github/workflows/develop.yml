@@ -72,7 +72,7 @@ jobs:
   # ============================================================================
   build-operator:
     needs: [prepare]
-    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@24e7c2cfc24de271da3425a92db9303355518a5e # v1.14.1
+    uses: mogenius/github-actions/.github/workflows/build-multiarch.yml@c67a630f9cb0aa11a4573a9f12438bf7e5e203eb # v1.15.0
     secrets: inherit
     with:
       version: ${{ needs.prepare.outputs.version }}
@@ -95,7 +95,7 @@ jobs:
   helm-publish:
     if: github.ref == 'refs/heads/main'
     needs: [prepare, build-operator]
-    uses: mogenius/github-actions/.github/workflows/helm-publish.yml@24e7c2cfc24de271da3425a92db9303355518a5e # v1.14.1
+    uses: mogenius/github-actions/.github/workflows/helm-publish.yml@c67a630f9cb0aa11a4573a9f12438bf7e5e203eb # v1.15.0
     secrets:
       APP_ID: ${{ secrets.RELEASE_APP_ID }}
       APP_PRIVATE_KEY: ${{ secrets.RELEASE_APP_SECRET }}
