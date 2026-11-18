@@ -30,7 +30,7 @@ require (
 	github.com/tklauser/go-sysconf v0.4.0
 	github.com/valkey-io/valkey-go v1.0.80
 	golang.org/x/crypto v0.59.0
-	golang.org/x/net v0.62.0
+	golang.org/x/net v0.63.0
 	golang.org/x/term v0.48.0
 	helm.sh/helm/v4 v4.3.2
 	k8s.io/api v0.37.2
