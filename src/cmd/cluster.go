@@ -327,6 +327,8 @@ func startClusterSystems(logManagerModule logging.SlogManager, configModule *con
 		core.EnsureDefaultWorkspaceDashboard(logManagerModule.CreateLogger("dashboard-seeder"), configModule)
 
 		core.EnsureDefaultPlatformConfig(logManagerModule.CreateLogger("platform-config-seeder"), systems.clientProvider)
+
+		core.RemoveLegacyAiConfigSecret(logManagerModule.CreateLogger("legacy-ai-config-cleanup"), configModule, systems.clientProvider)
 	})
 
 	systems.leaderElector.OnLeadingEnded(func() {
