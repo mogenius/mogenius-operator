@@ -172,6 +172,16 @@ configModule.Declare(config.ConfigDeclaration{
 - Do NOT fire-and-forget goroutines — always define lifetime and shutdown path.
 - Do NOT modify generated files (`zz_generated.deepcopy.go`) — run `just generate`.
 
+## Out-of-band releases
+
+Patch releases for an older release line, only for incidents that cannot wait for the next regular release from `main`. Human walkthrough: README, "Out-of-band releases".
+
+- Branch `release/v<major>.<minor>`, cut from the release tag with `git switch --no-track -c release/vX.Y vX.Y.Z`. It must never track `origin/main`.
+- First commit on a branch whose tag predates out-of-band support: `ci: enable out-of-band releases on release/vX.Y`, taking `.github/workflows/release-please.yml .github/workflows/release.yaml .github/workflows/conventional-commits.yaml .github/workflows/ci.yaml .github/workflows/e2e-tests.yml` from `origin/main` unchanged. Tag builds run the workflow files of the tagged commit; without this commit release-please does not run on the branch and the production build moves `:latest`.
+- The fix is a `fix:` or `fix(deps):` commit; `chore:` and `ci:` do not trigger a release. Only the fix: no `feat`, no breaking changes, nothing unrelated from `main`. Cherry-pick from `main` where it applies cleanly, otherwise apply the equivalent change.
+- release-please opens `chore(release/vX.Y): release X.Y.Z` against the branch; merging it tags and builds. `:latest` only moves when that tag is the highest stable version.
+- Ask before pushing the branch, merging into it or merging its release PR.
+
 ## Agent Behavior
 
 - When debugging operator issues, check slog output and reconciler state first.

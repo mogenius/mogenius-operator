@@ -4,9 +4,11 @@ on:
   pull_request:
     branches:
       - main
+      - 'release/**'
   push:
     branches:
       - main
+      - 'release/**'
 
 # Cancel superseded runs for the same PR / branch (e.g. Renovate force-pushes)
 concurrency:

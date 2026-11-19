@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - release-please--branches--main
+      - 'release-please--branches--release/**'
   workflow_dispatch:
 
 # Cancel superseded runs for the same branch

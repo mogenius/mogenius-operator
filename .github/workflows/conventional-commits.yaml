@@ -29,8 +29,8 @@ jobs:
           # Conventional Commits pattern:
           #   <type>(<scope>)?!?: <description>
           # Allowed types: feat, fix, docs, chore, refactor, test, perf, ci, build, revert
-          # Scope is optional; any lowercase alphanumeric / hyphen value is accepted
-          PATTERN='^(feat|fix|docs|chore|refactor|test|perf|ci|build|revert)(\([a-z0-9-]+\))?!?: .+'
+          # Scope is optional; lowercase alphanumerics, hyphens, dots and slashes (release-please uses the branch name, e.g. release/v4.0)
+          PATTERN='^(feat|fix|docs|chore|refactor|test|perf|ci|build|revert)(\([a-z0-9./-]+\))?!?: .+'
 
           COMMITS=$(git log --no-merges --format="%s" "$BASE".."$HEAD")
 
