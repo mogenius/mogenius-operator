@@ -35,6 +35,18 @@ type Identity struct {
 	IsAdmin bool
 }
 
+// CheckOwnNamespace reserves the operator's own namespace for admins on every
+// path that opens a pod (exec, shells, sessions, logs, files, tunnels). The
+// namespace holds the operator's own credentials and services; a grant that
+// spans all namespaces would otherwise include it. Applies whether or not the
+// per-user RBAC checks are enabled.
+func CheckOwnNamespace(user Identity, ownNamespace string, namespace string) error {
+	if user.IsAdmin || ownNamespace == "" || namespace != ownNamespace {
+		return nil
+	}
+	return fmt.Errorf("access denied: namespace %q is reserved for administrators", namespace)
+}
+
 // ResolveClients maps a platform user to Kubernetes clients. Admin requests
 // may use the operator identity, unless allowAdminBypass is off; everyone
 // else must have a User CRD in ownNamespace with an RBAC subject — otherwise

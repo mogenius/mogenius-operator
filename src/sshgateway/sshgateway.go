@@ -168,6 +168,12 @@ func (s *Session) Handle(conn net.Conn, namespace string, podName string, reject
 		return
 	}
 
+	if err := k8sexec.CheckOwnNamespace(k8sexec.Identity{Email: user.Email, IsAdmin: user.IsAdmin}, gwOwnNamespace, namespace); err != nil {
+		reject(err.Error())
+		_ = conn.Close()
+		return
+	}
+
 	defer sandboxactivity.Hold(namespace, podName)()
 	logger := gwLogger.With("scope", "HandleConnection", "namespace", namespace, "pod", podName, "email", user.Email)
 
