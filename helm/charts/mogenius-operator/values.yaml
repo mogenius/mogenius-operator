@@ -215,7 +215,7 @@ valkey:
   image:
     registry: docker.io
     repository: valkey/valkey
-    tag: 9.1.3
+    tag: 9.1.4
   podLabels: {}
   containerSecurityContext:
     readOnlyRootFilesystem: true
