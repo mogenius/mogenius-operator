@@ -10,22 +10,6 @@ import (
 	"k8s.io/kubectl/pkg/scheme"
 )
 
-func InitUpgradeConfigMap() corev1.ConfigMap {
-	file := "yaml-templates/upgrade-configmap.yaml"
-	yaml := readYaml(file)
-
-	s := json.NewYAMLSerializer(json.DefaultMetaFactory, scheme.Scheme, scheme.Scheme)
-
-	var app corev1.ConfigMap
-	_, _, err := s.Decode([]byte(yaml), nil, &app)
-	if err != nil {
-		utilsLogger.Error("failed to decode configmap", "file", file, "error", err)
-		shutdown.SendShutdownSignal(true)
-		select {}
-	}
-	return app
-}
-
 func InitUpgradeJob() v1job.Job {
 	file := "yaml-templates/upgrade-job.yaml"
 	yaml := readYaml(file)

@@ -8,22 +8,13 @@ spec:
   completions: 1
   parallelism: 1
   template:
-    spec:    
-      volumes:
-      - name: updater-cm
-        configMap:
-          name: updater-cm
-          items:
-            - key: values.command
-              path: values.command                
+    spec:
       containers:
+      # command and args are set by the operator (kubernetes.UpgradeArgs);
+      # the image only provides helm
       - image: ghcr.io/mogenius/mogenius-updater:latest
         imagePullPolicy: Always
         name: mo-updater
-        volumeMounts:
-        - mountPath: /kubeconfig
-          readOnly: true
-          name: updater-cm
         resources: {}
         securityContext:
           allowPrivilegeEscalation: false
