@@ -500,14 +500,13 @@ func (self *socketApi) registerPatterns() {
 	}
 
 	{
+		// Older platforms send a complete helm command (`command`) and no
+		// version. It is ignored: the operator builds the upgrade itself
+		// (kubernetes.UpgradeArgs), and a request without version upgrades to
+		// the latest release, as that command did.
 		type Request struct {
 			// Version to upgrade to; empty means the latest release.
 			Version string `json:"version,omitempty"`
-			// Command is the complete helm command older platforms send (they
-			// send no version). It is not executed: the operator builds the
-			// upgrade itself (kubernetes.UpgradeArgs), a command-only request
-			// upgrades to the latest release as that command did.
-			Command string `json:"command,omitempty"`
 		}
 
 		RegisterPatternHandler(
@@ -515,6 +514,9 @@ func (self *socketApi) registerPatterns() {
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (*structs.Job, error) {
 				job, err := self.upgradeK8sManager(request.Version)
+				// only what was used: the command of older platforms carries the
+				// cluster API key and would otherwise end up in the audit log
+				datagram.Payload = map[string]any{"version": request.Version}
 				return store.AddToAuditLog(datagram, self.logger, job, err, nil, nil)
 			},
 		)
