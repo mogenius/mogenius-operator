@@ -44,3 +44,29 @@ func TestResolveClientsRefusesAnonymousRequest(t *testing.T) {
 		t.Fatal("nil provider was accepted")
 	}
 }
+
+// The operator's own namespace is admin-only on every pod path; other
+// namespaces and an unknown own namespace are left to the regular checks.
+func TestCheckOwnNamespace(t *testing.T) {
+	tests := []struct {
+		name      string
+		user      Identity
+		own       string
+		namespace string
+		wantErr   bool
+	}{
+		{"non-admin in own namespace", Identity{Email: "dev@example.com"}, "mogenius", "mogenius", true},
+		{"admin in own namespace", Identity{Email: "admin@example.com", IsAdmin: true}, "mogenius", "mogenius", false},
+		{"non-admin elsewhere", Identity{Email: "dev@example.com"}, "mogenius", "team-a", false},
+		{"own namespace unknown", Identity{Email: "dev@example.com"}, "", "mogenius", false},
+		{"empty target namespace", Identity{Email: "dev@example.com"}, "mogenius", "", false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := CheckOwnNamespace(tt.user, tt.own, tt.namespace)
+			if (err != nil) != tt.wantErr {
+				t.Fatalf("CheckOwnNamespace() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

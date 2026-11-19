@@ -279,6 +279,9 @@ const (
 )
 
 func resolveTarget(ctx context.Context, identity k8sexec.Identity, namespace, pod, requestedContainer, cwd string, fallback debugFallback) (clients *k8sexec.Clients, shell, targetContainer, execContainer, execCwd string, err error) {
+	if err = k8sexec.CheckOwnNamespace(identity, config.Get("MO_OWN_NAMESPACE"), namespace); err != nil {
+		return nil, "", "", "", "", err
+	}
 	allowAdminBypass, _ := config.TryGetBool(execAdminBypassConfigKey)
 	clients, err = k8sexec.ResolveClients(serviceLogger, clientProvider, config.Get("MO_OWN_NAMESPACE"), allowAdminBypass, identity)
 	if err != nil {

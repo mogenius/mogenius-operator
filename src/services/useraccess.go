@@ -27,10 +27,14 @@ const userAccessReviewTimeout = 10 * time.Second
 // Admin requests pass under the same rule as exec (admin bypass); everyone
 // else is resolved to their User CRD subject like ResolveClients does and
 // asked via a SelfSubjectAccessReview. It is a no-op unless
-// UserRbacConfigKey is enabled.
+// UserRbacConfigKey is enabled — except for the operator's own namespace,
+// which is reserved for admins either way (k8sexec.CheckOwnNamespace).
 func AuthorizeUserPodAccess(identity k8sexec.Identity, namespace, pod, subresource, verb string) error {
 	if config == nil {
 		return nil
+	}
+	if err := k8sexec.CheckOwnNamespace(identity, config.Get("MO_OWN_NAMESPACE"), namespace); err != nil {
+		return err
 	}
 	if enforce, _ := config.TryGetBool(UserRbacConfigKey); !enforce {
 		return nil
