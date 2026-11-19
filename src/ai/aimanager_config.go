@@ -3,7 +3,8 @@ package ai
 // The legacy mogenius-ai-config secret is no longer read: model/provider
 // settings live on AiModel CRs, and the last remaining key (the GitHub PAT for
 // the hard-coded GitHub MCP connector) was replaced by McpServer CRs. A
-// leftover secret in the operator namespace is simply ignored.
+// leftover secret in the operator namespace is deleted when the operator takes
+// the lead, unless something still references it (core.RemoveLegacyAiConfigSecret).
 
 type AiSdkType string
 
