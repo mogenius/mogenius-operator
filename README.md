@@ -227,22 +227,16 @@ For incidents that cannot wait for the next regular release, an older release
 line gets a patch release from a maintenance branch. Example: `v4.0.1` on top of
 `v4.0.0`.
 
-1. Cut the branch from the release tag:
-   `git switch --no-track -c release/v4.0 v4.0.0`
-2. If the tag predates out-of-band support, the first commit takes the release
-   workflows over from `main` unchanged and is pushed on its own:
+1. Cut the branch from the release tag and push it:
    ```bash
-   git checkout origin/main -- .github/workflows/release-please.yml .github/workflows/release.yaml .github/workflows/conventional-commits.yaml .github/workflows/ci.yaml .github/workflows/e2e-tests.yml
-   git commit -s -m "ci: enable out-of-band releases on release/v4.0"
+   git switch --no-track -c release/v4.0 v4.0.0
    git push -u origin release/v4.0
    ```
-   Tag builds run the workflow files of the tagged commit, so without this
-   commit release-please ignores the branch and the build moves `:latest`.
-3. Land the fix as `fix: …` or `fix(deps): …`, directly or via PR into
+2. Land the fix as `fix: …` or `fix(deps): …`, directly or via PR into
    `release/v4.0`. Only `fix`/`feat` commits produce a release; `chore` and `ci`
    do not. Keep it to the fix: no features, no breaking changes.
-4. release-please opens `chore(release/v4.0): release 4.0.1` against the
+3. release-please opens `chore(release/v4.0): release 4.0.1` against the
    branch. Merging it tags `v4.0.1`, and the production build runs as usual.
    `:latest` only moves when the tag is the highest stable version.
-5. Port the fix to `main` if it still applies there, and delete the branch once
+4. Port the fix to `main` if it still applies there, and delete the branch once
    the incident is closed. The tag stays.
