@@ -9,7 +9,10 @@ import (
 	"mogenius-operator/src/structs"
 	"mogenius-operator/src/utils"
 	"mogenius-operator/src/websocket"
+	"strings"
 
+	"github.com/Masterminds/semver/v3"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -67,13 +70,70 @@ func ClusterForceDisconnect() bool {
 	return true
 }
 
-func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, command string) (*structs.Job, error) {
+const (
+	// OPERATOR_CHART_REF is where the operator is released. The upgrade always
+	// installs from here; the platform only picks the version.
+	OPERATOR_CHART_REF = "oci://ghcr.io/mogenius/helm-charts/mogenius-operator"
+	// OPERATOR_RELEASE_NAME is the Helm release the install command creates.
+	OPERATOR_RELEASE_NAME = "mogenius-operator"
+	// legacyUpgradeConfigMapName held the shell script of older upgrades
+	// (including the cluster API key); it is removed on the next upgrade.
+	legacyUpgradeConfigMapName = "updater-cm"
+)
+
+// UpgradeArgs builds the helm arguments for upgrading the operator from
+// currentVersion to targetVersion. The chart source is fixed and the values
+// of the running release are kept (--reset-then-reuse-values: new chart
+// defaults plus the values the release was installed with), so the caller
+// only decides the version:
+//   - empty targetVersion: the latest release, as the upgrade has always done
+//   - otherwise a valid version that is not older than the running one, and a
+//     pre-release only when the operator itself runs a pre-release
+//
+// A pre-release operator (develop build) upgrades from the -dev chart with
+// --devel, like the platform's dev stage did.
+func UpgradeArgs(currentVersion string, targetVersion string, namespace string) ([]string, error) {
+	current, currentErr := semver.NewVersion(currentVersion)
+	devChannel := currentErr == nil && current.Prerelease() != ""
+
+	chart := OPERATOR_CHART_REF
+	if devChannel {
+		chart += "-dev"
+	}
+	args := []string{"upgrade", "--install", OPERATOR_RELEASE_NAME, chart, "-n", namespace, "--reset-then-reuse-values"}
+	if devChannel {
+		args = append(args, "--devel")
+	}
+	if targetVersion == "" {
+		return args, nil
+	}
+
+	target, err := semver.StrictNewVersion(strings.TrimPrefix(targetVersion, "v"))
+	if err != nil {
+		return nil, fmt.Errorf("invalid target version %q: %w", targetVersion, err)
+	}
+	if target.Prerelease() != "" && !devChannel {
+		return nil, fmt.Errorf("refusing pre-release %q for a release operator", targetVersion)
+	}
+	if currentErr != nil {
+		return nil, fmt.Errorf("running version %q is unknown, cannot check %q against it", currentVersion, targetVersion)
+	}
+	// build metadata (+dev of local builds) does not order versions
+	currentCore, _ := current.SetMetadata("")
+	if target.LessThan(&currentCore) {
+		return nil, fmt.Errorf("refusing downgrade from %s to %s", currentVersion, targetVersion)
+	}
+	return append(args, "--version", target.String()), nil
+}
+
+// UpgradeMyself runs helm with args (see UpgradeArgs) in a job under the
+// operator's service account. The arguments go to helm directly, no shell.
+func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, args []string) (*structs.Job, error) {
 	cmd := structs.CreateCommand(eventClient, "upgrade operator", "Upgrade mogenius platform ...", job)
 	cmd.Start(eventClient, job, "Upgrade mogenius platform ...")
 
 	clientset := clientProvider.K8sClientSet()
 	jobClient := clientset.BatchV1().Jobs(config.Get("MO_OWN_NAMESPACE"))
-	configmapClient := clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE"))
 
 	ownerReference, err := GetOwnDeploymentOwnerReference(clientset, config)
 	if err != nil {
@@ -81,33 +141,17 @@ func UpgradeMyself(eventClient websocket.WebsocketClient, job *structs.Job, comm
 		return nil, err
 	}
 
-	configmap := utils.InitUpgradeConfigMap()
-	configmap.Namespace = config.Get("MO_OWN_NAMESPACE")
-	configmap.Data["values.command"] = command
-	configmap.OwnerReferences = ownerReference
+	err = clientset.CoreV1().ConfigMaps(config.Get("MO_OWN_NAMESPACE")).Delete(context.Background(), legacyUpgradeConfigMapName, metav1.DeleteOptions{})
+	if err != nil && !apierrors.IsNotFound(err) {
+		k8sLogger.Warn("failed to remove the configmap of an earlier upgrade", "configmap", legacyUpgradeConfigMapName, "error", err)
+	}
 
 	k8sjob := utils.InitUpgradeJob()
 	k8sjob.Namespace = config.Get("MO_OWN_NAMESPACE")
 	k8sjob.Name = fmt.Sprintf("%s-%s", k8sjob.Name, utils.NanoIdSmallLowerCase())
 	k8sjob.OwnerReferences = ownerReference
-
-	// CONFIGMAP
-	_, err = configmapClient.Get(context.Background(), configmap.Name, metav1.GetOptions{})
-	if err != nil {
-		// CREATE
-		_, err = configmapClient.Create(context.Background(), &configmap, MoCreateOptions(config))
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (configmap) ERROR: %s", err.Error()))
-			return nil, err
-		}
-	} else {
-		// UPDATE
-		_, err = configmapClient.Update(context.Background(), &configmap, metav1.UpdateOptions{})
-		if err != nil {
-			cmd.Fail(eventClient, job, fmt.Sprintf("UpgradeMyself (update_configmap) ERROR: %s", err.Error()))
-			return nil, err
-		}
-	}
+	k8sjob.Spec.Template.Spec.Containers[0].Command = []string{"helm"}
+	k8sjob.Spec.Template.Spec.Containers[0].Args = args
 
 	// JOB
 	_, err = jobClient.Get(context.Background(), k8sjob.Name, metav1.GetOptions{})

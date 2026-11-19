@@ -501,14 +501,20 @@ func (self *socketApi) registerPatterns() {
 
 	{
 		type Request struct {
-			Command string `json:"command" validate:"required"` // complete helm command from platform ui
+			// Version to upgrade to; empty means the latest release.
+			Version string `json:"version,omitempty"`
+			// Command is the complete helm command older platforms send (they
+			// send no version). It is not executed: the operator builds the
+			// upgrade itself (kubernetes.UpgradeArgs), a command-only request
+			// upgrades to the latest release as that command did.
+			Command string `json:"command,omitempty"`
 		}
 
 		RegisterPatternHandler(
 			PatternHandle{self, "UpgradeK8sManager"},
 			PatternConfig{},
 			func(datagram structs.Datagram, request Request) (*structs.Job, error) {
-				job, err := self.upgradeK8sManager(request.Command)
+				job, err := self.upgradeK8sManager(request.Version)
 				return store.AddToAuditLog(datagram, self.logger, job, err, nil, nil)
 			},
 		)
@@ -3664,7 +3670,7 @@ func (self *socketApi) invokeHandler(handler PatternHandler, datagram structs.Da
 	return result
 }
 
-func (self *socketApi) upgradeK8sManager(command string) (*structs.Job, error) {
+func (self *socketApi) upgradeK8sManager(targetVersion string) (*structs.Job, error) {
 	job := structs.CreateJob(self.eventsClient, "Upgrade mogenius platform", "UPGRADE", "", "", self.logger)
 	job.Start(self.eventsClient)
 
@@ -3677,7 +3683,15 @@ func (self *socketApi) upgradeK8sManager(command string) (*structs.Job, error) {
 		return job, fmt.Errorf("%s", msg)
 	}
 
-	_, err := kubernetes.UpgradeMyself(self.eventsClient, job, command)
+	args, err := kubernetes.UpgradeArgs(version.Ver, targetVersion, self.config.Get("MO_OWN_NAMESPACE"))
+	if err != nil {
+		job.Fail(err.Error())
+		job.Finished = time.Now()
+		structs.ReportJobStateToServer(self.eventsClient, job)
+		return job, err
+	}
+
+	_, err = kubernetes.UpgradeMyself(self.eventsClient, job, args)
 	job.Finish(self.eventsClient)
 	return job, err
 }
