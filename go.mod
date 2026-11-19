@@ -7,7 +7,7 @@ require (
 	github.com/Masterminds/semver/v3 v3.5.0
 	github.com/alecthomas/kong v1.17.0
 	github.com/alicebob/miniredis/v2 v2.40.0
-	github.com/anthropics/anthropic-sdk-go/v2 v2.11.0
+	github.com/anthropics/anthropic-sdk-go/v2 v2.12.0
 	github.com/bitnami/sealed-secrets v0.41.2
 	github.com/creack/pty v1.1.24
 	github.com/go-acme/lego/v5 v5.6.0
