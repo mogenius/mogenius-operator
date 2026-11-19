@@ -67,6 +67,11 @@
   ],
   "packageRules": [
     {
+      "description": "Every update is automerged, so every PR gets the automerge label",
+      "matchPackageNames": ["*"],
+      "addLabels": ["automerge"]
+    },
+    {
       "matchPackageNames": [
         "ghcr.io/mogenius/mogenius-operator"
       ],
