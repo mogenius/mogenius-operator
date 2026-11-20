@@ -1,5 +1,56 @@
 # Changelog
 
+## [2.35.0](https://github.com/mogenius/mogenius-operator/compare/v2.34.0...v2.35.0) (2026-11-20)
+
+
+### Features
+
+* **platformconfig:** configure the FluxInstance's cluster and kustomize ([5fd2941](https://github.com/mogenius/mogenius-operator/commit/5fd29413386e2c3379c62fd89e15ea2e7e324acb))
+* **platformconfig:** configure the FluxInstance's cluster and kustomize ([67fe77a](https://github.com/mogenius/mogenius-operator/commit/67fe77a86c0f0b950d8242e8f32e4903cd5cfb3a))
+
+
+### Bug Fixes
+
+* **ai:** remove the leftover mogenius-ai-config secret when taking the lead ([575af7c](https://github.com/mogenius/mogenius-operator/commit/575af7c389c6a3970a7383559bdea51bc89f2c6c))
+* **chart:** reduce node-metrics RBAC to reading the valkey secret ([50177ff](https://github.com/mogenius/mogenius-operator/commit/50177ffe8c525c2d64dc2471acc8cd1687cb349e))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.10.0 ([#1453](https://github.com/mogenius/mogenius-operator/issues/1453)) ([9ece5b9](https://github.com/mogenius/mogenius-operator/commit/9ece5b981025cfe874d591a87407ba1be60c4e95))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.11.0 ([#1460](https://github.com/mogenius/mogenius-operator/issues/1460)) ([6f4802c](https://github.com/mogenius/mogenius-operator/commit/6f4802c3d629f3ca89e19b05cb267ca39fbdf93a))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.12.0 ([#1473](https://github.com/mogenius/mogenius-operator/issues/1473)) ([9f3a2de](https://github.com/mogenius/mogenius-operator/commit/9f3a2debc1af55d31d63b691aab263bfd160ae5c))
+* **deps:** update module github.com/kimmachinegun/automemlimit to v1.0.2 ([#1452](https://github.com/mogenius/mogenius-operator/issues/1452)) ([6285594](https://github.com/mogenius/mogenius-operator/commit/628559447af73b1e53f4e1160e3e0681119fa72c))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.100.0 ([#1455](https://github.com/mogenius/mogenius-operator/issues/1455)) ([64d3b1a](https://github.com/mogenius/mogenius-operator/commit/64d3b1a1ddf0b2ded8fce3bf2d14b0fc0cb33a8c))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.102.0 ([#1461](https://github.com/mogenius/mogenius-operator/issues/1461)) ([7dd689e](https://github.com/mogenius/mogenius-operator/commit/7dd689ee8b9de0ccd0dc96c98bcc97ad4d29ea2a))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.103.0 ([#1463](https://github.com/mogenius/mogenius-operator/issues/1463)) ([734d9fd](https://github.com/mogenius/mogenius-operator/commit/734d9fda8936ea5b194b3602ed0e017ef4304721))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.99.0 ([587fb3e](https://github.com/mogenius/mogenius-operator/commit/587fb3ed95ecdf6173d0d65ab36ad30bf918ed47))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.99.0 ([6f170f2](https://github.com/mogenius/mogenius-operator/commit/6f170f268eab47afb1044af8ebeb5c14244eeb99))
+* **deps:** update module github.com/valkey-io/valkey-go to v1.0.80 ([#1454](https://github.com/mogenius/mogenius-operator/issues/1454)) ([5ed3325](https://github.com/mogenius/mogenius-operator/commit/5ed332585ab6fc849078ac4427e1644a1b4586cf))
+* **deps:** update module golang.org/x/crypto to v0.59.0 ([#1434](https://github.com/mogenius/mogenius-operator/issues/1434)) ([2ae844a](https://github.com/mogenius/mogenius-operator/commit/2ae844a6204b59467ee1ff27440d279dea6dcf23))
+* **deps:** update module golang.org/x/net to v0.63.0 ([#1462](https://github.com/mogenius/mogenius-operator/issues/1462)) ([3b3a92d](https://github.com/mogenius/mogenius-operator/commit/3b3a92df1730b4dc7286e555e8d6a23e1466bc90))
+* **deps:** update module helm.sh/helm/v4 to v4.3.2 ([0b4de10](https://github.com/mogenius/mogenius-operator/commit/0b4de1056779f9d53e671f171ff50f240abc9ca6))
+* **deps:** update module helm.sh/helm/v4 to v4.3.2 ([c991f26](https://github.com/mogenius/mogenius-operator/commit/c991f26e582f0c03cd7db2521bc7b7e8968ace9c))
+* **deps:** update module sigs.k8s.io/controller-runtime to v0.25.3 ([#1451](https://github.com/mogenius/mogenius-operator/issues/1451)) ([72b7287](https://github.com/mogenius/mogenius-operator/commit/72b7287698948f8429f6dfa0693d3b4ec67723b1))
+* **deps:** update mogenius/snoopy to v0.4.40 ([35314fb](https://github.com/mogenius/mogenius-operator/commit/35314fb41a9de09b5b5cc77337fd82209845b1da))
+* **deps:** update mogenius/snoopy to v0.4.40 ([0cf8c33](https://github.com/mogenius/mogenius-operator/commit/0cf8c337edfd4f4adb6169f7c128c5d3c0a0594b))
+* **exec:** reserve the operator namespace for admins on pod access ([2d2379a](https://github.com/mogenius/mogenius-operator/commit/2d2379a9046f5a83163f3f426f47ff59b985fc9a))
+* **node-metrics:** count only pod uplinks, include native sidecars, cache owner misses ([43755bb](https://github.com/mogenius/mogenius-operator/commit/43755bb59faa539fb2d935e964ccf6a6e8e6d47a))
+* **node-metrics:** count only pod uplinks, include native sidecars, cache owner misses ([ac737d6](https://github.com/mogenius/mogenius-operator/commit/ac737d64054b496ab08a25d34bc0c76781d88e97))
+* **node-metrics:** keep pods whose netns AppArmor blocks on the procdev fallback ([fc99841](https://github.com/mogenius/mogenius-operator/commit/fc998417b785dc9e864a68d4b13b71f32d8f601f))
+* **node-metrics:** keep pods whose netns AppArmor blocks on the procdev fallback ([ac2068a](https://github.com/mogenius/mogenius-operator/commit/ac2068ab054e83a652c42ed7bea1dcbb7eb69383))
+* **node-metrics:** one snoopy per pod, graceful stop, eBPF-attached fallback ([38c6f31](https://github.com/mogenius/mogenius-operator/commit/38c6f31fd94ab40269c13c598d37a07723209856))
+* **node-metrics:** one snoopy per pod, graceful stop, eBPF-attached fallback ([5b8003c](https://github.com/mogenius/mogenius-operator/commit/5b8003c54458991f9d22072e5352e3b1ea840552))
+* **stats:** keep pod stats of pods without resolvable controller ([467db2b](https://github.com/mogenius/mogenius-operator/commit/467db2b4dbc4fbef0f211ced341b4869fcafbcff))
+* **stats:** keep pod stats of pods without resolvable controller ([baebb80](https://github.com/mogenius/mogenius-operator/commit/baebb800b057437b8bdc7a54478f63abf33e45bc))
+* **upgrade:** build the helm upgrade in the operator instead of running a command ([ff9519a](https://github.com/mogenius/mogenius-operator/commit/ff9519ae9b125d0e761d3aacf1389514d257eb89))
+* **upgrade:** drop the command field and keep it out of the audit log ([d04f6dd](https://github.com/mogenius/mogenius-operator/commit/d04f6ddf1605761a0a1b75550d267a53e5b16e1c))
+
+
+### Performance Improvements
+
+* **node-metrics:** reload the node's pods only when they changed ([cc18031](https://github.com/mogenius/mogenius-operator/commit/cc18031997edf5cc65f130325929f910a8e60eb7))
+* **node-metrics:** reload the node's pods only when they changed ([b3b4264](https://github.com/mogenius/mogenius-operator/commit/b3b42647c34364b9e5b8a1098ae7f6db432e91ef))
+* **node-metrics:** run the DaemonSet as a slim binary of its own ([c1aa74a](https://github.com/mogenius/mogenius-operator/commit/c1aa74ae9d227163b4134a2924d259d72bb9923d))
+* **node-metrics:** skip per-process scans without viewers, cache cgroup matches, slim pod decode ([a8ba3f8](https://github.com/mogenius/mogenius-operator/commit/a8ba3f829f702c42e9b8ce8bd6f944ab52f87f7f))
+* **node-metrics:** skip per-process scans without viewers, cache cgroup matches, slim pod decode ([7088008](https://github.com/mogenius/mogenius-operator/commit/708800877026c2dc9e8f111bf75910b80cfcbd4c))
+
 ## [2.34.0](https://github.com/mogenius/mogenius-operator/compare/v2.33.2...v2.34.0) (2026-11-12)
 
 
