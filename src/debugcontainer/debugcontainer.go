@@ -42,7 +42,7 @@ const (
 
 	// DefaultImage is used when the config key is unset. Matches the Helm
 	// chart's features.debugTools.image default.
-	DefaultImage = "docker.io/nicolaka/netshoot:v0.16" // renovate: datasource=docker depName=nicolaka/netshoot
+	DefaultImage = "docker.io/nicolaka/netshoot:v0.17" // renovate: datasource=docker depName=nicolaka/netshoot
 
 	defaultTimeout = 60 * time.Second
 	pollInterval   = 500 * time.Millisecond

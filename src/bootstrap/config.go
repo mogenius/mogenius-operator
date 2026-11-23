@@ -350,7 +350,7 @@ func LoadConfigDeclarations(configModule *config.Config) {
 	})
 	configModule.Declare(config.ConfigDeclaration{
 		Key:          "MO_DEBUG_CONTAINER_IMAGE",
-		DefaultValue: new("docker.io/nicolaka/netshoot:v0.16"), // renovate: datasource=docker depName=nicolaka/netshoot
+		DefaultValue: new("docker.io/nicolaka/netshoot:v0.17"), // renovate: datasource=docker depName=nicolaka/netshoot
 		Description:  new("image of the ephemeral debug container attached to pods whose image ships no shell (web terminal / SSH fallback)"),
 		Envs:         []string{"debug_container_image"},
 	})
