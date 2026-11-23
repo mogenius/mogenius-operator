@@ -39,7 +39,7 @@ features:
     image:
       registry: docker.io
       repository: nicolaka/netshoot
-      tag: v0.16
+      tag: v0.17
       pullPolicy: IfNotPresent
   # -- configure the integrated node metrics dashboard
   nodeMetricsDashboard:
