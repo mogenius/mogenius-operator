@@ -14,6 +14,7 @@ import (
 
 	"mogenius-operator/src/ai/aisdk"
 	"mogenius-operator/src/crds/v1alpha1"
+	"mogenius-operator/src/version"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -115,7 +116,7 @@ func (m *mcpClientManager) Connect(ctx context.Context, cfg MCPServerConfig) err
 	}
 
 	client := mcp.NewClient(
-		&mcp.Implementation{Name: "mogenius-operator", Version: "v1.0.0"},
+		&mcp.Implementation{Name: "mogenius-operator", Version: version.Ver},
 		&mcp.ClientOptions{
 			// Ping every 30s; close the session after 2 consecutive failures so
 			// dead SSE streams are detected without tearing down on a single blip.
