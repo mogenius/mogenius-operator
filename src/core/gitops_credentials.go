@@ -343,14 +343,12 @@ func gitOpsWriteCredentialSecret(namespace string, resolved resolvedGitOpsCreden
 // basic-auth keys and is pointed at the Secret by name from the GitRepository.
 func gitOpsReadCredentialSecret(resolved resolvedGitOpsCredentials) *corev1.Secret {
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      gitOpsReadSecretName(resolved.repositoryName),
-			Namespace: resolved.engineNamespace,
-			Labels: map[string]string{
-				gitOpsManagedByLabelKey:    gitOpsManagedByLabelValue,
-				gitOpsComponentK8sLabelKey: gitOpsComponentK8sValue,
-				gitOpsPartOfLabelKey:       gitOpsPartOfLabelValue,
-			},
+		Name:      gitOpsReadSecretName(resolved.repositoryName),
+		Namespace: resolved.engineNamespace,
+		Labels: map[string]string{
+			gitOpsManagedByLabelKey:    gitOpsManagedByLabelValue,
+			gitOpsComponentK8sLabelKey: gitOpsComponentK8sValue,
+			gitOpsPartOfLabelKey:       gitOpsPartOfLabelValue,
 		},
 		Type: corev1.SecretTypeOpaque,
 		Data: map[string][]byte{

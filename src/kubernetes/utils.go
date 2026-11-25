@@ -85,8 +85,8 @@ func parseDfOutput(output string) (free, used, total uint64, err error) {
 	// line, which shifts every column of the data line by one.
 	capacityIdx := -1
 	for i, f := range fields {
-		if strings.HasSuffix(f, "%") {
-			if _, perr := strconv.ParseUint(strings.TrimSuffix(f, "%"), 10, 64); perr == nil {
+		if before, ok := strings.CutSuffix(f, "%"); ok {
+			if _, perr := strconv.ParseUint(before, 10, 64); perr == nil {
 				capacityIdx = i
 				break
 			}

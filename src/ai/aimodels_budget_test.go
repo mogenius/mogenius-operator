@@ -14,7 +14,7 @@ import (
 // bare aiManager.
 func ollamaModelFixture(name string) *v1alpha1.AiModel {
 	return &v1alpha1.AiModel{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "mogenius"},
+		Name: name, Namespace: "mogenius",
 		Spec: v1alpha1.AiModelSpec{
 			Sdk:    "ollama",
 			Model:  "qwen3-coder:30b",
@@ -105,11 +105,9 @@ func TestIsModelBudgetExceededUnlimited(t *testing.T) {
 
 func chatModelFixture(name string, createdMinutesAgo int, isDefault, chatEnabled bool) v1alpha1.AiModel {
 	return v1alpha1.AiModel{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              name,
-			CreationTimestamp: metav1.NewTime(time.Now().Add(-time.Duration(createdMinutesAgo) * time.Minute)),
-		},
-		Spec: v1alpha1.AiModelSpec{Sdk: "ollama", Model: "m", ApiUrl: "http://x", Default: isDefault, ChatEnabled: chatEnabled},
+		Name:              name,
+		CreationTimestamp: metav1.NewTime(time.Now().Add(-time.Duration(createdMinutesAgo) * time.Minute)),
+		Spec:              v1alpha1.AiModelSpec{Sdk: "ollama", Model: "m", ApiUrl: "http://x", Default: isDefault, ChatEnabled: chatEnabled},
 	}
 }
 

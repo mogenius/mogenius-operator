@@ -150,13 +150,11 @@ func upsertManagedAiModelSecret(ctx context.Context, client kubernetes.Interface
 	}
 	if apierrors.IsNotFound(err) {
 		secret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      secretName,
-				Namespace: namespace,
-				Labels: map[string]string{
-					aiModelSecretManagedByLabelKey: aiModelSecretManagedByLabelValue,
-					aiModelSecretModelLabelKey:     truncateWithHash(modelName, validation.LabelValueMaxLength),
-				},
+			Name:      secretName,
+			Namespace: namespace,
+			Labels: map[string]string{
+				aiModelSecretManagedByLabelKey: aiModelSecretManagedByLabelValue,
+				aiModelSecretModelLabelKey:     truncateWithHash(modelName, validation.LabelValueMaxLength),
 			},
 			Data: map[string][]byte{ai.DefaultApiKeySecretKey: []byte(apiKey)},
 		}

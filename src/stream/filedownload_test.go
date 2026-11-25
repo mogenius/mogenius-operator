@@ -42,8 +42,7 @@ func (r *recordingSend) total() int {
 }
 
 func TestCreditWriterSplitsIntoChunksWithinTheWindow(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	sink := &recordingSend{}
 	w := &creditWriter{window: newCreditWindow(ctx, 3*fdsChunkBytes), send: sink.send}
 
@@ -69,8 +68,7 @@ func TestCreditWriterSplitsIntoChunksWithinTheWindow(t *testing.T) {
 }
 
 func TestCreditWriterBlocksUntilCreditArrives(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	sink := &recordingSend{}
 	w := &creditWriter{window: newCreditWindow(ctx, fdsChunkBytes), send: sink.send}
 
@@ -135,8 +133,7 @@ func TestCreditWriterFailsWhenTheDownloadIsAborted(t *testing.T) {
 }
 
 func TestCreditWriterFailsWhenTheSocketWriteFails(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	sink := &recordingSend{fail: errors.New("socket closed")}
 	w := &creditWriter{window: newCreditWindow(ctx, fdsInitialWindowBytes), send: sink.send}
 

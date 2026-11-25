@@ -9,7 +9,6 @@ import (
 	"mogenius-operator/src/utils"
 
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 )
 
@@ -20,14 +19,10 @@ const DEFAULT_WORKSPACE_DASHBOARD_NAME = "default"
 func defaultWorkspaceDashboard(namespace string) v1alpha1.WorkspaceDashboard {
 	enabled := v1alpha1.DashboardToggle{Enabled: true}
 	return v1alpha1.WorkspaceDashboard{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       utils.WorkspaceDashboardResource.Kind,
-			APIVersion: utils.WorkspaceDashboardResource.ApiVersion,
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      DEFAULT_WORKSPACE_DASHBOARD_NAME,
-			Namespace: namespace,
-		},
+		Kind:       utils.WorkspaceDashboardResource.Kind,
+		APIVersion: utils.WorkspaceDashboardResource.ApiVersion,
+		Name:       DEFAULT_WORKSPACE_DASHBOARD_NAME,
+		Namespace:  namespace,
 		Spec: v1alpha1.WorkspaceDashboardSpec{
 			Default:          true,
 			DashboardHeader:  enabled,

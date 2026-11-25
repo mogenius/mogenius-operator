@@ -63,8 +63,8 @@ func newGitHubAppHarness(t *testing.T, objects ...runtime.Object) *githubAppHarn
 
 	h := &githubAppHarness{}
 	objects = append(objects, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "github-app", Namespace: testOperatorNamespace},
-		Data:       map[string][]byte{"privateKey": pemBytes},
+		Name: "github-app", Namespace: testOperatorNamespace,
+		Data: map[string][]byte{"privateKey": pemBytes},
 	})
 	h.client = fake.NewClientset(objects...)
 	h.dynamic = dynamicfake.NewSimpleDynamicClientWithCustomListKinds(runtime.NewScheme(),
@@ -124,11 +124,9 @@ func TestGitHubAppCredentialsMaterializeTheReadCredential(t *testing.T) {
 // username/password Argo CD would prefer over the app.
 func TestGitHubAppCredentialsReplaceTokenKeysOfAPlatformReadCredential(t *testing.T) {
 	h := newGitHubAppHarness(t, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "platform-repository",
-			Namespace: testArgoNamespace,
-			Labels:    map[string]string{gitops.ManagedByLabelKey: gitops.ManagedByLabelValue},
-		},
+		Name:      "platform-repository",
+		Namespace: testArgoNamespace,
+		Labels:    map[string]string{gitops.ManagedByLabelKey: gitops.ManagedByLabelValue},
 		Data: map[string][]byte{
 			"username":          []byte("x-token-auth"),
 			"password":          []byte("ghp_old"),
@@ -147,8 +145,8 @@ func TestGitHubAppCredentialsReplaceTokenKeysOfAPlatformReadCredential(t *testin
 
 func TestGitHubAppCredentialsLeaveAForeignReadCredentialAlone(t *testing.T) {
 	h := newGitHubAppHarness(t, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "platform-repository", Namespace: testArgoNamespace},
-		Data:       map[string][]byte{"password": []byte("mine")},
+		Name: "platform-repository", Namespace: testArgoNamespace,
+		Data: map[string][]byte{"password": []byte("mine")},
 	})
 
 	err := h.reconcile(t, h.repo())
@@ -159,12 +157,11 @@ func TestGitHubAppCredentialsLeaveAForeignReadCredentialAlone(t *testing.T) {
 }
 
 func TestGitHubAppCredentialsPruneWhenTheAppIsRemoved(t *testing.T) {
-	unrelated := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "unrelated", Namespace: testArgoNamespace}}
-	storedToken := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{
+	unrelated := &corev1.Secret{Name: "unrelated", Namespace: testArgoNamespace}
+	storedToken := &corev1.Secret{
 		Name:      "mogenius-gitops-write-platform",
 		Namespace: testOperatorNamespace,
-		Labels:    map[string]string{gitops.GitHubAppLabelKey: gitops.GitHubAppLabelValue},
-	}}
+		Labels:    map[string]string{gitops.GitHubAppLabelKey: gitops.GitHubAppLabelValue}}
 	h := newGitHubAppHarness(t, unrelated, storedToken)
 	require.NoError(t, h.reconcile(t, h.repo()))
 

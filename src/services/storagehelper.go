@@ -127,13 +127,11 @@ func storageHelperImage() string {
 // the default capability set.
 func buildStorageHelperPod(namespace, pvcName string) *v1.Pod {
 	return &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      StorageHelperPodName(pvcName),
-			Namespace: namespace,
-			Labels: map[string]string{
-				StorageHelperLabelKey:          StorageHelperLabelValue,
-				"app.kubernetes.io/managed-by": "mogenius-k8s-manager",
-			},
+		Name:      StorageHelperPodName(pvcName),
+		Namespace: namespace,
+		Labels: map[string]string{
+			StorageHelperLabelKey:          StorageHelperLabelValue,
+			"app.kubernetes.io/managed-by": "mogenius-k8s-manager",
 		},
 		Spec: v1.PodSpec{
 			// RWO note: the UI only offers mounting for NOT_MOUNTED PVCs, so an
@@ -145,10 +143,8 @@ func buildStorageHelperPod(namespace, pvcName string) *v1.Pod {
 			TerminationGracePeriodSeconds: new(int64(5)),
 			Volumes: []v1.Volume{
 				{
-					Name: "data",
-					VolumeSource: v1.VolumeSource{
-						PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{ClaimName: pvcName},
-					},
+					Name:                  "data",
+					PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{ClaimName: pvcName},
 				},
 			},
 			Containers: []v1.Container{

@@ -7,13 +7,12 @@ import (
 	"mogenius-operator/src/utils"
 
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func makeService(namespace, name string, ports ...v1.ServicePort) v1.Service {
 	return v1.Service{
-		ObjectMeta: metav1.ObjectMeta{Namespace: namespace, Name: name},
-		Spec:       v1.ServiceSpec{Ports: ports},
+		Namespace: namespace, Name: name,
+		Spec: v1.ServiceSpec{Ports: ports},
 	}
 }
 

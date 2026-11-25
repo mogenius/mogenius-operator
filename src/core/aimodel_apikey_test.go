@@ -58,8 +58,8 @@ func (self *fakeAiModelCrdOps) Get(namespace string, name string) (*v1alpha1.AiM
 
 func aiModelFixture(name string, spec v1alpha1.AiModelSpec) *v1alpha1.AiModel {
 	return &v1alpha1.AiModel{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: testNamespace, UID: types.UID("uid-" + name)},
-		Spec:       spec,
+		Name: name, Namespace: testNamespace, UID: types.UID("uid-" + name),
+		Spec: spec,
 	}
 }
 
@@ -73,13 +73,11 @@ func anthropicSpec(refName string) v1alpha1.AiModelSpec {
 
 func managedSecretFixture(modelName string, apiKey string) *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      managedAiModelSecretName(modelName),
-			Namespace: testNamespace,
-			Labels: map[string]string{
-				aiModelSecretManagedByLabelKey: aiModelSecretManagedByLabelValue,
-				aiModelSecretModelLabelKey:     modelName,
-			},
+		Name:      managedAiModelSecretName(modelName),
+		Namespace: testNamespace,
+		Labels: map[string]string{
+			aiModelSecretManagedByLabelKey: aiModelSecretManagedByLabelValue,
+			aiModelSecretModelLabelKey:     modelName,
 		},
 		Data: map[string][]byte{ai.DefaultApiKeySecretKey: []byte(apiKey)},
 	}

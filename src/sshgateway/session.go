@@ -368,8 +368,7 @@ func runExec(ctx context.Context, logger *slog.Logger, clients *execClients, cha
 		return 0
 	}
 
-	var codeErr utilexec.CodeExitError
-	if errors.As(err, &codeErr) {
+	if codeErr, ok := errors.AsType[utilexec.CodeExitError](err); ok {
 		return codeErr.Code
 	}
 	if errors.Is(err, io.EOF) {

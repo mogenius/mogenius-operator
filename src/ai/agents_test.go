@@ -107,7 +107,7 @@ func TestChangeCooldownDefault(t *testing.T) {
 // restrictions are enforced.
 func TestNewToolContextFromAgent(t *testing.T) {
 	agent := &v1alpha1.Agent{
-		ObjectMeta: metav1.ObjectMeta{Name: "my-agent"},
+		Name: "my-agent",
 		Spec: v1alpha1.AgentSpec{
 			Scope: &v1alpha1.AgentScope{WorkspaceRef: "team-a"},
 		},
@@ -175,8 +175,8 @@ func TestCancelLocalRun(t *testing.T) {
 
 func TestBuildAgentRunPrompt(t *testing.T) {
 	agent := &v1alpha1.Agent{
-		ObjectMeta: metav1.ObjectMeta{Name: "cost-agent"},
-		Spec:       v1alpha1.AgentSpec{Instruction: "look for wasted resources"},
+		Name: "cost-agent",
+		Spec: v1alpha1.AgentSpec{Instruction: "look for wasted resources"},
 	}
 	prompt := buildAgentRunPrompt(agent, []string{"prod", "staging"})
 

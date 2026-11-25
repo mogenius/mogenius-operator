@@ -19,8 +19,8 @@ import (
 
 func testPod(name string, phase corev1.PodPhase, ready bool, terminating bool) corev1.Pod {
 	pod := corev1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "ns", Labels: map[string]string{"app": "web"}},
-		Status:     corev1.PodStatus{Phase: phase},
+		Name: name, Namespace: "ns", Labels: map[string]string{"app": "web"},
+		Status: corev1.PodStatus{Phase: phase},
 	}
 	status := corev1.ConditionFalse
 	if ready {
@@ -78,8 +78,8 @@ func TestResolvePortForwardTargetSkipsTerminatingPod(t *testing.T) {
 	next := testPod("web-new", corev1.PodRunning, true, false)
 	clientset := fake.NewSimpleClientset(
 		&appsv1.Deployment{
-			ObjectMeta: metav1.ObjectMeta{Name: "web", Namespace: "ns"},
-			Spec:       appsv1.DeploymentSpec{Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "web"}}},
+			Name: "web", Namespace: "ns",
+			Spec: appsv1.DeploymentSpec{Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "web"}}},
 		},
 		&old, &next,
 	)

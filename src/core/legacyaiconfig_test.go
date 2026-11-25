@@ -30,8 +30,8 @@ var (
 
 func legacyTestSecret() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: LEGACY_AI_CONFIG_SECRET_NAME, Namespace: legacyTestNamespace, UID: "legacy-uid"},
-		Data:       map[string][]byte{"API_KEY": []byte("sk-test"), "AI_CONFIG_GITHUB_PAT": []byte("pat")},
+		Name: LEGACY_AI_CONFIG_SECRET_NAME, Namespace: legacyTestNamespace, UID: "legacy-uid",
+		Data: map[string][]byte{"API_KEY": []byte("sk-test"), "AI_CONFIG_GITHUB_PAT": []byte("pat")},
 	}
 }
 

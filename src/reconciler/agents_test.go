@@ -19,8 +19,8 @@ func newAgentTestModule(t *testing.T) *reconcilerModule {
 
 func agentFixture(namespace string, spec v1alpha1.AgentSpec) *v1alpha1.Agent {
 	return &v1alpha1.Agent{
-		ObjectMeta: metav1.ObjectMeta{Name: "test-agent", Namespace: namespace, Generation: 3},
-		Spec:       spec,
+		Name: "test-agent", Namespace: namespace, Generation: 3,
+		Spec: spec,
 	}
 }
 

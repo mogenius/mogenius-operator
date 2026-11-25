@@ -57,8 +57,7 @@ func useLocalPty(t *testing.T) {
 		fClosed = true
 		_ = f.Close()
 		fMu.Unlock()
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			if exitErr.ExitCode() < 0 {
 				return SessionEndedExitCode, nil
 			}
@@ -212,7 +211,7 @@ func TestTerminalSessionConcurrentAttachments(t *testing.T) {
 		t.Fatal(err)
 	}
 	var wg sync.WaitGroup
-	for i := 0; i < 8; i++ {
+	for i := range 8 {
 		wg.Add(1)
 		go func(i int) {
 			defer wg.Done()

@@ -89,7 +89,7 @@ func New(t *testing.T) *TestHarness {
 
 	// The operator uses this namespace for its Secret, ConfigMap, and leader election.
 	_, err = k8s.CoreV1().Namespaces().Create(context.Background(), &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{Name: operatorNamespace},
+		Name: operatorNamespace,
 	}, metav1.CreateOptions{})
 	if err != nil {
 		t.Fatalf("harness: create namespace %q: %v", operatorNamespace, err)

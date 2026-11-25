@@ -150,10 +150,8 @@ func initializeClusterSystems(
 	// an SSH client attaches to a terminal session through the session manager
 	sshgateway.AttachSession = func(user sshgateway.ConnectionUser, namespace, pod, container, sessionId string) (sshgateway.TerminalSession, error) {
 		return services.AttachTerminalSession(services.SessionCreateRequest{
-			SessionRequest: services.SessionRequest{
-				SessionPodRequest: services.SessionPodRequest{Namespace: namespace, Pod: pod, IsAdmin: user.IsAdmin, UserEmail: user.Email},
-				SessionId:         sessionId,
-			},
+			Namespace: namespace, Pod: pod, IsAdmin: user.IsAdmin, UserEmail: user.Email,
+			SessionId: sessionId,
 			Container: container,
 			Tty:       true,
 		})

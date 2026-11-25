@@ -119,7 +119,7 @@ func TestSessionKeepsServicingRequestsWhilePayloadRuns(t *testing.T) {
 	// Well past the 16-slot buffer that the previous implementation filled.
 	resized := make(chan error, 1)
 	go func() {
-		for i := 0; i < 64; i++ {
+		for i := range 64 {
 			if err := session.WindowChange(24+i%10, 80); err != nil {
 				resized <- err
 				return

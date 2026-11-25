@@ -151,8 +151,8 @@ func TestValidateAiModelSpec(t *testing.T) {
 func TestPickDefaultAiModel(t *testing.T) {
 	model := func(name string, isDefault bool, created time.Time) v1alpha1.AiModel {
 		return v1alpha1.AiModel{
-			ObjectMeta: metav1.ObjectMeta{Name: name, CreationTimestamp: metav1.NewTime(created)},
-			Spec:       v1alpha1.AiModelSpec{Sdk: "anthropic", Model: "m", Default: isDefault},
+			Name: name, CreationTimestamp: metav1.NewTime(created),
+			Spec: v1alpha1.AiModelSpec{Sdk: "anthropic", Model: "m", Default: isDefault},
 		}
 	}
 	now := time.Now()
@@ -197,8 +197,8 @@ func TestPickDefaultAiModel(t *testing.T) {
 func TestValidateAiModelDefaultUnique(t *testing.T) {
 	model := func(name string, isDefault bool) v1alpha1.AiModel {
 		return v1alpha1.AiModel{
-			ObjectMeta: metav1.ObjectMeta{Name: name},
-			Spec:       v1alpha1.AiModelSpec{Sdk: "anthropic", Model: "m", Default: isDefault},
+			Name: name,
+			Spec: v1alpha1.AiModelSpec{Sdk: "anthropic", Model: "m", Default: isDefault},
 		}
 	}
 	defaultSpec := v1alpha1.AiModelSpec{Sdk: "anthropic", Model: "m", Default: true}

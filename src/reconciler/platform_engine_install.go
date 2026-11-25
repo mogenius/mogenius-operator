@@ -222,10 +222,8 @@ func (d *reconcilerModule) ensureNamespace(ctx context.Context, namespace string
 	}
 
 	_, err := client.Create(ctx, &corev1.Namespace{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:   namespace,
-			Labels: map[string]string{"app.kubernetes.io/managed-by": "mogenius-operator"},
-		},
+		Name:   namespace,
+		Labels: map[string]string{"app.kubernetes.io/managed-by": "mogenius-operator"},
 	}, metav1.CreateOptions{})
 	if err != nil && !apierrors.IsAlreadyExists(err) {
 		return fmt.Errorf("create namespace: %w", err)

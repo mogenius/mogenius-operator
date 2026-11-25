@@ -3,6 +3,7 @@ package gitops
 import (
 	"context"
 	"fmt"
+	"maps"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -114,27 +115,23 @@ type WriteCredential struct {
 // rejected as having no keys when the API updates it on the next rotation.
 func WriteCredentialSecret(credential WriteCredential) *corev1.Secret {
 	annotations := map[string]string{}
-	for key, value := range credential.Annotations {
-		annotations[key] = value
-	}
+	maps.Copy(annotations, credential.Annotations)
 	annotations[WriteRepositoryAnnotation] = credential.RepositoryName
 	annotations[WriteRepositoryURLAnnotation] = credential.RepositoryURL
 	annotations[WriteModeAnnotation] = credential.WriteMode
 
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      WriteSecretName(credential.RepositoryName),
-			Namespace: credential.Namespace,
-			Labels: map[string]string{
-				WriteManagedByLabelKey: WriteManagedByLabelValue,
-				ComponentLabelKey:      WriteComponentLabelValue,
-				ManagedByLabelKey:      ManagedByLabelValue,
-				ComponentK8sLabelKey:   ComponentK8sValue,
-				PartOfLabelKey:         PartOfLabelValue,
-			},
-			Annotations: annotations,
+		Name:      WriteSecretName(credential.RepositoryName),
+		Namespace: credential.Namespace,
+		Labels: map[string]string{
+			WriteManagedByLabelKey: WriteManagedByLabelValue,
+			ComponentLabelKey:      WriteComponentLabelValue,
+			ManagedByLabelKey:      ManagedByLabelValue,
+			ComponentK8sLabelKey:   ComponentK8sValue,
+			PartOfLabelKey:         PartOfLabelValue,
 		},
-		Type: corev1.SecretTypeOpaque,
+		Annotations: annotations,
+		Type:        corev1.SecretTypeOpaque,
 		Data: map[string][]byte{
 			WriteSecretTokenKey:    []byte(credential.Token),
 			WriteSecretUsernameKey: []byte(credential.Username),
@@ -177,15 +174,11 @@ func UpsertSecret(ctx context.Context, client kubernetes.Interface, desired *cor
 		if current.Labels == nil {
 			current.Labels = map[string]string{}
 		}
-		for key, value := range desired.Labels {
-			current.Labels[key] = value
-		}
+		maps.Copy(current.Labels, desired.Labels)
 		if current.Annotations == nil {
 			current.Annotations = map[string]string{}
 		}
-		for key, value := range desired.Annotations {
-			current.Annotations[key] = value
-		}
+		maps.Copy(current.Annotations, desired.Annotations)
 		if current.Data == nil {
 			current.Data = map[string][]byte{}
 		}

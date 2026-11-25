@@ -9,8 +9,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func boolPtr(b bool) *bool { return &b }
-
 // An empty config overrides nothing: the chart / platform-defaults values stand.
 func TestBuildAgentSandboxValuesEmptyReturnsNil(t *testing.T) {
 	values, err := buildAgentSandboxValues(&v1alpha1.AgentSandboxesConfig{})
@@ -23,7 +21,7 @@ func TestBuildAgentSandboxValuesTemplatesSetFieldsOnly(t *testing.T) {
 	values, err := buildAgentSandboxValues(&v1alpha1.AgentSandboxesConfig{
 		Namespace: "agent-sandbox",
 		NetworkPolicy: &v1alpha1.AgentSandboxNetworkPolicyConfig{
-			Managed:                boolPtr(true),
+			Managed:                new(true),
 			AdditionalBlockedCidrs: []string{"34.118.224.0/20", "fd00::/8"},
 		},
 	})

@@ -141,8 +141,7 @@ func (h *sftpHandlers) execArgvStatus(ctx context.Context, argv []string, stdin 
 	}
 
 	exitCode := 0
-	var codeErr utilexec.CodeExitError
-	if errors.As(err, &codeErr) {
+	if codeErr, ok := errors.AsType[utilexec.CodeExitError](err); ok {
 		exitCode = codeErr.Code
 	}
 
@@ -485,7 +484,7 @@ func (h *sftpHandlers) listDir(ctx context.Context, dir string) ([]os.FileInfo, 
 	}
 
 	var names []string
-	for _, name := range strings.Split(out.String(), "\x00") {
+	for name := range strings.SplitSeq(out.String(), "\x00") {
 		if name != "" {
 			names = append(names, name)
 		}
@@ -591,7 +590,7 @@ func (h *sftpHandlers) stat(ctx context.Context, remotePath string) (*sftpFileIn
 
 func nonEmptyLines(s string) []string {
 	var lines []string
-	for _, line := range strings.Split(s, "\n") {
+	for line := range strings.SplitSeq(s, "\n") {
 		if trimmed := strings.TrimSpace(line); trimmed != "" {
 			lines = append(lines, trimmed)
 		}

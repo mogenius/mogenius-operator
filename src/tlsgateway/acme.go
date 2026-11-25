@@ -283,14 +283,12 @@ func (a *ACME) obtain(ctx context.Context, hostname string, id uint64) error {
 		return fmt.Errorf("the issued certificate does not parse: %w", err)
 	}
 	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        certSecretName(hostname),
-			Namespace:   a.namespace,
-			Labels:      map[string]string{acmeManagedLabel: "true"},
-			Annotations: map[string]string{acmeHostnameAnnotation: hostname},
-		},
-		Type: corev1.SecretTypeTLS,
-		Data: map[string][]byte{corev1.TLSCertKey: resource.Certificate, corev1.TLSPrivateKeyKey: resource.PrivateKey},
+		Name:        certSecretName(hostname),
+		Namespace:   a.namespace,
+		Labels:      map[string]string{acmeManagedLabel: "true"},
+		Annotations: map[string]string{acmeHostnameAnnotation: hostname},
+		Type:        corev1.SecretTypeTLS,
+		Data:        map[string][]byte{corev1.TLSCertKey: resource.Certificate, corev1.TLSPrivateKeyKey: resource.PrivateKey},
 	}
 	if err := a.saveSecret(ctx, secret); err != nil {
 		return fmt.Errorf("store the certificate: %w", err)
@@ -476,7 +474,7 @@ func (a *ACME) saveAccount(ctx context.Context, user *acmeUser) error {
 		return err
 	}
 	return a.saveSecret(ctx, &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: acmeAccountSecret, Namespace: a.namespace},
+		Name: acmeAccountSecret, Namespace: a.namespace,
 		Data: map[string][]byte{
 			"key":          pem.EncodeToMemory(&pem.Block{Type: "EC PRIVATE KEY", Bytes: der}),
 			"registration": registered,
