@@ -46,7 +46,6 @@ import (
 	v1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/yaml"
@@ -1945,8 +1944,8 @@ func (self *socketApi) registerPatterns() {
 				var created *unstructured.Unstructured
 				if err == nil {
 					created = crdToAuditObject(&v1alpha1.Workspace{
-						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
-						Spec:       spec,
+						Name: request.Name,
+						Spec: spec,
 					}, "Workspace", request.Name)
 				}
 				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
@@ -2107,8 +2106,8 @@ func (self *socketApi) registerPatterns() {
 				var created *unstructured.Unstructured
 				if err == nil {
 					created = crdToAuditObject(&v1alpha1.User{
-						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
-						Spec:       spec,
+						Name: request.Name,
+						Spec: spec,
 					}, "User", request.Name)
 				}
 				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
@@ -2208,8 +2207,8 @@ func (self *socketApi) registerPatterns() {
 				var created *unstructured.Unstructured
 				if err == nil {
 					created = crdToAuditObject(&v1alpha1.Grant{
-						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
-						Spec:       spec,
+						Name: request.Name,
+						Spec: spec,
 					}, "Grant", request.Name)
 				}
 				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
@@ -2305,8 +2304,8 @@ func (self *socketApi) registerPatterns() {
 				var created *unstructured.Unstructured
 				if err == nil {
 					created = crdToAuditObject(&v1alpha1.GroupGrant{
-						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
-						Spec:       spec,
+						Name: request.Name,
+						Spec: spec,
 					}, "GroupGrant", request.Name)
 				}
 				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
@@ -2500,8 +2499,8 @@ func (self *socketApi) registerPatterns() {
 				var created *unstructured.Unstructured
 				if err == nil {
 					created = crdToAuditObject(&v1alpha1.Agent{
-						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
-						Spec:       request.Spec,
+						Name: request.Name,
+						Spec: request.Spec,
 					}, "Agent", request.Name)
 				}
 				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
@@ -2609,8 +2608,8 @@ func (self *socketApi) registerPatterns() {
 				var created *unstructured.Unstructured
 				if err == nil {
 					created = crdToAuditObject(&v1alpha1.AiModel{
-						ObjectMeta: metav1.ObjectMeta{Name: request.Name},
-						Spec:       request.Spec,
+						Name: request.Name,
+						Spec: request.Spec,
 					}, "AiModel", request.Name)
 				}
 				return store.AddToAuditLog(datagram, self.logger, res, err, nil, created)
@@ -3713,16 +3712,12 @@ func (self *socketApi) execShConnection(podCmdConnectionRequest stream.PodCmdCon
 		// A terminal session (MOG-4759): the shell is the session's and runs on
 		// after this connection; attaching creates it when it does not exist.
 		attachment, attachErr := services.AttachTerminalSession(services.SessionCreateRequest{
-			SessionRequest: services.SessionRequest{
-				SessionPodRequest: services.SessionPodRequest{
-					Namespace:      podCmdConnectionRequest.Namespace,
-					Pod:            podCmdConnectionRequest.Pod,
-					IsAdmin:        podCmdConnectionRequest.IsAdmin,
-					IsClusterAdmin: podCmdConnectionRequest.IsClusterAdmin,
-					UserEmail:      podCmdConnectionRequest.UserEmail,
-				},
-				SessionId: podCmdConnectionRequest.SessionId,
-			},
+			Namespace:      podCmdConnectionRequest.Namespace,
+			Pod:            podCmdConnectionRequest.Pod,
+			IsAdmin:        podCmdConnectionRequest.IsAdmin,
+			IsClusterAdmin: podCmdConnectionRequest.IsClusterAdmin,
+			UserEmail:      podCmdConnectionRequest.UserEmail,
+			SessionId:      podCmdConnectionRequest.SessionId,
 			Container:      podCmdConnectionRequest.Container,
 			Tty:            true,
 			DebugContainer: podCmdConnectionRequest.DebugContainer,

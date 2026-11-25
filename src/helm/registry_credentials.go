@@ -84,12 +84,10 @@ func upsertRegistryCredentialsSecret(ctx context.Context, secrets typedcorev1.Se
 	current, err := secrets.Get(ctx, registryCredentialsSecretName, metav1.GetOptions{})
 	if apierrors.IsNotFound(err) {
 		_, err = secrets.Create(ctx, &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:   registryCredentialsSecretName,
-				Labels: map[string]string{registryCredentialsManagedByKey: registryCredentialsManagedByValue},
-			},
-			Type: corev1.SecretTypeDockerConfigJson,
-			Data: map[string][]byte{corev1.DockerConfigJsonKey: data},
+			Name:   registryCredentialsSecretName,
+			Labels: map[string]string{registryCredentialsManagedByKey: registryCredentialsManagedByValue},
+			Type:   corev1.SecretTypeDockerConfigJson,
+			Data:   map[string][]byte{corev1.DockerConfigJsonKey: data},
 		}, metav1.CreateOptions{})
 		if err != nil {
 			return fmt.Errorf("create secret %q: %w", registryCredentialsSecretName, err)

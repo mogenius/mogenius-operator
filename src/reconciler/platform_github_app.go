@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"strconv"
 
 	"mogenius-operator/src/crds/v1alpha1"
@@ -194,9 +195,9 @@ func (c githubAppCredentials) materializeReadCredential(ctx context.Context, rep
 		}
 
 		desired := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{Name: repository.readSecretName(), Namespace: c.engineNamespace, Labels: labels},
-			Type:       corev1.SecretTypeOpaque,
-			Data:       map[string][]byte{gitops.GitHubAppPrivateKeyKey: pem},
+			Name: repository.readSecretName(), Namespace: c.engineNamespace, Labels: labels,
+			Type: corev1.SecretTypeOpaque,
+			Data: map[string][]byte{gitops.GitHubAppPrivateKeyKey: pem},
 		}
 		for k, v := range data {
 			desired.Data[k] = []byte(v)
@@ -294,18 +295,14 @@ func (c githubAppCredentials) writeReadCredential(ctx context.Context, desired *
 		if current.Labels == nil {
 			current.Labels = map[string]string{}
 		}
-		for key, value := range desired.Labels {
-			current.Labels[key] = value
-		}
+		maps.Copy(current.Labels, desired.Labels)
 		if current.Data == nil {
 			current.Data = map[string][]byte{}
 		}
 		for _, key := range githubAppConflictingReadKeys {
 			delete(current.Data, key)
 		}
-		for key, value := range desired.Data {
-			current.Data[key] = value
-		}
+		maps.Copy(current.Data, desired.Data)
 		_, err = secrets.Update(ctx, current, metav1.UpdateOptions{})
 		return err
 	})

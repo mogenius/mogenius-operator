@@ -19,7 +19,7 @@ func validPathPrefix(prefix string) bool {
 	if !strings.HasPrefix(prefix, "/") || len(prefix) > 255 {
 		return false
 	}
-	for _, segment := range strings.Split(prefix[1:], "/") {
+	for segment := range strings.SplitSeq(prefix[1:], "/") {
 		if segment == "." || segment == ".." || !pathPrefixSegment.MatchString(segment) {
 			return false
 		}
@@ -40,7 +40,7 @@ func normalizeRequestPath(raw string) (string, bool) {
 		return "", false
 	}
 	segments := make([]string, 0)
-	for _, segment := range strings.Split(decoded, "/") {
+	for segment := range strings.SplitSeq(decoded, "/") {
 		switch segment {
 		case "", ".":
 			continue

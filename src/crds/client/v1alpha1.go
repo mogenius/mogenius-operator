@@ -72,15 +72,11 @@ func (self *MogeniusV1alpha1) GetGrant(namespace string, name string) (*mov1alph
 
 func (self *MogeniusV1alpha1) CreateGrant(namespace string, name string, spec mov1alpha1.GrantSpec) (*mov1alpha1.Grant, error) {
 	res := &mov1alpha1.Grant{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Grant",
-			APIVersion: "mogenius.com/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: spec,
+		Kind:       "Grant",
+		APIVersion: "mogenius.com/v1alpha1",
+		Name:       name,
+		Namespace:  namespace,
+		Spec:       spec,
 	}
 	result := &mov1alpha1.Grant{}
 	err := self.restClient.Post().Namespace(namespace).Resource("grants").Body(res).Do(context.Background()).Into(result)
@@ -168,15 +164,11 @@ func (self *MogeniusV1alpha1) CreateGroupGrant(namespace string, name string, sp
 	// the socket API (UI/CLI) path from depending on the installed CRD version
 	spec.ApplyDefaults()
 	res := &mov1alpha1.GroupGrant{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "GroupGrant",
-			APIVersion: "mogenius.com/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: spec,
+		Kind:       "GroupGrant",
+		APIVersion: "mogenius.com/v1alpha1",
+		Name:       name,
+		Namespace:  namespace,
+		Spec:       spec,
 	}
 	result := &mov1alpha1.GroupGrant{}
 	err := self.restClient.Post().Namespace(namespace).Resource("groupgrants").Body(res).Do(context.Background()).Into(result)
@@ -245,15 +237,11 @@ func (self *MogeniusV1alpha1) GetUser(namespace string, name string) (*mov1alpha
 
 func (self *MogeniusV1alpha1) CreateUser(namespace string, name string, spec mov1alpha1.UserSpec) (*mov1alpha1.User, error) {
 	res := &mov1alpha1.User{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "User",
-			APIVersion: "mogenius.com/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: spec,
+		Kind:       "User",
+		APIVersion: "mogenius.com/v1alpha1",
+		Name:       name,
+		Namespace:  namespace,
+		Spec:       spec,
 	}
 	result := &mov1alpha1.User{}
 	err := self.restClient.Post().Namespace(namespace).Resource("users").Body(res).Do(context.Background()).Into(result)
@@ -337,15 +325,11 @@ func (self *MogeniusV1alpha1) GetAgent(namespace string, name string) (*mov1alph
 
 func (self *MogeniusV1alpha1) CreateAgent(namespace string, name string, spec mov1alpha1.AgentSpec) (*mov1alpha1.Agent, error) {
 	res := &mov1alpha1.Agent{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Agent",
-			APIVersion: "mogenius.com/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: spec,
+		Kind:       "Agent",
+		APIVersion: "mogenius.com/v1alpha1",
+		Name:       name,
+		Namespace:  namespace,
+		Spec:       spec,
 	}
 	result := &mov1alpha1.Agent{}
 	err := self.restClient.Post().Namespace(namespace).Resource("agents").Body(res).Do(context.Background()).Into(result)
@@ -452,15 +436,11 @@ func (self *MogeniusV1alpha1) GetAiModel(namespace string, name string) (*mov1al
 
 func (self *MogeniusV1alpha1) CreateAiModel(namespace string, name string, spec mov1alpha1.AiModelSpec) (*mov1alpha1.AiModel, error) {
 	res := &mov1alpha1.AiModel{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "AiModel",
-			APIVersion: "mogenius.com/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: spec,
+		Kind:       "AiModel",
+		APIVersion: "mogenius.com/v1alpha1",
+		Name:       name,
+		Namespace:  namespace,
+		Spec:       spec,
 	}
 	result := &mov1alpha1.AiModel{}
 	err := self.restClient.Post().Namespace(namespace).Resource("aimodels").Body(res).Do(context.Background()).Into(result)
@@ -567,15 +547,11 @@ func (self *MogeniusV1alpha1) GetMcpServer(namespace string, name string) (*mov1
 
 func (self *MogeniusV1alpha1) CreateMcpServer(namespace string, name string, spec mov1alpha1.McpServerSpec) (*mov1alpha1.McpServer, error) {
 	res := &mov1alpha1.McpServer{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "McpServer",
-			APIVersion: "mogenius.com/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: spec,
+		Kind:       "McpServer",
+		APIVersion: "mogenius.com/v1alpha1",
+		Name:       name,
+		Namespace:  namespace,
+		Spec:       spec,
 	}
 	result := &mov1alpha1.McpServer{}
 	err := self.restClient.Post().Namespace(namespace).Resource("mcpservers").Body(res).Do(context.Background()).Into(result)
@@ -658,15 +634,11 @@ func (self *MogeniusV1alpha1) GetWorkspace(namespace string, name string) (*mov1
 
 func (self *MogeniusV1alpha1) CreateWorkspace(namespace string, name string, spec mov1alpha1.WorkspaceSpec) (*mov1alpha1.Workspace, error) {
 	res := &mov1alpha1.Workspace{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Workspace",
-			APIVersion: "mogenius.com/v1alpha1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      name,
-			Namespace: namespace,
-		},
-		Spec: spec,
+		Kind:       "Workspace",
+		APIVersion: "mogenius.com/v1alpha1",
+		Name:       name,
+		Namespace:  namespace,
+		Spec:       spec,
 	}
 	result := &mov1alpha1.Workspace{}
 	err := self.restClient.Post().Namespace(namespace).Resource("workspaces").Body(res).Do(context.Background()).Into(result)

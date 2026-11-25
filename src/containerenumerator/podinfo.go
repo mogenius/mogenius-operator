@@ -2,6 +2,7 @@ package containerenumerator
 
 import (
 	"log/slog"
+	"maps"
 	"mogenius-operator/src/assert"
 	"net/url"
 	"slices"
@@ -114,9 +115,7 @@ func (self *PodInfo) SortedContainersWithFirstPid() []ContainerFirstPid {
 func PodProcesses(pods []PodInfo) map[ContainerId][]ProcessId {
 	data := map[ContainerId][]ProcessId{}
 	for _, pod := range pods {
-		for containerId, pids := range pod.Containers {
-			data[containerId] = pids
-		}
+		maps.Copy(data, pod.Containers)
 	}
 	return data
 }

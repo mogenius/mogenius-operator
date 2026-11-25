@@ -3,6 +3,7 @@ package kubernetes
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"mogenius-operator/src/utils"
@@ -101,12 +102,7 @@ func (n nodeFacts) kubeletContains(substrings ...string) bool {
 }
 
 func (n nodeFacts) nameIs(names ...string) bool {
-	for _, name := range names {
-		if n.name == name {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(names, n.name)
 }
 
 func (n nodeFacts) namePrefix(prefixes ...string) bool {
@@ -311,10 +307,8 @@ func GuessClusterProviderFromNodeList(nodes *core.NodeList) (utils.KubernetesPro
 
 	for _, ruleSet := range [][]providerRule{providerRules, genericInfrastructureRules} {
 		for _, rule := range ruleSet {
-			for _, node := range facts {
-				if rule.match(node) {
-					return rule.provider, nil
-				}
+			if slices.ContainsFunc(facts, rule.match) {
+				return rule.provider, nil
 			}
 		}
 	}

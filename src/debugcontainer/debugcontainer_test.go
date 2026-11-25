@@ -19,7 +19,7 @@ import (
 
 func podFixture(ephemeral []v1.EphemeralContainer, statuses []v1.ContainerStatus) *v1.Pod {
 	return &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "api-0", Namespace: "prod"},
+		Name: "api-0", Namespace: "prod",
 		Spec: v1.PodSpec{
 			Containers:          []v1.Container{{Name: "app", Image: "gcr.io/distroless/static"}},
 			EphemeralContainers: ephemeral,

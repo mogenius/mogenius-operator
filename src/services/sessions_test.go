@@ -75,8 +75,7 @@ func useLocalShell(t *testing.T) {
 			}
 			return 0, ctx.Err()
 		}
-		var exitErr *exec.ExitError
-		if errors.As(err, &exitErr) {
+		if exitErr, ok := errors.AsType[*exec.ExitError](err); ok {
 			if exitErr.ExitCode() < 0 {
 				// killed: what a container runtime reports as 128+signal
 				return SessionEndedExitCode, nil
@@ -105,8 +104,8 @@ func useLocalShell(t *testing.T) {
 
 func sessionRef(id string) SessionRequest {
 	return SessionRequest{
-		SessionPodRequest: SessionPodRequest{Namespace: "ns", Pod: "pod", UserEmail: "jane@example.com"},
-		SessionId:         id,
+		Namespace: "ns", Pod: "pod", UserEmail: "jane@example.com",
+		SessionId: id,
 	}
 }
 
@@ -286,10 +285,10 @@ func TestSessionInputReachesTheRunningCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 	// without a running command there is nothing to type into
-	if err := SendSessionInput(SessionInputRequest{SessionCommandRequest: SessionCommandRequest{SessionRequest: ref, CmdId: "nope"}}); err != ErrSessionCommandNotFound {
+	if err := SendSessionInput(SessionInputRequest{SessionRequest: ref, CmdId: "nope"}); err != ErrSessionCommandNotFound {
 		t.Errorf("input to unknown command = %v", err)
 	}
-	if err := SendSessionInput(SessionInputRequest{SessionCommandRequest: SessionCommandRequest{SessionRequest: ref, CmdId: started.CmdId}, Data: "hello\n"}); err != nil {
+	if err := SendSessionInput(SessionInputRequest{SessionRequest: ref, CmdId: started.CmdId, Data: "hello\n"}); err != nil {
 		t.Fatal(err)
 	}
 	var out bytes.Buffer
@@ -299,7 +298,7 @@ func TestSessionInputReachesTheRunningCommand(t *testing.T) {
 	if err != nil || outcome.ExitCode != 0 || out.String() != "got:hello\n" {
 		t.Errorf("out = %q exit = %d err = %v", out.String(), outcome.ExitCode, err)
 	}
-	if err := SendSessionInput(SessionInputRequest{SessionCommandRequest: SessionCommandRequest{SessionRequest: ref, CmdId: started.CmdId}, Data: "x"}); err != ErrSessionIdle {
+	if err := SendSessionInput(SessionInputRequest{SessionRequest: ref, CmdId: started.CmdId, Data: "x"}); err != ErrSessionIdle {
 		t.Errorf("input after the command ended = %v, want ErrSessionIdle", err)
 	}
 }
@@ -460,7 +459,7 @@ func TestSessionDeleteKillsTheCommandTree(t *testing.T) {
 		}
 		data, _ := os.ReadFile(pids)
 		children = children[:0]
-		for _, field := range strings.Fields(string(data)) {
+		for field := range strings.FieldsSeq(string(data)) {
 			if pid, err := strconv.Atoi(field); err == nil {
 				children = append(children, pid)
 			}

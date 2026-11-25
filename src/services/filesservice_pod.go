@@ -10,6 +10,7 @@ import (
 	"mogenius-operator/src/sandboxactivity"
 	"mogenius-operator/src/store"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -264,12 +265,7 @@ func operatorExecClients() *k8sexec.Clients {
 }
 
 func containsString(list []string, value string) bool {
-	for _, item := range list {
-		if item == value {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(list, value)
 }
 
 // checkReplaceTarget stats the file a replace is about to read with cat,

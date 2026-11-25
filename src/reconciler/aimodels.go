@@ -145,10 +145,8 @@ func (d *reconcilerModule) evaluateAiModel(ctx context.Context, model *v1alpha1.
 func (d *reconcilerModule) emitAiModelEvent(ctx context.Context, model *v1alpha1.AiModel, reason, message string) {
 	now := metav1.Now()
 	event := &corev1.Event{
-		ObjectMeta: metav1.ObjectMeta{
-			GenerateName: model.Name + ".",
-			Namespace:    model.Namespace,
-		},
+		GenerateName: model.Name + ".",
+		Namespace:    model.Namespace,
 		InvolvedObject: corev1.ObjectReference{
 			APIVersion: "mogenius.com/v1alpha1",
 			Kind:       "AiModel",

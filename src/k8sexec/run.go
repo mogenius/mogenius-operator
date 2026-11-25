@@ -127,8 +127,7 @@ func Stream(ctx context.Context, clients *Clients, req RunRequest, stdin io.Read
 	if err == nil {
 		return 0, nil
 	}
-	var codeErr utilexec.CodeExitError
-	if errors.As(err, &codeErr) {
+	if codeErr, ok := errors.AsType[utilexec.CodeExitError](err); ok {
 		return codeErr.Code, nil
 	}
 	if errors.Is(err, io.EOF) {
@@ -176,8 +175,7 @@ func StreamTTY(ctx context.Context, clients *Clients, req RunRequest, stdin io.R
 	if err == nil {
 		return 0, nil
 	}
-	var codeErr utilexec.CodeExitError
-	if errors.As(err, &codeErr) {
+	if codeErr, ok := errors.AsType[utilexec.CodeExitError](err); ok {
 		return codeErr.Code, nil
 	}
 	if errors.Is(err, io.EOF) {

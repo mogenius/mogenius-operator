@@ -24,7 +24,7 @@ func runListScript(t *testing.T, dir string) ([]string, error) {
 		return nil, err
 	}
 	var names []string
-	for _, name := range strings.Split(string(out), "\x00") {
+	for name := range strings.SplitSeq(string(out), "\x00") {
 		if name != "" {
 			names = append(names, name)
 		}

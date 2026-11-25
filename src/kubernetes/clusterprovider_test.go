@@ -3,13 +3,13 @@ package kubernetes
 import (
 	"io"
 	"log/slog"
+	"maps"
 	"testing"
 
 	"mogenius-operator/src/utils"
 
 	"github.com/stretchr/testify/assert"
 	core "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 type nodeSpec struct {
@@ -30,12 +30,10 @@ func nodeList(specs ...nodeSpec) *core.NodeList {
 			images = append(images, core.ContainerImage{Names: []string{image}})
 		}
 		list.Items = append(list.Items, core.Node{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:        spec.name,
-				Labels:      spec.labels,
-				Annotations: spec.annotations,
-			},
-			Spec: core.NodeSpec{ProviderID: spec.providerID},
+			Name:        spec.name,
+			Labels:      spec.labels,
+			Annotations: spec.annotations,
+			Spec:        core.NodeSpec{ProviderID: spec.providerID},
 			Status: core.NodeStatus{
 				NodeInfo: core.NodeSystemInfo{KubeletVersion: spec.kubelet, OSImage: spec.osImage},
 				Images:   images,
@@ -55,9 +53,7 @@ func commonLabels(hostname string, extra map[string]string) map[string]string {
 		"kubernetes.io/os":        "linux",
 		"kubernetes.io/hostname":  hostname,
 	}
-	for key, value := range extra {
-		labels[key] = value
-	}
+	maps.Copy(labels, extra)
 	return labels
 }
 

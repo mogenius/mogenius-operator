@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
 	"mogenius-operator/src/k8sclient"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -201,11 +202,7 @@ func mergePreferringOurs(theirs, ours map[string]string) map[string]string {
 		return ours
 	}
 	merged := make(map[string]string, len(theirs)+len(ours))
-	for key, value := range theirs {
-		merged[key] = value
-	}
-	for key, value := range ours {
-		merged[key] = value
-	}
+	maps.Copy(merged, theirs)
+	maps.Copy(merged, ours)
 	return merged
 }

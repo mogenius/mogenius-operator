@@ -18,13 +18,11 @@ const testNamespace = "mogenius"
 
 func managedRegistrySecret(data string) *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      registryCredentialsSecretName,
-			Namespace: testNamespace,
-			Labels:    map[string]string{registryCredentialsManagedByKey: registryCredentialsManagedByValue},
-		},
-		Type: corev1.SecretTypeDockerConfigJson,
-		Data: map[string][]byte{corev1.DockerConfigJsonKey: []byte(data)},
+		Name:      registryCredentialsSecretName,
+		Namespace: testNamespace,
+		Labels:    map[string]string{registryCredentialsManagedByKey: registryCredentialsManagedByValue},
+		Type:      corev1.SecretTypeDockerConfigJson,
+		Data:      map[string][]byte{corev1.DockerConfigJsonKey: []byte(data)},
 	}
 }
 

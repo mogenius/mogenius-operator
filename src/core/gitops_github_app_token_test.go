@@ -17,7 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -52,8 +51,8 @@ func githubAppCredential(t *testing.T, baseURL string, labels map[string]string,
 		data[k] = []byte(v)
 	}
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "platform-repository", Namespace: "argocd", Labels: labels},
-		Data:       data,
+		Name: "platform-repository", Namespace: "argocd", Labels: labels,
+		Data: data,
 	}
 }
 

@@ -25,7 +25,7 @@ const DEFAULT_AGENTS_MARKER_CONFIGMAP = "mogenius-ai-default-agents-seeded"
 func defaultAgents() []v1alpha1.Agent {
 	return []v1alpha1.Agent{
 		{
-			ObjectMeta: metav1.ObjectMeta{Name: "cluster-cleanup"},
+			Name: "cluster-cleanup",
 			Spec: v1alpha1.AgentSpec{
 				DisplayName: "Cluster Cleanup",
 				Description: "Finds leftover resources like finished jobs, empty replica sets and unused config that can be safely removed.",
@@ -38,7 +38,7 @@ func defaultAgents() []v1alpha1.Agent {
 			},
 		},
 		{
-			ObjectMeta: metav1.ObjectMeta{Name: "resource-optimizer"},
+			Name: "resource-optimizer",
 			Spec: v1alpha1.AgentSpec{
 				DisplayName: "Resource Optimizer",
 				Description: "Reviews CPU and memory requests/limits and proposes right-sizing for over- or under-provisioned workloads.",
@@ -51,7 +51,7 @@ func defaultAgents() []v1alpha1.Agent {
 			},
 		},
 		{
-			ObjectMeta: metav1.ObjectMeta{Name: "workload-doctor"},
+			Name: "workload-doctor",
 			Spec: v1alpha1.AgentSpec{
 				DisplayName: "Workload Doctor",
 				Description: "Reacts to crash-looping and image-pull failures, diagnoses the root cause and proposes a concrete fix.",
@@ -68,7 +68,7 @@ func defaultAgents() []v1alpha1.Agent {
 			},
 		},
 		{
-			ObjectMeta: metav1.ObjectMeta{Name: "security-auditor"},
+			Name: "security-auditor",
 			Spec: v1alpha1.AgentSpec{
 				DisplayName: "Security Auditor",
 				Description: "Audits workloads for risky settings like privileged containers, host mounts, latest tags and missing security contexts.",
@@ -81,7 +81,7 @@ func defaultAgents() []v1alpha1.Agent {
 			},
 		},
 		{
-			ObjectMeta: metav1.ObjectMeta{Name: "best-practices-advisor"},
+			Name: "best-practices-advisor",
 			Spec: v1alpha1.AgentSpec{
 				DisplayName: "Best Practices Advisor",
 				Description: "Checks workloads against operational best practices: probes, replica counts, update strategies and labels.",
@@ -128,11 +128,9 @@ func SeedDefaultAgents(logger *slog.Logger, config cfg.ConfigModule, clientProvi
 	}
 
 	marker := &v1.ConfigMap{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      DEFAULT_AGENTS_MARKER_CONFIGMAP,
-			Namespace: namespace,
-			Labels:    map[string]string{"app.kubernetes.io/managed-by": "mogenius-k8s-manager"},
-		},
+		Name:      DEFAULT_AGENTS_MARKER_CONFIGMAP,
+		Namespace: namespace,
+		Labels:    map[string]string{"app.kubernetes.io/managed-by": "mogenius-k8s-manager"},
 		Data: map[string]string{
 			"seededAt": time.Now().UTC().Format(time.RFC3339),
 			"agents":   fmt.Sprintf("%d", seeded),

@@ -39,9 +39,9 @@ func (self podProcessViewContainer) toStatus() coreV1.ContainerStatus {
 }
 
 func (self *podProcessView) toPod() coreV1.Pod {
-	pod := coreV1.Pod{}
-	pod.Namespace = self.Metadata.Namespace
-	pod.Name = self.Metadata.Name
+	pod := coreV1.Pod{
+		Namespace: self.Metadata.Namespace,
+		Name:      self.Metadata.Name}
 	pod.Spec.NodeName = self.Spec.NodeName
 	pod.Spec.HostNetwork = self.Spec.HostNetwork
 	pod.Status.PodIP = self.Status.PodIP

@@ -21,7 +21,7 @@ func TestPodProcessesSkipsSandboxAndUnreportedContainers(t *testing.T) {
 
 	now := metav1.Now()
 	pod := v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Namespace: "default", Name: "web"},
+		Namespace: "default", Name: "web",
 		Status: v1.PodStatus{
 			StartTime: &now,
 			ContainerStatuses: []v1.ContainerStatus{

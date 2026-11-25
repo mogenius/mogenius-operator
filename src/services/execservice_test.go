@@ -9,7 +9,6 @@ import (
 	"mogenius-operator/src/k8sexec"
 
 	v1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 )
 
@@ -70,12 +69,12 @@ func TestDebugContainerCwd(t *testing.T) {
 
 func TestResolveExecContainer(t *testing.T) {
 	pod := &v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{Name: "web", Namespace: "ns"},
+		Name: "web", Namespace: "ns",
 		Spec: v1.PodSpec{
 			Containers: []v1.Container{{Name: "app"}, {Name: "sidecar"}},
 			EphemeralContainers: []v1.EphemeralContainer{{
-				EphemeralContainerCommon: v1.EphemeralContainerCommon{Name: "mogenius-debug"},
-				TargetContainerName:      "app",
+				Name:                "mogenius-debug",
+				TargetContainerName: "app",
 			}},
 		},
 	}

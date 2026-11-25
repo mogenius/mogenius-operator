@@ -486,17 +486,15 @@ func TestUpsertGitOpsCredentialsRotatesInPlace(t *testing.T) {
 // mogenius-platform-bootstrap. Rotation has to adopt those, not refuse them.
 func TestUpsertGitOpsCredentialsAdoptsChartCreatedSecret(t *testing.T) {
 	client := fake.NewClientset(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      gitOpsWriteSecretName(testRepository),
-			Namespace: testNamespace,
-			Labels: map[string]string{
-				gitOpsWriteManagedByLabelKey: "mogenius",
-				gitOpsManagedByLabelKey:      "mogenius-platform-bootstrap",
-			},
-			Annotations: map[string]string{gitOpsWriteModeAnnotation: GitOpsWriteModePullRequest},
+		Name:      gitOpsWriteSecretName(testRepository),
+		Namespace: testNamespace,
+		Labels: map[string]string{
+			gitOpsWriteManagedByLabelKey: "mogenius",
+			gitOpsManagedByLabelKey:      "mogenius-platform-bootstrap",
 		},
-		Type: corev1.SecretTypeOpaque,
-		Data: map[string][]byte{gitOpsWriteSecretTokenKey: []byte("ghp_old")},
+		Annotations: map[string]string{gitOpsWriteModeAnnotation: GitOpsWriteModePullRequest},
+		Type:        corev1.SecretTypeOpaque,
+		Data:        map[string][]byte{gitOpsWriteSecretTokenKey: []byte("ghp_old")},
 	})
 
 	rotated := testCredentialsRequest()
@@ -516,11 +514,9 @@ func TestUpsertGitOpsCredentialsAdoptsChartCreatedSecret(t *testing.T) {
 // tlsClientCertData an operator added by hand must not be dropped.
 func TestUpsertGitOpsCredentialsPreservesForeignKeys(t *testing.T) {
 	client := fake.NewClientset(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      gitOpsReadSecretName(testRepository),
-			Namespace: testEngineNs,
-		},
-		Data: map[string][]byte{"tlsClientCertData": []byte("cert")},
+		Name:      gitOpsReadSecretName(testRepository),
+		Namespace: testEngineNs,
+		Data:      map[string][]byte{"tlsClientCertData": []byte("cert")},
 	})
 
 	upsertForTest(t, client, testCredentialsRequest())
@@ -534,10 +530,8 @@ func TestUpsertGitOpsCredentialsPreservesForeignKeys(t *testing.T) {
 // because stringData wins over data on the API server.
 func TestUpsertGitOpsCredentialsClearsShadowingStringData(t *testing.T) {
 	client := fake.NewClientset(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      gitOpsWriteSecretName(testRepository),
-			Namespace: testNamespace,
-		},
+		Name:       gitOpsWriteSecretName(testRepository),
+		Namespace:  testNamespace,
 		StringData: map[string]string{gitOpsWriteSecretTokenKey: "ghp_old"},
 	})
 
@@ -627,12 +621,10 @@ func TestUpsertGitOpsCredentialsResultNamesBothSecrets(t *testing.T) {
 // written over them would be replaced on the next reconcile anyway.
 func TestUpsertGitOpsCredentialsRefusesGitHubAppCredentials(t *testing.T) {
 	client := fake.NewClientset(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      gitOpsWriteSecretName(testRepository),
-			Namespace: testNamespace,
-			Labels:    map[string]string{gitops.GitHubAppLabelKey: gitops.GitHubAppLabelValue},
-		},
-		Data: map[string][]byte{gitOpsWriteSecretTokenKey: []byte("ghs_app")},
+		Name:      gitOpsWriteSecretName(testRepository),
+		Namespace: testNamespace,
+		Labels:    map[string]string{gitops.GitHubAppLabelKey: gitops.GitHubAppLabelValue},
+		Data:      map[string][]byte{gitOpsWriteSecretTokenKey: []byte("ghs_app")},
 	})
 
 	_, err := UpsertGitOpsCredentials(context.Background(), client, discardLogger(), testNamespace, testCredentialsRequest())

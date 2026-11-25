@@ -27,18 +27,14 @@ type testMount struct {
 // containers via a single volume named "data".
 func makePvcPod(name string, created time.Time, phase v1.PodPhase, claimName string, mounts []testMount) v1.Pod {
 	pod := v1.Pod{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:              name,
-			Namespace:         "test-ns",
-			CreationTimestamp: metav1.NewTime(created),
-		},
+		Name:              name,
+		Namespace:         "test-ns",
+		CreationTimestamp: metav1.NewTime(created),
 		Spec: v1.PodSpec{
 			Volumes: []v1.Volume{
 				{
-					Name: "data",
-					VolumeSource: v1.VolumeSource{
-						PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{ClaimName: claimName},
-					},
+					Name:                  "data",
+					PersistentVolumeClaim: &v1.PersistentVolumeClaimVolumeSource{ClaimName: claimName},
 				},
 			},
 		},

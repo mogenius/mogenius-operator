@@ -192,21 +192,19 @@ func nextName(pod *v1.Pod) string {
 // containers; they share the pod's headroom.
 func buildSpec(name, image, target string) v1.EphemeralContainer {
 	return v1.EphemeralContainer{
-		EphemeralContainerCommon: v1.EphemeralContainerCommon{
-			Name:            name,
-			Image:           image,
-			ImagePullPolicy: v1.PullIfNotPresent,
-			Command:         []string{"sh", "-c", "trap 'exit 0' TERM; while true; do sleep 3600 & wait $!; done"},
-			Stdin:           true,
-			TTY:             true,
-			SecurityContext: &v1.SecurityContext{
-				Privileged:               new(false),
-				AllowPrivilegeEscalation: new(false),
-				SeccompProfile:           &v1.SeccompProfile{Type: v1.SeccompProfileTypeRuntimeDefault},
-			},
-			TerminationMessagePolicy: v1.TerminationMessageReadFile,
+		Name:            name,
+		Image:           image,
+		ImagePullPolicy: v1.PullIfNotPresent,
+		Command:         []string{"sh", "-c", "trap 'exit 0' TERM; while true; do sleep 3600 & wait $!; done"},
+		Stdin:           true,
+		TTY:             true,
+		SecurityContext: &v1.SecurityContext{
+			Privileged:               new(false),
+			AllowPrivilegeEscalation: new(false),
+			SeccompProfile:           &v1.SeccompProfile{Type: v1.SeccompProfileTypeRuntimeDefault},
 		},
-		TargetContainerName: target,
+		TerminationMessagePolicy: v1.TerminationMessageReadFile,
+		TargetContainerName:      target,
 	}
 }
 

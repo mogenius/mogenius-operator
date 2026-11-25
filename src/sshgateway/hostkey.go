@@ -62,12 +62,10 @@ func loadOrCreateHostSigner(logger *slog.Logger, clientset k8s.Interface, namesp
 	pemBytes := pem.EncodeToMemory(block)
 
 	newSecret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      hostKeySecretName,
-			Namespace: namespace,
-			Labels:    map[string]string{hostKeyManagedByLabelKey: hostKeyManagedByLabelValue},
-		},
-		Data: map[string][]byte{hostKeySecretKey: pemBytes},
+		Name:      hostKeySecretName,
+		Namespace: namespace,
+		Labels:    map[string]string{hostKeyManagedByLabelKey: hostKeyManagedByLabelValue},
+		Data:      map[string][]byte{hostKeySecretKey: pemBytes},
 	}
 	_, err = secrets.Create(ctx, newSecret, metav1.CreateOptions{})
 	if err == nil {

@@ -40,13 +40,11 @@ func tlsSecret(t *testing.T, hostname string, now time.Time) corev1.Secret {
 	keyDER, err := x509.MarshalPKCS8PrivateKey(cert.PrivateKey)
 	require.NoError(t, err)
 	return corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:        certSecretName(hostname),
-			Namespace:   testNamespace,
-			Labels:      map[string]string{acmeManagedLabel: "true"},
-			Annotations: map[string]string{acmeHostnameAnnotation: hostname},
-		},
-		Type: corev1.SecretTypeTLS,
+		Name:        certSecretName(hostname),
+		Namespace:   testNamespace,
+		Labels:      map[string]string{acmeManagedLabel: "true"},
+		Annotations: map[string]string{acmeHostnameAnnotation: hostname},
+		Type:        corev1.SecretTypeTLS,
 		Data: map[string][]byte{
 			corev1.TLSCertKey:       pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Certificate[0]}),
 			corev1.TLSPrivateKeyKey: pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: keyDER}),
