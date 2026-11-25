@@ -63,6 +63,35 @@ func IncClusterEventDropped() {
 	clusterEventsDropped.Inc()
 }
 
+var watcherCachedObjects = promauto.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name: "mogenius_operator_watcher_cached_objects",
+		Help: "Objects held in the watcher's informer cache, per resource kind. A kind exceeding MO_WATCHER_MAX_OBJECTS_PER_KIND is stopped (see mogenius_operator_watcher_overflow).",
+	},
+	[]string{"apiVersion", "kind"},
+)
+
+// WatcherCachedObjects returns the cache-size gauge of one resource kind.
+func WatcherCachedObjects(apiVersion, kind string) prometheus.Gauge {
+	return watcherCachedObjects.WithLabelValues(apiVersion, kind)
+}
+
+var watcherOverflow = promauto.NewGaugeVec(
+	prometheus.GaugeOpts{
+		Name: "mogenius_operator_watcher_overflow",
+		Help: "1 while a resource kind is not watched because it holds more objects than MO_WATCHER_MAX_OBJECTS_PER_KIND (checked before the informer starts and while it runs), 0 otherwise.",
+	},
+	[]string{"apiVersion", "kind"},
+)
+
+func SetWatcherOverflow(apiVersion, kind string, overflow bool) {
+	value := 0.0
+	if overflow {
+		value = 1
+	}
+	watcherOverflow.WithLabelValues(apiVersion, kind).Set(value)
+}
+
 func IncAuditLogEventDropped() {
 	auditLogEventsDropped.Inc()
 }

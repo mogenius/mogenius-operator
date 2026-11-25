@@ -132,6 +132,22 @@ func LoadConfigDeclarations(configModule *config.Config) {
 		},
 	})
 	configModule.Declare(config.ConfigDeclaration{
+		Key:          "MO_WATCHER_MAX_OBJECTS_PER_KIND",
+		DefaultValue: new("50000"),
+		Description:  new("Resource kinds with more objects than this are not watched (no informer cache, nothing written to the store) until they shrink again; checked before an informer starts and while it runs. Protects the operator from running out of memory when a kind explodes (e.g. an event storm). 0 disables the check."),
+		Type:         new(config.ConfigVariableTypeInt),
+		Validate: func(value string) error {
+			n, err := strconv.Atoi(value)
+			if err != nil {
+				return fmt.Errorf("'MO_WATCHER_MAX_OBJECTS_PER_KIND' needs to be an integer: %s", err.Error())
+			}
+			if n < 0 {
+				return fmt.Errorf("'MO_WATCHER_MAX_OBJECTS_PER_KIND' must not be negative, got %d", n)
+			}
+			return nil
+		},
+	})
+	configModule.Declare(config.ConfigDeclaration{
 		Key:         "MO_EVENT_SERVER",
 		Description: new("URL of Event Server"),
 		Envs:        []string{"MO_EVENT_SERVER"},
