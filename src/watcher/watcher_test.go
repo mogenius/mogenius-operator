@@ -2,39 +2,24 @@ package watcher
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
-	"k8s.io/client-go/dynamic/dynamicinformer"
-	dynamicfake "k8s.io/client-go/dynamic/fake"
 )
 
-// newRoutingTestWatcher builds a watcher with two distinct factories so we can
-// assert that factoryForGVR routes Secrets to the dedicated (field-selector)
-// factory and everything else to the shared one.
-func newRoutingTestWatcher() (*watcher, dynamicinformer.DynamicSharedInformerFactory, dynamicinformer.DynamicSharedInformerFactory) {
-	client := dynamicfake.NewSimpleDynamicClient(runtime.NewScheme())
-	shared := dynamicinformer.NewFilteredDynamicSharedInformerFactory(client, time.Minute, metav1.NamespaceAll, nil)
-	secret := dynamicinformer.NewFilteredDynamicSharedInformerFactory(client, time.Minute, metav1.NamespaceAll, func(opts *metav1.ListOptions) {
-		opts.FieldSelector = secretWatchFieldSelector
-	})
-	return &watcher{factory: shared, secretFactory: secret}, shared, secret
-}
-
-func TestFactoryForGVR_RoutesSecretsToSecretFactory(t *testing.T) {
-	w, _, secret := newRoutingTestWatcher()
-
+func TestListOptionsTweak_FiltersHelmReleaseSecrets(t *testing.T) {
 	secretsGVR := schema.GroupVersionResource{Group: "", Version: "v1", Resource: "secrets"}
-	assert.Same(t, secret, w.factoryForGVR(secretsGVR),
-		"core/v1 Secret must route to the dedicated secretFactory")
+	tweak := listOptionsTweak(secretsGVR)
+	require.NotNil(t, tweak, "core/v1 Secrets must exclude Helm release secrets")
+
+	opts := metav1.ListOptions{}
+	tweak(&opts)
+	assert.Equal(t, "type!=helm.sh/release.v1", opts.FieldSelector)
 }
 
-func TestFactoryForGVR_RoutesOtherResourcesToSharedFactory(t *testing.T) {
-	w, shared, _ := newRoutingTestWatcher()
-
+func TestListOptionsTweak_LeavesOtherResourcesUnfiltered(t *testing.T) {
 	cases := []schema.GroupVersionResource{
 		{Group: "", Version: "v1", Resource: "pods"},
 		{Group: "", Version: "v1", Resource: "configmaps"},
@@ -44,8 +29,7 @@ func TestFactoryForGVR_RoutesOtherResourcesToSharedFactory(t *testing.T) {
 		{Group: "example.com", Version: "v1", Resource: "secrets"},
 	}
 	for _, gvr := range cases {
-		assert.Same(t, shared, w.factoryForGVR(gvr),
-			"non core/v1-Secret GVR %v must route to the shared factory", gvr)
+		assert.Nil(t, listOptionsTweak(gvr), "%v must not get a field selector", gvr)
 	}
 }
 

@@ -74,7 +74,9 @@ func initializeClusterSystems(
 	assert.Assert(base.clientProvider != nil)
 	assert.Assert(base.logger != nil)
 
-	watcherModule := watcher.NewWatcher(logManagerModule.CreateLogger("watcher"), base.clientProvider)
+	maxObjectsPerKind, err := configModule.TryGetInt("MO_WATCHER_MAX_OBJECTS_PER_KIND")
+	assert.Assert(err == nil, "MO_WATCHER_MAX_OBJECTS_PER_KIND must be a valid integer", err)
+	watcherModule := watcher.NewWatcher(logManagerModule.CreateLogger("watcher"), base.clientProvider, int(maxObjectsPerKind))
 	shutdown.Add(watcherModule.UnwatchAll)
 
 	skipTLS, _ := configModule.TryGetBool("MO_SKIP_TLS_VERIFICATION")

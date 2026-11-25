@@ -2,20 +2,26 @@ package watcher
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"mogenius-operator/src/assert"
 	"mogenius-operator/src/k8sclient"
+	"mogenius-operator/src/metrics"
 	"mogenius-operator/src/utils"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/dynamic/dynamicinformer"
 	"k8s.io/client-go/metadata"
 	"k8s.io/client-go/metadata/metadatainformer"
@@ -29,7 +35,7 @@ import (
 // syncs and the cache stays empty. These secrets are never read from the
 // operator's store (Helm uses its own storage driver, which talks to the
 // API directly), so they are excluded server-side via a field selector on
-// a dedicated informer factory for Secrets.
+// the Secret informer (see listOptionsTweak).
 const helmReleaseSecretType = "helm.sh/release.v1"
 const secretWatchFieldSelector = "type!=" + helmReleaseSecretType
 
@@ -106,6 +112,11 @@ const (
 	Watching            WatcherResourceState = "Watching"
 	WatcherInitializing WatcherResourceState = "WatcherInitializing"
 	WatchingFailed      WatcherResourceState = "WatchingFailed"
+	// WatchingOverflow: the kind holds more objects than maxObjectsPerKind,
+	// so no informer was started for it (see checkObjectLimit). It counts as
+	// settled for OnSynced so the store can still go ready without it, and is
+	// re-checked every slowRetryInterval.
+	WatchingOverflow WatcherResourceState = "Overflow"
 )
 
 // objectSubscriptionKey identifies a specific Kubernetes object for targeted event subscriptions.
@@ -128,32 +139,19 @@ type watcher struct {
 	handlers   map[utils.ResourceDescriptor][]*weightedHandler
 	handlerSeq int
 
-	// Shared informer machinery. The previous code built a brand-new
-	// DynamicSharedInformerFactory per Watch() call - so "Shared" in the
-	// name shared nothing. With ~80 watched resource kinds (default API
-	// server + CRDs) that was ~80 separate factories, each with its own
-	// reflector goroutine and HTTP/2 watch stream to the API server.
-	// One factory backs every Watch now; informers within it are looked
-	// up by GVR (factory.ForResource returns the same instance on repeat
-	// calls).
-	factory dynamicinformer.DynamicSharedInformerFactory
-	// secretFactory is a dedicated factory used only for the Secret GVR. It
-	// carries a field selector that excludes Helm release-history secrets
-	// (see secretWatchFieldSelector). It must be separate from `factory`
-	// because the field selector references the `type` field, which only
-	// Secrets expose - applying it to the shared factory would break the
-	// List/Watch of every other resource kind.
-	secretFactory dynamicinformer.DynamicSharedInformerFactory
-	// factoryStopCh is allocated but intentionally never closed by this
-	// package - the shared factory runs for the watcher's lifetime, the
-	// OS reclaims its reflectors at process exit. Closing it from
-	// UnwatchAll would break leader-election Stop/Start cycles (see the
-	// comment in UnwatchAll for context).
-	factoryStopCh chan struct{}
-	// informersConfigured tracks which informers have had their Transform
-	// and WatchErrorHandler set. Both can only be set before the informer
-	// is started, and only need to be set once per GVR.
-	informersConfigured map[schema.GroupVersionResource]bool
+	// informers holds one running informer per GVR, guarded by
+	// handlerMapLock. Every Watch of the same GVR shares it (the previous
+	// code built a factory per Watch() call, ~80 reflectors and watch streams
+	// for one cluster). Each informer has its own stop channel rather than
+	// living in a shared factory, so the object limit can stop exactly the
+	// informer that grew too large and release its cache (see
+	// stopOverflowingInformer). Informers otherwise run for the watcher's
+	// lifetime: Unwatch only detaches handlers, so a leader-election
+	// Stop/Start cycle reuses the warm cache.
+	informers map[schema.GroupVersionResource]*informerEntry
+	// helmSecretsStopCh is never closed: the Helm release secret informer
+	// (WatchHelmReleaseSecrets) runs for the process lifetime.
+	helmSecretsStopCh chan struct{}
 
 	objectSubsMu     sync.RWMutex
 	objectSubsAdd    map[objectSubscriptionKey][]func(*unstructured.Unstructured)
@@ -161,32 +159,55 @@ type watcher struct {
 	objectSubsDelete map[objectSubscriptionKey][]func(*unstructured.Unstructured)
 
 	// syncedCallbacks holds per-resource callbacks fired once when the
-	// informer cache sync completes (state transitions to Watching).
+	// informer cache sync completes (state transitions to Watching) or the
+	// kind is given up as too large (WatchingOverflow).
 	syncedCallbacks map[utils.ResourceDescriptor][]func()
+
+	// dynamicClient backs every informer and the object-count probe.
+	dynamicClient dynamic.Interface
+
+	// maxObjectsPerKind is the object count above which a kind is not
+	// watched; 0 disables the limit. See checkObjectLimit and
+	// stopOverflowingInformer.
+	maxObjectsPerKind int
+	// overflowRecheckInterval is how often an overflowing kind is probed
+	// again (slowRetryInterval; tests shorten it).
+	overflowRecheckInterval time.Duration
 }
 
-func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider) WatcherModule {
+// informerEntry is one running informer. objects counts the cached objects
+// (adds minus deletes) so the object limit can be enforced at runtime
+// without listing the cache.
+type informerEntry struct {
+	informer     cache.SharedIndexInformer
+	stopCh       chan struct{}
+	stopOnce     sync.Once
+	objects      atomic.Int64
+	overflowedAt atomic.Int64
+	gauge        prometheus.Gauge
+}
+
+// NewWatcher creates the watcher module. Kinds holding more than
+// maxObjectsPerKind objects are not watched (0 disables the limit).
+func NewWatcher(logger *slog.Logger, clientProvider k8sclient.K8sClientProvider, maxObjectsPerKind int) WatcherModule {
+	self := newWatcher(logger, clientProvider.DynamicClient(), maxObjectsPerKind)
+	self.clientProvider = clientProvider
+	return self
+}
+
+// newWatcher builds the watcher on a dynamic client alone, so tests can run
+// it against a fake. clientProvider is left nil; only WatchHelmReleaseSecrets
+// needs it.
+func newWatcher(logger *slog.Logger, dynamicClient dynamic.Interface, maxObjectsPerKind int) *watcher {
 	self := &watcher{}
+	self.maxObjectsPerKind = maxObjectsPerKind
+	self.dynamicClient = dynamicClient
 	self.handlerMapLock = sync.RWMutex{}
 	self.activeHandlers = make(map[utils.ResourceDescriptor]resourceContext, 0)
-	self.clientProvider = clientProvider
 	self.logger = logger
-	self.factoryStopCh = make(chan struct{})
-	self.factory = dynamicinformer.NewFilteredDynamicSharedInformerFactory(
-		clientProvider.DynamicClient(),
-		utils.ResourceResyncTime,
-		v1.NamespaceAll,
-		nil,
-	)
-	self.secretFactory = dynamicinformer.NewFilteredDynamicSharedInformerFactory(
-		clientProvider.DynamicClient(),
-		utils.ResourceResyncTime,
-		v1.NamespaceAll,
-		func(opts *metav1.ListOptions) {
-			opts.FieldSelector = secretWatchFieldSelector
-		},
-	)
-	self.informersConfigured = make(map[schema.GroupVersionResource]bool)
+	self.informers = make(map[schema.GroupVersionResource]*informerEntry)
+	self.helmSecretsStopCh = make(chan struct{})
+	self.overflowRecheckInterval = slowRetryInterval
 	self.objectSubsAdd = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
 	self.objectSubsUpdate = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
 	self.objectSubsDelete = make(map[objectSubscriptionKey][]func(*unstructured.Unstructured))
@@ -275,6 +296,10 @@ func (self *watcher) Watch(resource utils.ResourceDescriptor, weight int, onAdd 
 	}, nil
 }
 
+// slowRetryInterval is the retry pace of a watcher that keeps failing after
+// its fast retries, and the re-check pace of an overflowing kind.
+const slowRetryInterval = time.Minute * 5
+
 func (self *watcher) watchWithRetry(ctx context.Context, resource utils.ResourceDescriptor) {
 	// Backoff strategy: start at 1s, double up to 2min ("fast retry").
 	// After fastRetryAttempts of fast retries without success, switch to
@@ -287,7 +312,6 @@ func (self *watcher) watchWithRetry(ctx context.Context, resource utils.Resource
 		fastRetryAttempts  = 20
 		fastBackoffInitial = time.Second
 		fastBackoffMax     = time.Minute * 2
-		slowRetryInterval  = time.Minute * 5
 	)
 	backoff := fastBackoffInitial
 	retryCount := 0
@@ -317,6 +341,26 @@ func (self *watcher) watchWithRetry(ctx context.Context, resource utils.Resource
 				self.logger.Warn("Watcher completed successfully (this should not happen)", "resource", resource)
 				return
 			}
+
+			// Too many objects: not a failure to retry fast but a deliberate
+			// refusal. Re-check on the slow lane until the kind shrinks.
+			var limitErr *objectLimitError
+			if errors.As(err, &limitErr) {
+				if self.markOverflow(resource) {
+					self.logger.Error("Resource kind holds too many objects, not watching it to protect the operator from running out of memory; it is re-checked every few minutes",
+						"resource", resource, "objects", limitErr.count, "limit", limitErr.limit,
+						"recheckInterval", self.overflowRecheckInterval)
+				}
+				retryCount = 0
+				backoff = fastBackoffInitial
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(self.overflowRecheckInterval):
+				}
+				continue
+			}
+
 			retryCount++
 			self.setWatcherState(resource, WatchingFailed)
 
@@ -353,109 +397,172 @@ func (self *watcher) watchWithRetry(ctx context.Context, resource utils.Resource
 	}
 }
 
-// registerAndStartInformer holds handlerMapLock across ForResource,
-// SetTransform, SetWatchErrorHandler and factory.Start so a concurrent
-// Watch call can't get its informer started by our factory.Start while
-// it's still mid-configuration. See the comment in startSingleWatcher
-// for the race this prevents.
-func (self *watcher) registerAndStartInformer(gvr schema.GroupVersionResource, resource utils.ResourceDescriptor) (cache.SharedIndexInformer, error) {
+// registerAndStartInformer returns the running informer for gvr, creating,
+// configuring and starting it on first use. It holds handlerMapLock for the
+// whole sequence so two concurrent Watch calls of the same GVR cannot both
+// create one.
+func (self *watcher) registerAndStartInformer(gvr schema.GroupVersionResource, resource utils.ResourceDescriptor) (*informerEntry, error) {
 	self.handlerMapLock.Lock()
 	defer self.handlerMapLock.Unlock()
 
-	// Secrets are watched through a dedicated factory carrying a field
-	// selector that drops Helm release-history secrets; every other kind
-	// uses the shared factory. The factory.Start race documented in
-	// startSingleWatcher is per-factory, so isolating Secrets onto their
-	// own factory preserves that invariant.
-	factory := self.factoryForGVR(gvr)
-	resourceInformer := factory.ForResource(gvr).Informer()
-
-	if !self.informersConfigured[gvr] {
-		// The transform is the only place that may mutate an object: it runs
-		// once, before the object enters the informer cache. Event handlers
-		// receive the cached pointer and share it with every other handler,
-		// with the resync path and with the goroutines that marshal it, so
-		// any write there is a concurrent map write.
-		//
-		// Strip large metadata fields to reduce in-process memory usage.
-		// managedFields (server-side apply tracking) and
-		// last-applied-configuration are never used by event handlers and
-		// can be several KB per object.
-		//
-		// Stamp apiVersion/kind while we are here: Unstructured objects from
-		// the dynamic client frequently arrive with empty TypeMeta, and the
-		// store persists it so cross-kind readers can call GetKind().
-		apiVersion, kind := resource.ApiVersion, resource.Kind
-		if err := resourceInformer.SetTransform(func(obj any) (any, error) {
-			if u, ok := obj.(*unstructured.Unstructured); ok {
-				u.SetManagedFields(nil)
-				annotations := u.GetAnnotations()
-				delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
-				u.SetAnnotations(annotations)
-				if u.GetAPIVersion() == "" {
-					u.SetAPIVersion(apiVersion)
-				}
-				if u.GetKind() == "" {
-					u.SetKind(kind)
-				}
-			}
-			return obj, nil
-		}); err != nil {
-			return nil, fmt.Errorf("failed to set transform: %s", err)
-		}
-		if err := resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
-			if err == io.EOF {
-				self.logger.Debug("Watch connection closed normally", "resource", resource)
-				return
-			}
-			if strings.Contains(err.Error(), "the server could not find the requested resource") {
-				return
-			}
-			self.logger.Error("Encountered error while watching resource",
-				"resourceName", resource.Plural,
-				"resourceKind", resource.Kind,
-				"resourceGroupVersion", resource.ApiVersion,
-				"error", err)
-		}); err != nil {
-			return nil, fmt.Errorf("failed to set error watch handler: %s", err)
-		}
-		self.informersConfigured[gvr] = true
+	if entry, ok := self.informers[gvr]; ok {
+		return entry, nil
 	}
 
-	// Start the selected factory under the same lock. Idempotent for
-	// already-running informers; this newly-registered one is launched.
-	factory.Start(self.factoryStopCh)
+	resourceInformer := dynamicinformer.NewFilteredDynamicInformer(
+		self.dynamicClient,
+		gvr,
+		v1.NamespaceAll,
+		utils.ResourceResyncTime,
+		cache.Indexers{cache.NamespaceIndex: cache.MetaNamespaceIndexFunc},
+		listOptionsTweak(gvr),
+	).Informer()
 
-	return resourceInformer, nil
+	// The transform is the only place that may mutate an object: it runs
+	// once, before the object enters the informer cache. Event handlers
+	// receive the cached pointer and share it with every other handler,
+	// with the resync path and with the goroutines that marshal it, so
+	// any write there is a concurrent map write.
+	//
+	// Strip large metadata fields to reduce in-process memory usage.
+	// managedFields (server-side apply tracking) and
+	// last-applied-configuration are never used by event handlers and
+	// can be several KB per object.
+	//
+	// Stamp apiVersion/kind while we are here: Unstructured objects from
+	// the dynamic client frequently arrive with empty TypeMeta, and the
+	// store persists it so cross-kind readers can call GetKind().
+	if err := resourceInformer.SetTransform(func(obj any) (any, error) {
+		if u, ok := obj.(*unstructured.Unstructured); ok {
+			prepareObject(u, resource)
+		}
+		return obj, nil
+	}); err != nil {
+		return nil, fmt.Errorf("failed to set transform: %s", err)
+	}
+	if err := resourceInformer.SetWatchErrorHandler(func(r *cache.Reflector, err error) {
+		if err == io.EOF {
+			self.logger.Debug("Watch connection closed normally", "resource", resource)
+			return
+		}
+		if strings.Contains(err.Error(), "the server could not find the requested resource") {
+			return
+		}
+		self.logger.Error("Encountered error while watching resource",
+			"resourceName", resource.Plural,
+			"resourceKind", resource.Kind,
+			"resourceGroupVersion", resource.ApiVersion,
+			"error", err)
+	}); err != nil {
+		return nil, fmt.Errorf("failed to set error watch handler: %s", err)
+	}
+
+	entry := &informerEntry{
+		informer: resourceInformer,
+		stopCh:   make(chan struct{}),
+		gauge:    metrics.WatcherCachedObjects(resource.ApiVersion, resource.Kind),
+	}
+	// Registered before Run, so it counts every object from the initial
+	// list on. A relist emits deletes for vanished objects, so adds minus
+	// deletes stays the cache size.
+	if _, err := resourceInformer.AddEventHandler(cache.ResourceEventHandlerFuncs{
+		AddFunc: func(any) {
+			count := entry.objects.Add(1)
+			entry.gauge.Set(float64(count))
+			if self.maxObjectsPerKind > 0 && count > int64(self.maxObjectsPerKind) {
+				// async: stopping takes handlerMapLock, which a Watch call
+				// may hold while waiting on this informer
+				go self.stopOverflowingInformer(gvr, entry, count)
+			}
+		},
+		DeleteFunc: func(any) {
+			entry.gauge.Set(float64(entry.objects.Add(-1)))
+		},
+	}); err != nil {
+		return nil, fmt.Errorf("failed to add object counter: %s", err)
+	}
+
+	self.informers[gvr] = entry
+	go resourceInformer.Run(entry.stopCh)
+	return entry, nil
 }
 
-// factoryForGVR returns the informer factory responsible for the given GVR.
-// The core/v1 Secret GVR is routed to secretFactory (which excludes Helm
-// release-history secrets via a field selector); everything else uses the
-// shared factory.
-func (self *watcher) factoryForGVR(gvr schema.GroupVersionResource) dynamicinformer.DynamicSharedInformerFactory {
-	if gvr.Group == "" && gvr.Version == "v1" && gvr.Resource == "secrets" {
-		return self.secretFactory
+// stopOverflowingInformer stops an informer whose cache grew past the object
+// limit and forgets it, so its cached objects can be garbage collected. The
+// startSingleWatcher waiting on it sees stopCh close and reports the kind
+// as overflowing; watchWithRetry then re-checks it on the slow lane.
+func (self *watcher) stopOverflowingInformer(gvr schema.GroupVersionResource, entry *informerEntry, count int64) {
+	entry.stopOnce.Do(func() {
+		entry.overflowedAt.Store(count)
+
+		self.handlerMapLock.Lock()
+		if self.informers[gvr] == entry {
+			delete(self.informers, gvr)
+		}
+		self.forgetInformerLocked(entry)
+		self.handlerMapLock.Unlock()
+
+		close(entry.stopCh)
+		entry.gauge.Set(0)
+	})
+}
+
+// forgetInformerLocked drops every resourceContext reference to a stopped
+// informer so its cache can be garbage collected. Caller holds
+// handlerMapLock.
+func (self *watcher) forgetInformerLocked(entry *informerEntry) {
+	for resource, rc := range self.activeHandlers {
+		if rc.informer == entry.informer {
+			rc.informer = nil
+			rc.handler = nil
+			self.activeHandlers[resource] = rc
+		}
 	}
-	return self.factory
+}
+
+// listOptionsTweak returns the server-side filter for gvr. Helm stores up to
+// 10 history revisions per release as Secrets of type helm.sh/release.v1;
+// they dominate the Secret list in clusters with many releases and are never
+// read from the operator's store, so the Secret informer excludes them. The
+// field selector only exists on Secrets, every other kind is unfiltered.
+func listOptionsTweak(gvr schema.GroupVersionResource) dynamicinformer.TweakListOptionsFunc {
+	if gvr.Group == "" && gvr.Version == "v1" && gvr.Resource == "secrets" {
+		return func(opts *metav1.ListOptions) {
+			opts.FieldSelector = secretWatchFieldSelector
+		}
+	}
+	return nil
+}
+
+// prepareObject strips metadata no handler reads and stamps TypeMeta. It runs
+// in the informer transform, before an object is shared with handlers -
+// afterwards the object is read-only.
+func prepareObject(u *unstructured.Unstructured, resource utils.ResourceDescriptor) {
+	u.SetManagedFields(nil)
+	annotations := u.GetAnnotations()
+	delete(annotations, "kubectl.kubernetes.io/last-applied-configuration")
+	u.SetAnnotations(annotations)
+	if u.GetAPIVersion() == "" {
+		u.SetAPIVersion(resource.ApiVersion)
+	}
+	if u.GetKind() == "" {
+		u.SetKind(resource.Kind)
+	}
 }
 
 func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.ResourceDescriptor) error {
-	// IMPORTANT: ForResource + SetTransform + factory.Start MUST be
-	// atomic under handlerMapLock. factory.Start iterates over every
-	// informer currently registered on the factory, starts the ones not
-	// yet running, and marks them as started. If goroutine A registers
-	// informer A and calls Start while goroutine B has just called
-	// ForResource(B) (which adds B to the factory's map) but not yet
-	// SetTransform, then A's Start also runs B - B's SetTransform then
-	// fails with "informer has already started" and B is permanently
-	// unwatched until process restart. Holding the lock around the
-	// whole register-configure-start sequence eliminates the window.
 	gvr := self.createGroupVersionResource(resource.ApiVersion, resource.Plural)
-	resourceInformer, err := self.registerAndStartInformer(gvr, resource)
+
+	if err := self.checkObjectLimit(ctx, gvr); err != nil {
+		return err
+	}
+	self.clearOverflow(resource)
+
+	entry, err := self.registerAndStartInformer(gvr, resource)
 	if err != nil {
 		return err
 	}
+	resourceInformer := entry.informer
 
 	toUnstructured := func(obj any) (*unstructured.Unstructured, bool) {
 		if u, ok := obj.(*unstructured.Unstructured); ok {
@@ -476,15 +583,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 				self.logger.Warn("failed to deserialize", "type", fmt.Sprintf("%T", obj))
 				return
 			}
-			self.handlersMu.RLock()
-			hs := append([]*weightedHandler(nil), self.handlers[resource]...)
-			self.handlersMu.RUnlock()
-			for _, h := range hs {
-				if h.onAdd != nil {
-					h.onAdd(resource, unstructuredObj)
-				}
-			}
-			self.fireObjectSubs(self.objectSubsAdd, unstructuredObj)
+			self.fanOutAdd(resource, unstructuredObj)
 		},
 		UpdateFunc: func(oldObj, newObj any) {
 			oldUnstructuredObj, ok := toUnstructured(oldObj)
@@ -497,24 +596,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 				self.logger.Warn("failed to deserialize new object", "type", fmt.Sprintf("%T", newObj))
 				return
 			}
-			// Always invoke all onUpdate callbacks, even on resync (same
-			// resourceVersion) - the store-write handler needs the resync to
-			// refresh the Valkey TTL; each callback filters phantom events
-			// for its own downstream work (event server, AI, reconcilers).
-			self.handlersMu.RLock()
-			hs := append([]*weightedHandler(nil), self.handlers[resource]...)
-			self.handlersMu.RUnlock()
-			for _, h := range hs {
-				if h.onUpdate != nil {
-					h.onUpdate(resource, oldUnstructuredObj, newUnstructuredObj)
-				}
-			}
-			// Named-object subscribers (e.g. AI filter ConfigMap reload)
-			// do NOT want resync phantoms.
-			if oldUnstructuredObj.GetResourceVersion() == newUnstructuredObj.GetResourceVersion() {
-				return
-			}
-			self.fireObjectSubs(self.objectSubsUpdate, newUnstructuredObj)
+			self.fanOutUpdate(resource, oldUnstructuredObj, newUnstructuredObj)
 		},
 		DeleteFunc: func(obj any) {
 			unstructuredObj, ok := toUnstructured(obj)
@@ -522,15 +604,7 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 				self.logger.Warn("failed to deserialize", "type", fmt.Sprintf("%T", obj))
 				return
 			}
-			self.handlersMu.RLock()
-			hs := append([]*weightedHandler(nil), self.handlers[resource]...)
-			self.handlersMu.RUnlock()
-			for _, h := range hs {
-				if h.onDelete != nil {
-					h.onDelete(resource, unstructuredObj)
-				}
-			}
-			self.fireObjectSubs(self.objectSubsDelete, unstructuredObj)
+			self.fanOutDelete(resource, unstructuredObj)
 		},
 	})
 	if err != nil {
@@ -553,6 +627,9 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 	}()
 
 	select {
+	case <-entry.stopCh:
+		// grew past the object limit while syncing
+		return self.overflowError(entry)
 	case <-syncCtx.Done():
 		_ = resourceInformer.RemoveEventHandler(handler)
 		self.setWatcherState(resource, WatchingFailed)
@@ -568,14 +645,157 @@ func (self *watcher) startSingleWatcher(ctx context.Context, resource utils.Reso
 	self.logger.Debug("Watcher cache synced successfully", "resource", resource)
 	self.setWatcherState(resource, Watching)
 
-	// Block until Unwatch cancels ctx. The shared informer keeps running
-	// in the factory even after we leave - any future Watch on the same
-	// GVR will reuse the cached state. We just remove our event handler.
-	<-ctx.Done()
+	// Block until Unwatch cancels ctx or the informer is stopped for
+	// exceeding the object limit. On Unwatch the informer keeps running -
+	// any future Watch on the same GVR reuses the cached state; we just
+	// remove our event handler.
+	select {
+	case <-entry.stopCh:
+		return self.overflowError(entry)
+	case <-ctx.Done():
+	}
 	_ = resourceInformer.RemoveEventHandler(handler)
 
 	self.logger.Info("Stopping watcher", "resource", resource)
 	return nil
+}
+
+// overflowError describes why a stopped informer was stopped. It also drops
+// the resourceContext reference again: the informer may have been stopped
+// before startSingleWatcher stored it (overflow during the initial sync), and
+// that reference would keep the whole cache alive while the kind overflows.
+func (self *watcher) overflowError(entry *informerEntry) error {
+	self.handlerMapLock.Lock()
+	self.forgetInformerLocked(entry)
+	self.handlerMapLock.Unlock()
+	return &objectLimitError{count: int(entry.overflowedAt.Load()), limit: self.maxObjectsPerKind}
+}
+
+// fanOutAdd delivers an added object to every registered handler in weight
+// order, then to the per-object subscribers.
+func (self *watcher) fanOutAdd(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
+	for _, h := range self.handlersFor(resource) {
+		if h.onAdd != nil {
+			h.onAdd(resource, obj)
+		}
+	}
+	self.fireObjectSubs(self.objectSubsAdd, obj)
+}
+
+// fanOutUpdate delivers an update to every registered handler in weight order.
+// All onUpdate callbacks run even on resync (same resourceVersion) - the
+// store-write handler needs the resync to refresh the Valkey TTL; each
+// callback filters phantom events for its own downstream work (event server,
+// AI, reconcilers). Named-object subscribers (e.g. AI filter ConfigMap
+// reload) do NOT get resync phantoms.
+func (self *watcher) fanOutUpdate(resource utils.ResourceDescriptor, oldObj, newObj *unstructured.Unstructured) {
+	for _, h := range self.handlersFor(resource) {
+		if h.onUpdate != nil {
+			h.onUpdate(resource, oldObj, newObj)
+		}
+	}
+	if oldObj.GetResourceVersion() == newObj.GetResourceVersion() {
+		return
+	}
+	self.fireObjectSubs(self.objectSubsUpdate, newObj)
+}
+
+// fanOutDelete delivers a deleted object to every registered handler in
+// weight order, then to the per-object subscribers.
+func (self *watcher) fanOutDelete(resource utils.ResourceDescriptor, obj *unstructured.Unstructured) {
+	for _, h := range self.handlersFor(resource) {
+		if h.onDelete != nil {
+			h.onDelete(resource, obj)
+		}
+	}
+	self.fireObjectSubs(self.objectSubsDelete, obj)
+}
+
+// handlersFor returns a snapshot of the resource's handlers, so callbacks run
+// without holding handlersMu (a callback may call Watch).
+func (self *watcher) handlersFor(resource utils.ResourceDescriptor) []*weightedHandler {
+	self.handlersMu.RLock()
+	defer self.handlersMu.RUnlock()
+	return append([]*weightedHandler(nil), self.handlers[resource]...)
+}
+
+// objectLimitError reports a kind that holds more objects than the watcher
+// is allowed to cache.
+type objectLimitError struct {
+	count int
+	limit int
+}
+
+func (e *objectLimitError) Error() string {
+	return fmt.Sprintf("resource holds %d objects, more than the limit of %d", e.count, e.limit)
+}
+
+// checkObjectLimit counts the kind's objects with a single LIST of one item
+// (the API server reports the rest as remainingItemCount) and refuses to
+// start an informer when there are more than maxObjectsPerKind. The informer's
+// initial LIST loads every object into memory at once, before any handler
+// could count them, so an oversized kind has to be caught here; growth after
+// the start is caught by the counter in registerAndStartInformer.
+//
+// A running informer is not checked again: its counter covers it. Errors of the probe itself are not fatal - the informer
+// runs into the same error and reports it through the usual retry path.
+func (self *watcher) checkObjectLimit(ctx context.Context, gvr schema.GroupVersionResource) error {
+	if self.maxObjectsPerKind <= 0 {
+		return nil
+	}
+	self.handlerMapLock.RLock()
+	_, running := self.informers[gvr]
+	self.handlerMapLock.RUnlock()
+	if running {
+		return nil
+	}
+
+	opts := metav1.ListOptions{Limit: 1}
+	if tweak := listOptionsTweak(gvr); tweak != nil {
+		tweak(&opts)
+	}
+	probeCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	list, err := self.dynamicClient.Resource(gvr).List(probeCtx, opts)
+	if err != nil {
+		self.logger.Debug("object count probe failed, starting the informer anyway", "gvr", gvr.String(), "error", err)
+		return nil
+	}
+	count, known := listObjectCount(list)
+	if known && count > self.maxObjectsPerKind {
+		return &objectLimitError{count: count, limit: self.maxObjectsPerKind}
+	}
+	return nil
+}
+
+// listObjectCount returns the total number of objects behind a (possibly
+// paginated) list response. known is false when the server did not report
+// remainingItemCount although more pages exist.
+func listObjectCount(list *unstructured.UnstructuredList) (count int, known bool) {
+	count = len(list.Items)
+	if remaining := list.GetRemainingItemCount(); remaining != nil {
+		return count + int(*remaining), true
+	}
+	return count, list.GetContinue() == ""
+}
+
+// markOverflow switches the resource to WatchingOverflow and reports whether
+// it was not in that state before (so the caller logs only the transition).
+func (self *watcher) markOverflow(resource utils.ResourceDescriptor) bool {
+	previous, _ := self.State(resource)
+	self.setWatcherState(resource, WatchingOverflow)
+	metrics.SetWatcherOverflow(resource.ApiVersion, resource.Kind, true)
+	return previous != WatchingOverflow
+}
+
+// clearOverflow resets the overflow gauge once a kind fits the limit again.
+func (self *watcher) clearOverflow(resource utils.ResourceDescriptor) {
+	if state, _ := self.State(resource); state != WatchingOverflow {
+		return
+	}
+	self.setWatcherState(resource, WatcherInitializing)
+	metrics.SetWatcherOverflow(resource.ApiVersion, resource.Kind, false)
+	self.logger.Info("Resource kind is below the object limit again, watching it", "resource", resource)
 }
 
 func (self *watcher) setWatcherState(resource utils.ResourceDescriptor, state WatcherResourceState) {
@@ -587,7 +807,7 @@ func (self *watcher) setWatcherState(resource utils.ResourceDescriptor, state Wa
 		self.activeHandlers[resource] = resourceContext
 	}
 
-	if state == Watching {
+	if state == Watching || state == WatchingOverflow {
 		cbs := self.syncedCallbacks[resource]
 		delete(self.syncedCallbacks, resource)
 		for _, cb := range cbs {
@@ -600,7 +820,7 @@ func (self *watcher) OnSynced(resource utils.ResourceDescriptor, cb func()) {
 	self.handlerMapLock.Lock()
 	defer self.handlerMapLock.Unlock()
 
-	if ctx, ok := self.activeHandlers[resource]; ok && ctx.state == Watching {
+	if ctx, ok := self.activeHandlers[resource]; ok && (ctx.state == Watching || ctx.state == WatchingOverflow) {
 		go cb()
 		return
 	}
@@ -712,25 +932,25 @@ func (self *watcher) UnwatchAll() {
 			self.logger.Error("failed to unwatch resource", "resource", resource, "error", err)
 		}
 	}
-	// Intentionally do NOT close factoryStopCh here. UnwatchAll is invoked
+	// Intentionally do NOT stop the informers here. UnwatchAll is invoked
 	// from reconciler.Stop, which the leader-elector triggers on
 	// OnLeadingEnded; the same operator process can win leadership again
-	// later and call Start, which expects the factory to still be alive.
-	// Closing the channel here used to wedge the second Start: new Watch
-	// calls would register informers on a factory whose stopCh is already
-	// closed, so the reflector goroutines exited immediately and no
-	// events were ever delivered.
+	// later and call Start, which expects the informers to still be alive.
+	// Stopping them here used to wedge the second Start: new Watch calls
+	// found informers whose stop channel was already closed, so the
+	// reflector goroutines exited immediately and no events were ever
+	// delivered.
 	//
-	// The factory's reflectors and watch streams are now tied to the
-	// watcher object's lifetime - they run until process exit (where the
-	// OS reclaims them). Per-resource handlers are removed via the
-	// individual Unwatch calls above, which is what actually stops events
-	// from reaching this Watch's callbacks.
+	// The informers' reflectors and watch streams are tied to the watcher
+	// object's lifetime - they run until process exit (where the OS
+	// reclaims them) unless the object limit stops one. Per-resource
+	// handlers are removed via the individual Unwatch calls above, which is
+	// what actually stops events from reaching this Watch's callbacks.
 }
 
 // WatchHelmReleaseSecrets - see the interface doc. The informer is metadata
-// only (no release payload decode), runs for the watcher's lifetime on the
-// shared factoryStopCh, and coalesces bursts of events (e.g. the initial-sync
+// only (no release payload decode), runs for the watcher's lifetime on
+// helmSecretsStopCh, and coalesces bursts of events (e.g. the initial-sync
 // storm, or a single `helm upgrade` writing several secrets) into one onChange
 // via a short debounce.
 func (self *watcher) WatchHelmReleaseSecrets(onChange func()) error {
@@ -774,7 +994,7 @@ func (self *watcher) WatchHelmReleaseSecrets(onChange func()) error {
 		return fmt.Errorf("set watch error handler: %w", err)
 	}
 
-	go informer.Run(self.factoryStopCh)
+	go informer.Run(self.helmSecretsStopCh)
 	self.logger.Info("Watching Helm release secrets for release-list cache invalidation")
 	return nil
 }
