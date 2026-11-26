@@ -53,3 +53,39 @@ func TestFluxInstanceKeepsTheOperatorsPatches(t *testing.T) {
 	assert.Len(t, patches, 2)
 	assert.Equal(t, map[string]any{"patch": "p"}, patches[0])
 }
+
+// Bitbucket takes an access token only under x-token-auth; every other host
+// keeps Flux's git convention.
+func TestFluxReadUsername(t *testing.T) {
+	tests := []struct {
+		name string
+		repo v1alpha1.GitOpsRepositoryConfig
+		want string
+	}{
+		{name: "github keeps git", repo: v1alpha1.GitOpsRepositoryConfig{URL: "https://github.com/acme/platform.git"}, want: "git"},
+		{name: "bitbucket cloud", repo: v1alpha1.GitOpsRepositoryConfig{URL: "https://bitbucket.org/acme/platform.git"}, want: "x-token-auth"},
+		{name: "self-hosted bitbucket host", repo: v1alpha1.GitOpsRepositoryConfig{URL: "https://bitbucket.acme.internal/scm/plat/platform.git"}, want: "x-token-auth"},
+		{
+			name: "bitbucket named by write.provider on a host that says nothing",
+			repo: v1alpha1.GitOpsRepositoryConfig{
+				URL:   "https://git.acme.internal/scm/plat/platform.git",
+				Write: &v1alpha1.GitOpsWriteConfig{Provider: "BITBUCKET"},
+			},
+			want: "x-token-auth",
+		},
+		{
+			name: "explicit provider wins over the host",
+			repo: v1alpha1.GitOpsRepositoryConfig{
+				URL:   "https://bitbucket.acme.internal/scm/plat/platform.git",
+				Write: &v1alpha1.GitOpsWriteConfig{Provider: "GIT_LAB"},
+			},
+			want: "git",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, fluxReadUsername(tt.repo))
+		})
+	}
+}

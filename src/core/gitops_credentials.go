@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"net/url"
 	"strings"
 
 	"mogenius-operator/src/gitops"
@@ -96,9 +95,10 @@ const (
 )
 
 const (
-	GitOpsProviderGitHub = gitops.ProviderGitHub
-	GitOpsProviderGitLab = gitops.ProviderGitLab
-	GitOpsProviderGitea  = gitops.ProviderGitea
+	GitOpsProviderGitHub    = gitops.ProviderGitHub
+	GitOpsProviderGitLab    = gitops.ProviderGitLab
+	GitOpsProviderGitea     = gitops.ProviderGitea
+	GitOpsProviderBitbucket = gitops.ProviderBitbucket
 )
 
 const gitOpsWriteDefaultUsername = gitops.DefaultWriteUsername
@@ -111,7 +111,8 @@ const (
 
 // Usernames of the read credential. x-token-auth is accepted as the username by
 // GitHub, GitLab and Gitea alike; Flux's basic-auth Secret conventionally
-// carries git.
+// carries git. Bitbucket takes its tokens only under x-token-auth, whatever the
+// engine (gitops.BitbucketReadUsername).
 const (
 	gitOpsArgoCDReadUsername = "x-token-auth"
 	gitOpsFluxReadUsername   = "git"
@@ -139,7 +140,7 @@ type GitOpsCredentialsRequest struct {
 	Username string `json:"username,omitempty"`
 	// Provider overrides the URL-derived provider, for a self-hosted host
 	// whose name says nothing.
-	Provider string `json:"provider,omitempty" validate:"omitempty,oneof=GIT_HUB GIT_LAB GITEA"`
+	Provider string `json:"provider,omitempty" validate:"omitempty,oneof=GIT_HUB GIT_LAB GITEA BITBUCKET"`
 	// WriteMode is how the platform commits: PULL_REQUEST or DIRECT_COMMIT.
 	// Defaults to PULL_REQUEST.
 	WriteMode string `json:"writeMode,omitempty" validate:"omitempty,oneof=PULL_REQUEST DIRECT_COMMIT"`
@@ -214,34 +215,18 @@ func defaultGitOpsEngineNamespace(engine string) string {
 }
 
 // deriveGitOpsProvider maps a repository URL onto the platform's provider
-// spelling, mirroring the host list the API itself matches on (github.,
-// gitlab., gitea., codeberg.org).
-//
-// The host is matched when the URL has one, and the whole string otherwise, so
-// an scp-style SSH remote (git@github.com:acme/platform.git) — which parses
-// without a host — is still recognised.
+// spelling (see gitops.ProviderFromURL).
 //
 // A URL that says nothing is an error, not an empty provider: a write
 // credential without a provider is skipped by the platform, so the alternative
 // is a cluster that looks onboarded and a first commit that cannot find a
 // credential.
 func deriveGitOpsProvider(repositoryURL string) (string, error) {
-	haystack := strings.ToLower(repositoryURL)
-	if parsed, err := url.Parse(repositoryURL); err == nil && parsed.Host != "" {
-		haystack = strings.ToLower(parsed.Host)
+	if provider := gitops.ProviderFromURL(repositoryURL); provider != "" {
+		return provider, nil
 	}
-
-	switch {
-	case strings.Contains(haystack, "github."):
-		return GitOpsProviderGitHub, nil
-	case strings.Contains(haystack, "gitlab."):
-		return GitOpsProviderGitLab, nil
-	case strings.Contains(haystack, "gitea."), strings.Contains(haystack, "codeberg.org"):
-		return GitOpsProviderGitea, nil
-	default:
-		return "", fmt.Errorf("cannot derive the git provider of %s: set provider to %s, %s or %s",
-			repositoryURL, GitOpsProviderGitHub, GitOpsProviderGitLab, GitOpsProviderGitea)
-	}
+	return "", fmt.Errorf("cannot derive the git provider of %s: set provider to %s, %s, %s or %s",
+		repositoryURL, GitOpsProviderGitHub, GitOpsProviderGitLab, GitOpsProviderGitea, GitOpsProviderBitbucket)
 }
 
 // resolveGitOpsProvider prefers an explicit provider — the self-hosted
@@ -250,11 +235,11 @@ func resolveGitOpsProvider(provider string, repositoryURL string) (string, error
 	switch provider {
 	case "":
 		return deriveGitOpsProvider(repositoryURL)
-	case GitOpsProviderGitHub, GitOpsProviderGitLab, GitOpsProviderGitea:
+	case GitOpsProviderGitHub, GitOpsProviderGitLab, GitOpsProviderGitea, GitOpsProviderBitbucket:
 		return provider, nil
 	default:
-		return "", fmt.Errorf("provider %q cannot write files: set it to one of %s, %s, %s",
-			provider, GitOpsProviderGitHub, GitOpsProviderGitLab, GitOpsProviderGitea)
+		return "", fmt.Errorf("provider %q cannot write files: set it to one of %s, %s, %s, %s",
+			provider, GitOpsProviderGitHub, GitOpsProviderGitLab, GitOpsProviderGitea, GitOpsProviderBitbucket)
 	}
 }
 
@@ -364,7 +349,11 @@ func gitOpsReadCredentialSecret(resolved resolvedGitOpsCredentials) *corev1.Secr
 		return secret
 	}
 
-	secret.Data[gitOpsReadSecretUsernameKey] = []byte(gitOpsFluxReadUsername)
+	username := gitOpsFluxReadUsername
+	if resolved.provider == GitOpsProviderBitbucket {
+		username = gitops.BitbucketReadUsername
+	}
+	secret.Data[gitOpsReadSecretUsernameKey] = []byte(username)
 	return secret
 }
 

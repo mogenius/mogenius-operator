@@ -70,7 +70,7 @@ func (d *reconcilerModule) reconcileFluxCD(ctx context.Context, spec v1alpha1.Pl
 					if d.crdChecker.IsAvailable(utils.ExternalSecretResource) {
 						extraObjects = append(extraObjects, externalSecretResource(name, namespace, *repo.ExternalSecret, nil,
 							map[string]string{
-								"username": "git",
+								"username": fluxReadUsername(repo),
 								"password": fmt.Sprintf("{{ .%s }}", repoSecretKey),
 							},
 						))
@@ -241,4 +241,18 @@ func fluxGitRepositoryObject(name string, repo v1alpha1.GitOpsRepositoryConfig, 
 		},
 		"spec": spec,
 	}
+}
+
+// fluxReadUsername is the username of a repository's Flux read credential: git
+// by Flux's convention, except on Bitbucket, which takes an access token only
+// under x-token-auth.
+func fluxReadUsername(repo v1alpha1.GitOpsRepositoryConfig) string {
+	provider := ""
+	if repo.Write != nil {
+		provider = repo.Write.Provider
+	}
+	if gitops.IsBitbucket(provider, repo.URL) {
+		return gitops.BitbucketReadUsername
+	}
+	return "git"
 }

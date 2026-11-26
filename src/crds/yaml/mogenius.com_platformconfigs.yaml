@@ -630,7 +630,7 @@ spec:
                               - PULL_REQUEST
                               type: string
                             provider:
-                              description: Provider is "GIT_HUB", "GIT_LAB" or "GITEA".
+                              description: Provider is "GIT_HUB", "GIT_LAB", "GITEA" or "BITBUCKET".
                                 Derived from url when empty.
                               type: string
                             secretRef:

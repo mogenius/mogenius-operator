@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"net/url"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -80,10 +82,54 @@ const (
 
 // Git providers, in the platform's spelling.
 const (
-	ProviderGitHub = "GIT_HUB"
-	ProviderGitLab = "GIT_LAB"
-	ProviderGitea  = "GITEA"
+	ProviderGitHub    = "GIT_HUB"
+	ProviderGitLab    = "GIT_LAB"
+	ProviderGitea     = "GITEA"
+	ProviderBitbucket = "BITBUCKET"
 )
+
+// BitbucketReadUsername is the username Bitbucket takes an access token under
+// over HTTPS: Bitbucket Cloud always, Server / Data Center from 9.3 on for
+// project and repository tokens. Neither accepts the token under another name,
+// so it overrides the engine's own default (git for Flux).
+const BitbucketReadUsername = "x-token-auth"
+
+// ProviderFromURL maps a repository URL onto the platform's provider spelling,
+// mirroring the host list the API itself matches on (github., gitlab., gitea.,
+// codeberg.org, bitbucket.). Empty when the URL says nothing — a self-hosted
+// host has to name its provider explicitly.
+//
+// The host is matched when the URL has one, and the whole string otherwise, so
+// an scp-style SSH remote (git@github.com:acme/platform.git) — which parses
+// without a host — is still recognised.
+func ProviderFromURL(repositoryURL string) string {
+	haystack := strings.ToLower(repositoryURL)
+	if parsed, err := url.Parse(repositoryURL); err == nil && parsed.Host != "" {
+		haystack = strings.ToLower(parsed.Host)
+	}
+
+	switch {
+	case strings.Contains(haystack, "github."):
+		return ProviderGitHub
+	case strings.Contains(haystack, "gitlab."):
+		return ProviderGitLab
+	case strings.Contains(haystack, "gitea."), strings.Contains(haystack, "codeberg.org"):
+		return ProviderGitea
+	case strings.Contains(haystack, "bitbucket."):
+		return ProviderBitbucket
+	default:
+		return ""
+	}
+}
+
+// IsBitbucket answers whether a repository is on Bitbucket: named so
+// explicitly, or on a host that says so.
+func IsBitbucket(provider string, repositoryURL string) bool {
+	if provider != "" {
+		return provider == ProviderBitbucket
+	}
+	return ProviderFromURL(repositoryURL) == ProviderBitbucket
+}
 
 // DefaultWriteUsername is the platform's default; only some provider APIs use
 // the username at all.

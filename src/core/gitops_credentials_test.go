@@ -263,9 +263,19 @@ func TestResolveGitOpsProvider(t *testing.T) {
 		// "refuses a provider that cannot write files"
 		{
 			name:          "refuses a provider that cannot write files",
-			provider:      "BITBUCKET",
+			provider:      "AZURE_DEVOPS",
 			repositoryURL: testRepositoryURL,
-			wantErr:       `provider "BITBUCKET" cannot write files`,
+			wantErr:       `provider "AZURE_DEVOPS" cannot write files`,
+		},
+		// Bitbucket Cloud and Server / Data Center are written to by the API
+		// since MOG-4896; the operator has to place their credentials too.
+		{name: "derives BITBUCKET from bitbucket cloud", repositoryURL: "https://bitbucket.org/acme/platform.git", want: GitOpsProviderBitbucket},
+		{name: "derives BITBUCKET from a self-hosted bitbucket host", repositoryURL: "https://bitbucket.acme.internal/scm/plat/platform.git", want: GitOpsProviderBitbucket},
+		{
+			name:          "takes BITBUCKET explicitly for a host that says nothing",
+			provider:      GitOpsProviderBitbucket,
+			repositoryURL: "https://git.acme.internal/scm/plat/platform.git",
+			want:          GitOpsProviderBitbucket,
 		},
 		{
 			name:          "refuses a repository path that only looks like a host",
@@ -345,6 +355,29 @@ func TestUpsertGitOpsCredentialsArgoCDReadCredential(t *testing.T) {
 	// x-token-auth is accepted as the username by GitHub, GitLab and Gitea alike.
 	assert.Equal(t, []byte("x-token-auth"), secret.Data[gitOpsReadSecretUsernameKey])
 	assert.Equal(t, []byte("ghp_test"), secret.Data[gitOpsReadSecretPasswordKey])
+}
+
+// Bitbucket takes an access token only under x-token-auth — Cloud always,
+// Server / Data Center from 9.3 on for project and repository tokens — so
+// Flux's git convention does not apply there.
+func TestUpsertGitOpsCredentialsBitbucketReadCredential(t *testing.T) {
+	for _, engine := range []string{gitops.EngineFlux, gitops.EngineArgoCD} {
+		t.Run(engine, func(t *testing.T) {
+			client := fake.NewClientset()
+			request := testCredentialsRequest()
+			request.RepositoryURL = "https://git.acme.internal/scm/plat/platform.git"
+			request.Provider = GitOpsProviderBitbucket
+			request.Engine = engine
+			upsertForTest(t, client, request)
+
+			read := readSecretOf(t, client, defaultGitOpsEngineNamespace(engine), request.RepositoryName)
+			assert.Equal(t, []byte("x-token-auth"), read.Data[gitOpsReadSecretUsernameKey])
+			assert.Equal(t, []byte(request.Token), read.Data[gitOpsReadSecretPasswordKey])
+
+			write := writeSecretOf(t, client, request.RepositoryName)
+			assert.Equal(t, []byte(GitOpsProviderBitbucket), write.Data[gitOpsWriteSecretProviderKey])
+		})
+	}
 }
 
 func TestUpsertGitOpsCredentialsHonorsExplicitEngineNamespace(t *testing.T) {

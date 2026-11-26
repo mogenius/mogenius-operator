@@ -157,7 +157,7 @@ type GitOpsWriteConfig struct {
 	// the operator will automatically create the externalsecret for you in the mogenius-operator`s namespace.
 	// +optional
 	SecretRef *GenericSecretReference `json:"secretRef,omitempty"`
-	// Provider is "GIT_HUB", "GIT_LAB" or "GITEA". Derived from url when empty.
+	// Provider is "GIT_HUB", "GIT_LAB", "GITEA" or "BITBUCKET". Derived from url when empty.
 	// +optional
 	Provider string `json:"provider,omitempty"`
 }
