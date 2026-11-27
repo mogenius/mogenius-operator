@@ -75,6 +75,47 @@ func TestServeProxiesWithTheTunnelsHostAndTheBrowsersAddress(t *testing.T) {
 	assert.Equal(t, "https", gotProto)
 }
 
+func TestServeReplacesTheAddressHeadersABrowserSends(t *testing.T) {
+	tests := []struct {
+		name      string
+		clientIP  string
+		wantFor   string
+		wantReal  string
+		wantFound bool
+	}{
+		{name: "known address", clientIP: "2001:db8::7", wantFor: "2001:db8::7", wantReal: "2001:db8::7", wantFound: true},
+		{name: "unknown address", clientIP: "", wantFound: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := make(chan http.Header, 1)
+			target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				got <- r.Header.Clone()
+			}))
+			defer target.Close()
+
+			conn := serveOverPipe(t, target, NewSelfSigned(), tt.clientIP)
+			client := tls.Client(conn, &tls.Config{ServerName: testHostname, InsecureSkipVerify: true}) //nolint:gosec
+			require.NoError(t, client.Handshake())
+			req, _ := http.NewRequest(http.MethodGet, "https://"+testHostname+"/", nil)
+			req.Header.Set("X-Forwarded-For", "1.2.3.4")
+			req.Header.Set("X-Real-IP", "1.2.3.4")
+			require.NoError(t, req.Write(client))
+			res, err := http.ReadResponse(bufio.NewReader(client), req)
+			require.NoError(t, err)
+			_ = res.Body.Close()
+
+			header := <-got
+			_, hasFor := header["X-Forwarded-For"]
+			_, hasReal := header["X-Real-Ip"]
+			assert.Equal(t, tt.wantFound, hasFor)
+			assert.Equal(t, tt.wantFound, hasReal)
+			assert.Equal(t, tt.wantFor, header.Get("X-Forwarded-For"))
+			assert.Equal(t, tt.wantReal, header.Get("X-Real-IP"))
+		})
+	}
+}
+
 func TestServeRefusesAnotherServerName(t *testing.T) {
 	target := httptest.NewServer(http.NotFoundHandler())
 	defer target.Close()

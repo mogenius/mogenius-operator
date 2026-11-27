@@ -154,6 +154,13 @@ func NewProxy(dial func(ctx context.Context) (net.Conn, error), targetTLS bool, 
 			// Every request here came over TLS; the server cannot tell, since
 			// the connection is wrapped to notice its close.
 			r.Out.Header.Set("X-Forwarded-Proto", "https")
+			// X-Real-IP is the browser's address too, never what the browser
+			// sent: SetXForwarded leaves the header alone. Without a known
+			// address (a pipe has none) both headers stay away.
+			r.Out.Header.Del("X-Real-Ip")
+			if clientIP := r.Out.Header.Get("X-Forwarded-For"); clientIP != "" {
+				r.Out.Header.Set("X-Real-Ip", clientIP)
+			}
 		},
 		Transport: &http.Transport{
 			DialContext: func(ctx context.Context, _, _ string) (net.Conn, error) {
