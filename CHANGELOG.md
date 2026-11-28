@@ -1,5 +1,34 @@
 # Changelog
 
+## [2.36.0](https://github.com/mogenius/mogenius-operator/compare/v2.35.0...v2.36.0) (2026-11-28)
+
+
+### Features
+
+* **gitops:** accept Bitbucket for GitOps credentials, clone with x-token-auth (MOG-5190) ([1c88e7d](https://github.com/mogenius/mogenius-operator/commit/1c88e7d0a5a8e194542126b322a46b6fa51bb2c5))
+
+
+### Bug Fixes
+
+* (tunnel) X-Real-IP carries the visitor's address, never what the browser sent ([27bff47](https://github.com/mogenius/mogenius-operator/commit/27bff4759fa1c3283528318a3fbc71398d5a90cc))
+* **deps:** update kubernetes monorepo to v0.37.3 ([#1496](https://github.com/mogenius/mogenius-operator/issues/1496)) ([f77cb29](https://github.com/mogenius/mogenius-operator/commit/f77cb29784e3dd6222eadf8caad05411a563acbb))
+* **deps:** update module github.com/alicebob/miniredis/v2 to v2.41.0 ([c5bf5c5](https://github.com/mogenius/mogenius-operator/commit/c5bf5c59d433e591b0a0f4dab7ff3184cf1c1e2d))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.13.0 ([#1477](https://github.com/mogenius/mogenius-operator/issues/1477)) ([da907f4](https://github.com/mogenius/mogenius-operator/commit/da907f480afa4b565d11dbc208abdbdb64b16c04))
+* **deps:** update module github.com/anthropics/anthropic-sdk-go/v2 to v2.15.0 ([0aba9bb](https://github.com/mogenius/mogenius-operator/commit/0aba9bb73680c277c4195764655da100b3af24dc))
+* **deps:** update module github.com/go-acme/lego/v5 to v5.7.0 ([1864516](https://github.com/mogenius/mogenius-operator/commit/1864516ea0152f7c1706a6c114287a16977d83ba))
+* **deps:** update module github.com/go-acme/lego/v5 to v5.8.0 ([#1501](https://github.com/mogenius/mogenius-operator/issues/1501)) ([9d87dd9](https://github.com/mogenius/mogenius-operator/commit/9d87dd9cde07ff4755fe0338dddd17a63ecf13a9))
+* **deps:** update module github.com/ollama/ollama to v0.40.17 ([#1479](https://github.com/mogenius/mogenius-operator/issues/1479)) ([0af3543](https://github.com/mogenius/mogenius-operator/commit/0af3543402d663ad24ec556648c514d6410fecdf))
+* **deps:** update module github.com/ollama/ollama to v0.40.18 ([3671650](https://github.com/mogenius/mogenius-operator/commit/36716509c7a16c93464ec9ac099605ce3f5212bf))
+* **deps:** update module github.com/ollama/ollama to v0.40.19 ([#1502](https://github.com/mogenius/mogenius-operator/issues/1502)) ([705065a](https://github.com/mogenius/mogenius-operator/commit/705065a913aa9cf50e613c6590c45f8cb7cc4096))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.105.0 ([#1475](https://github.com/mogenius/mogenius-operator/issues/1475)) ([7093a9c](https://github.com/mogenius/mogenius-operator/commit/7093a9c5609f302f49396ca7fc103890ffa932d2))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.107.0 ([#1484](https://github.com/mogenius/mogenius-operator/issues/1484)) ([fbb8fc2](https://github.com/mogenius/mogenius-operator/commit/fbb8fc2a27e36592673bd95a3ac067d8aa8186e6))
+* **deps:** update module github.com/openai/openai-go/v3 to v3.108.0 ([#1498](https://github.com/mogenius/mogenius-operator/issues/1498)) ([000435e](https://github.com/mogenius/mogenius-operator/commit/000435e8359eb33d6e82dec044366902b9aa2391))
+* **deps:** update module github.com/pkg/sftp to v1.13.13 ([799149e](https://github.com/mogenius/mogenius-operator/commit/799149e93dbe0971b92e6e4af206a756e15b00be))
+* pass operator version to mcp server ([1e4e539](https://github.com/mogenius/mogenius-operator/commit/1e4e5390855f955a1d9c245613665d061e6d233c))
+* ran go fix against the codebase ([b99d186](https://github.com/mogenius/mogenius-operator/commit/b99d1866f69e51703a9b612909b64f241e1529fd))
+* ran go mod tidy ([b56c680](https://github.com/mogenius/mogenius-operator/commit/b56c68030e5890ef6f113d1bd90e341bd13d7de4))
+* **watcher:** stop resource kinds that exceed an object limit ([6da4a08](https://github.com/mogenius/mogenius-operator/commit/6da4a0838491da9632bbc5f524159c8e27f67230))
+
 ## [2.35.0](https://github.com/mogenius/mogenius-operator/compare/v2.34.0...v2.35.0) (2026-11-20)
 
 
